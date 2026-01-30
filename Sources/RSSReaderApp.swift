@@ -22,6 +22,7 @@ struct WindowAccessor: NSViewRepresentable {
 @main
 struct RSSReaderApp: App {
     @StateObject private var store = FeedStore()
+    @AppStorage("rssAppearanceMode") private var appearanceMode: String = "system"
     
     var body: some Scene {
         MenuBarExtra("RSS Reader", systemImage: store.unreadCount > 0 ? "newspaper.fill" : "newspaper") {
@@ -34,9 +35,18 @@ struct RSSReaderApp: App {
             PreferencesView()
                 .environmentObject(store)
                 .background(WindowAccessor())
+                .preferredColorScheme(colorScheme)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+    }
+    
+    private var colorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
     }
 }

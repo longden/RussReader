@@ -236,17 +236,20 @@ struct SettingsTabView: View {
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
     @AppStorage("rssStickyWindow") private var stickyWindow: Bool = false
     
-    private let backgroundColors: [(name: String, hex: String)] = [
-        ("Dark", "#1E1E1E"),
-        ("Darker", "#121212"),
-        ("Navy", "#1a1a2e"),
-        ("Forest", "#1a2e1a"),
-        ("Wine", "#2e1a1a"),
-    ]
-    
     var body: some View {
         Form {
             Section {
+                HStack {
+                    Text("Appearance")
+                    Spacer()
+                    Picker("", selection: $store.appearanceMode) {
+                        Text("System").tag("system")
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                    }
+                    .frame(width: 120)
+                }
+                
                 HStack {
                     Text("Font Size")
                     Spacer()
@@ -269,23 +272,6 @@ struct SettingsTabView: View {
                         Text("200").tag(200)
                     }
                     .frame(width: 100)
-                }
-                
-                HStack {
-                    Text("Background Color")
-                    Spacer()
-                    Picker("", selection: $store.backgroundColorHex) {
-                        ForEach(backgroundColors, id: \.hex) { color in
-                            HStack {
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color(hex: color.hex))
-                                    .frame(width: 16, height: 16)
-                                Text(color.name)
-                            }
-                            .tag(color.hex)
-                        }
-                    }
-                    .frame(width: 120)
                 }
             }
             
