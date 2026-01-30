@@ -18,7 +18,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
     @AppStorage("rssFontSize") var fontSize: Double = 13
-    @AppStorage("rssBackgroundColorHex") var backgroundColorHex: String = "#1E1E1E"
+    @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"

@@ -29,121 +29,118 @@ extension Color {
     }
 }
 
-let rowColors: [Color] = [
-    Color(hex: "#2D5A4A"),  // Teal green
-    Color(hex: "#3D4A5C"),  // Slate blue
-    Color(hex: "#4A3D5C"),  // Purple
-    Color(hex: "#5C3D4A"),  // Rose
-    Color(hex: "#4A5C3D"),  // Olive
-]
+// MARK: - Glass Effect Components
+
+struct GlassBackground: View {
+    var body: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+    }
+}
 
 // MARK: - Main View
 
 struct RSSReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("rssAppearanceMode") private var appearanceMode: String = "system"
     @State private var hoveredItemId: UUID?
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-
-            filterTabsView
-
-            whiteSpacer
-
-            if store.filteredItems.isEmpty {
-                emptyStateView
-            } else {
-                itemListView
+        ZStack {
+            GlassBackground()
+            
+            VStack(spacing: 0) {
+                headerView
+                
+                filterTabsView
+                
+                Divider()
+                
+                if store.filteredItems.isEmpty {
+                    emptyStateView
+                } else {
+                    itemListView
+                }
+                
+                Divider()
+                
+                footerView
             }
-
-            whiteSpacer
-
-            footerView
         }
         .frame(width: 380, height: 520)
-        .background(Color(hex: store.backgroundColorHex))
+        .preferredColorScheme(colorScheme)
         .alert("Error", isPresented: $store.showingError) {
             Button("OK") { store.showingError = false }
         } message: {
             Text(store.errorMessage ?? "An unknown error occurred.")
         }
     }
+    
+    private var colorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
 
     // MARK: - Header View
-
-    private var whiteSpacer: some View {
-        Spacer()
-            .frame(height: 1)
-            .background(Color.white.opacity(0.1))
-    }
 
     private var headerView: some View {
         HStack(spacing: 16) {
             Image(systemName: "newspaper.fill")
                 .font(.system(size: 18))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.primary)
 
             Spacer()
 
-            HStack(spacing: 12) {
-                Button {
+            HStack(spacing: 4) {
+                HeaderButton(
+                    systemImage: store.isRefreshing 
+                        ? "arrow.trianglehead.2.clockwise.rotate.90" 
+                        : "arrow.clockwise",
+                    help: "Refresh feeds",
+                    isAnimating: store.isRefreshing
+                ) {
                     Task { await store.refreshAll() }
-                } label: {
-                    Image(
-                        systemName: store.isRefreshing
-                            ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise"
-                    )
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
-                    .animation(
-                        store.isRefreshing
-                            ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
-                        value: store.isRefreshing)
                 }
-                .buttonStyle(.plain)
                 .keyboardShortcut("r")
-                .help("Refresh feeds")
 
-                Button {
+                HeaderButton(
+                    systemImage: "gearshape.fill",
+                    help: "Preferences"
+                ) {
                     openWindow(id: "preferences")
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
                 }
-                .buttonStyle(.plain)
                 .keyboardShortcut(",")
-                .help("Preferences")
 
-                Button {
+                HeaderButton(
+                    systemImage: "checkmark.circle.fill",
+                    help: "Mark all as read",
+                    isDisabled: store.unreadCount == 0
+                ) {
                     store.markAllAsRead()
-                } label: {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
                 }
-                .buttonStyle(.plain)
-                .help("Mark all as read")
-                .disabled(store.unreadCount == 0)
 
-                Button {
+                HeaderButton(
+                    systemImage: "xmark.circle.fill",
+                    help: "Quit"
+                ) {
                     NSApplication.shared.terminate(nil)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
                 }
-                .buttonStyle(.plain)
                 .keyboardShortcut("q")
-                .help("Quit")
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.black.opacity(0.2))
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(Color.primary.opacity(0.1)),
+            alignment: .bottom
+        )
     }
 
     // MARK: - Filter Tabs View
@@ -157,7 +154,7 @@ struct RSSReaderView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(Color.black.opacity(0.2))
+        .background(.thinMaterial)
     }
 
     private func filterTab(_ filterOption: FeedFilter) -> some View {
@@ -168,12 +165,11 @@ struct RSSReaderView: View {
 
     private var itemListView: some View {
         ScrollView {
-            LazyVStack(spacing: 1) {
-                ForEach(Array(store.filteredItems.enumerated()), id: \.element.id) { index, item in
+            LazyVStack(spacing: 0) {
+                ForEach(store.filteredItems) { item in
                     FeedItemRow(
                         item: item,
                         feedTitle: store.feedTitle(for: item),
-                        backgroundColor: rowColors[index % rowColors.count],
                         isHovered: hoveredItemId == item.id,
                         fontSize: store.fontSize
                     )
@@ -198,6 +194,7 @@ struct RSSReaderView: View {
                     }
                 }
             }
+            .padding(.vertical, 0)
         }
     }
 
@@ -209,11 +206,11 @@ struct RSSReaderView: View {
 
             Image(systemName: store.filter == .starred ? "star.slash" : "tray")
                 .font(.system(size: 40))
-                .foregroundStyle(.white.opacity(0.3))
+                .foregroundStyle(.secondary)
 
             Text(emptyStateMessage)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             if store.feeds.isEmpty {
@@ -256,14 +253,14 @@ struct RSSReaderView: View {
                 Text("All Unread")
                     .font(.system(size: 11, weight: .medium))
             }
-            .foregroundStyle(.white.opacity(0.5))
+            .foregroundStyle(.secondary)
 
             Spacer()
 
             if let lastRefresh = store.lastRefreshTime {
                 Text(relativeTimeString(from: lastRefresh))
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.secondary)
             }
 
             if store.unreadCount > 0 {
@@ -274,12 +271,18 @@ struct RSSReaderView: View {
                     Text("\(store.unreadCount)")
                         .font(.system(size: 11, weight: .bold))
                 }
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.primary)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.black.opacity(0.3))
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(Color.primary.opacity(0.1)),
+            alignment: .top
+        )
     }
 
     private func relativeTimeString(from date: Date) -> String {
@@ -294,7 +297,6 @@ struct RSSReaderView: View {
 struct FeedItemRow: View {
     let item: FeedItem
     let feedTitle: String
-    let backgroundColor: Color
     let isHovered: Bool
     let fontSize: Double
 
@@ -315,7 +317,7 @@ struct FeedItemRow: View {
 
                     Text(item.title)
                         .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
-                        .foregroundStyle(item.isRead ? .white.opacity(0.7) : .white)
+                        .foregroundStyle(.primary.opacity(item.isRead ? 0.7 : 1.0))
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
@@ -323,14 +325,14 @@ struct FeedItemRow: View {
                 HStack(spacing: 8) {
                     Text(feedTitle)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
 
                     if let pubDate = item.pubDate {
                         Text("•")
-                            .foregroundStyle(.white.opacity(0.3))
+                            .foregroundStyle(.secondary.opacity(0.5))
                         Text(formatDate(pubDate))
                             .font(.system(size: 10))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -339,7 +341,14 @@ struct FeedItemRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(backgroundColor.opacity(isHovered ? 0.9 : 0.7))
+        .frame(maxWidth: .infinity)
+        .background(isHovered ? Color.primary.opacity(0.08) : Color.clear)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(Color.primary.opacity(0.08)),
+            alignment: .bottom
+        )
         .contentShape(Rectangle())
     }
 
@@ -384,16 +393,6 @@ struct FilterTabButton: View {
             }
         }()
 
-        let backgroundColor: Color = {
-            if isSelected {
-                return rowColors[filterOption.colorIndex]
-            } else if isHovered {
-                return rowColors[filterOption.colorIndex].opacity(0.5)
-            } else {
-                return Color.clear
-            }
-        }()
-
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) {
                 store.filter = filterOption
@@ -411,15 +410,26 @@ struct FilterTabButton: View {
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.2))
+                        .background(Color.primary.opacity(0.15))
                         .clipShape(Capsule())
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(isSelected ? .primary : .secondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .background(
+                Group {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.primary.opacity(0.1))
+                    } else if isHovered {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.primary.opacity(0.05))
+                    } else {
+                        Color.clear
+                    }
+                }
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -429,14 +439,50 @@ struct FilterTabButton: View {
     }
 }
 
-// MARK: - Feed Filter Extension
+// MARK: - Header Button
 
-extension FeedFilter {
-    var colorIndex: Int {
-        switch self {
-        case .all: return 0
-        case .unread: return 1
-        case .starred: return 3
+struct HeaderButton: View {
+    let systemImage: String
+    let help: String
+    var isDisabled: Bool = false
+    var isAnimating: Bool = false
+    let action: () -> Void
+    
+    @State private var isHovered: Bool = false
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(foregroundColor)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(isHovered ? Color.primary.opacity(0.1) : Color.clear)
+                )
+                .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                .animation(
+                    isAnimating 
+                        ? .linear(duration: 1).repeatForever(autoreverses: false) 
+                        : .default,
+                    value: isAnimating
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .help(help)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+    
+    private var foregroundColor: Color {
+        if isDisabled {
+            return Color.secondary.opacity(0.5)
+        } else if isHovered {
+            return Color.primary
+        } else {
+            return Color.secondary
         }
     }
 }
