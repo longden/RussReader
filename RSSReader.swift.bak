@@ -11,7 +11,7 @@ struct RSSReaderApp: App {
     
     var body: some Scene {
         MenuBarExtra("RSS Reader", systemImage: store.unreadCount > 0 ? "newspaper.fill" : "newspaper") {
-            RSSReaderView()
+            RSSReaderView()√
                 .environmentObject(store)
         }
         .menuBarExtraStyle(.window)
