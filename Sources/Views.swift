@@ -29,12 +29,64 @@ extension Color {
     }
 }
 
-// MARK: - Glass Effect Components
+// MARK: - View Modifiers
 
-struct GlassBackground: View {
-    var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
+struct HeaderButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .labelStyle(.iconOnly)
+            .font(.system(size: 14, weight: .medium))
+            .buttonStyle(.borderless)
+    }
+}
+
+struct FeedItemContextMenu: ViewModifier {
+    let item: FeedItem
+    let store: FeedStore
+    
+    func body(content: Content) -> some View {
+        content
+            .contextMenu {
+                Button(item.isRead ? "Mark as Unread" : "Mark as Read") {
+                    store.toggleRead(item)
+                }
+                Button(item.isStarred ? "Unstar" : "Star") {
+                    store.toggleStarred(item)
+                }
+                Divider()
+                Button("Copy Link") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(item.link, forType: .string)
+                }
+            }
+    }
+}
+
+struct SectionDivider: ViewModifier {
+    var alignment: Alignment = .bottom
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundStyle(Color.primary.opacity(0.1)),
+                alignment: alignment
+            )
+    }
+}
+
+extension View {
+    func headerButtonStyle() -> some View {
+        modifier(HeaderButtonStyle())
+    }
+    
+    func feedItemContextMenu(item: FeedItem, store: FeedStore) -> some View {
+        modifier(FeedItemContextMenu(item: item, store: store))
+    }
+    
+    func sectionDivider(alignment: Alignment = .bottom) -> some View {
+        modifier(SectionDivider(alignment: alignment))
     }
 }
 
@@ -47,27 +99,21 @@ struct RSSReaderView: View {
     @State private var hoveredItemId: UUID?
 
     var body: some View {
-        ZStack {
-            GlassBackground()
+        VStack(spacing: 0) {
+            headerView
+            filterTabsView
+            Divider()
             
-            VStack(spacing: 0) {
-                headerView
-                
-                filterTabsView
-                
-                Divider()
-                
-                if store.filteredItems.isEmpty {
-                    emptyStateView
-                } else {
-                    itemListView
-                }
-                
-                Divider()
-                
-                footerView
+            if store.filteredItems.isEmpty {
+                emptyStateView
+            } else {
+                itemListView
             }
+            
+            Divider()
+            footerView
         }
+        .background(.ultraThinMaterial)
         .frame(width: 380, height: 520)
         .preferredColorScheme(colorScheme)
         .alert("Error", isPresented: $store.showingError) {
@@ -96,61 +142,35 @@ struct RSSReaderView: View {
             Spacer()
 
             HStack(spacing: 12) {
-                Button(action: { Task { await store.refreshAll() } }) {
-                    Label("Refresh feeds", systemImage: store.isRefreshing 
-                        ? "arrow.trianglehead.2.clockwise.rotate.90" 
-                        : "arrow.clockwise")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 14, weight: .medium))
+                headerButton("Refresh feeds", icon: store.isRefreshing 
+                    ? "arrow.trianglehead.2.clockwise.rotate.90" 
+                    : "arrow.clockwise") {
+                    Task { await store.refreshAll() }
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh feeds")
                 .keyboardShortcut("r")
                 .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
-                .animation(
-                    store.isRefreshing 
-                        ? .linear(duration: 1).repeatForever(autoreverses: false) 
-                        : .default,
-                    value: store.isRefreshing
-                )
+                .animation(store.isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: store.isRefreshing)
 
-                Button(action: { openWindow(id: "preferences") }) {
-                    Label("Preferences", systemImage: "gearshape.fill")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 14, weight: .medium))
+                headerButton("Preferences", icon: "gearshape.fill") {
+                    openWindow(id: "preferences")
                 }
-                .buttonStyle(.borderless)
-                .help("Preferences")
                 .keyboardShortcut(",")
 
-                Button(action: { store.markAllAsRead() }) {
-                    Label("Mark all as read", systemImage: "checkmark.circle.fill")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 14, weight: .medium))
+                headerButton("Mark all as read", icon: "checkmark.circle.fill") {
+                    store.markAllAsRead()
                 }
-                .buttonStyle(.borderless)
-                .help("Mark all as read")
                 .disabled(store.unreadCount == 0)
 
-                Button(action: { NSApplication.shared.terminate(nil) }) {
-                    Label("Quit", systemImage: "xmark.circle.fill")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 14, weight: .medium))
+                headerButton("Quit", icon: "xmark.circle.fill") {
+                    NSApplication.shared.terminate(nil)
                 }
-                .buttonStyle(.borderless)
-                .help("Quit")
                 .keyboardShortcut("q")
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundStyle(Color.primary.opacity(0.1)),
-            alignment: .bottom
-        )
+        .sectionDivider()
     }
 
     // MARK: - Filter Tabs View
@@ -189,19 +209,7 @@ struct RSSReaderView: View {
                     .onTapGesture {
                         store.openItem(item)
                     }
-                    .contextMenu {
-                        Button(item.isRead ? "Mark as Unread" : "Mark as Read") {
-                            store.toggleRead(item)
-                        }
-                        Button(item.isStarred ? "Unstar" : "Star") {
-                            store.toggleStarred(item)
-                        }
-                        Divider()
-                        Button("Copy Link") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(item.link, forType: .string)
-                        }
-                    }
+                    .feedItemContextMenu(item: item, store: store)
                     .onHover { isHovered in
                         hoveredItemId = isHovered ? item.id : nil
                     }
@@ -290,14 +298,19 @@ struct RSSReaderView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundStyle(Color.primary.opacity(0.1)),
-            alignment: .top
-        )
+        .sectionDivider(alignment: .top)
     }
 
+    // MARK: - Helper Methods
+    
+    private func headerButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+        }
+        .headerButtonStyle()
+        .help(title)
+    }
+    
     private func relativeTimeString(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
@@ -356,12 +369,7 @@ struct FeedItemRow: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(isHovered ? Color.primary.opacity(0.08) : Color.clear)
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundStyle(Color.primary.opacity(0.08)),
-            alignment: .bottom
-        )
+        .sectionDivider()
         .contentShape(Rectangle())
     }
 
