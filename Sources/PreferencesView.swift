@@ -39,6 +39,7 @@ struct PreferencesView: View {
                     tabButton(tab)
                 }
             }
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor))
             
@@ -76,6 +77,7 @@ struct PreferencesView: View {
             }
             .foregroundStyle(isSelected ? .blue : .secondary)
             .frame(width: 60)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
