@@ -95,45 +95,55 @@ struct RSSReaderView: View {
 
             Spacer()
 
-            HStack(spacing: 4) {
-                HeaderButton(
-                    systemImage: store.isRefreshing 
+            HStack(spacing: 12) {
+                Button(action: { Task { await store.refreshAll() } }) {
+                    Label("Refresh feeds", systemImage: store.isRefreshing 
                         ? "arrow.trianglehead.2.clockwise.rotate.90" 
-                        : "arrow.clockwise",
-                    help: "Refresh feeds",
-                    isAnimating: store.isRefreshing
-                ) {
-                    Task { await store.refreshAll() }
+                        : "arrow.clockwise")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
                 }
+                .buttonStyle(.borderless)
+                .help("Refresh feeds")
                 .keyboardShortcut("r")
+                .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
+                .animation(
+                    store.isRefreshing 
+                        ? .linear(duration: 1).repeatForever(autoreverses: false) 
+                        : .default,
+                    value: store.isRefreshing
+                )
 
-                HeaderButton(
-                    systemImage: "gearshape.fill",
-                    help: "Preferences"
-                ) {
-                    openWindow(id: "preferences")
+                Button(action: { openWindow(id: "preferences") }) {
+                    Label("Preferences", systemImage: "gearshape.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
                 }
+                .buttonStyle(.borderless)
+                .help("Preferences")
                 .keyboardShortcut(",")
 
-                HeaderButton(
-                    systemImage: "checkmark.circle.fill",
-                    help: "Mark all as read",
-                    isDisabled: store.unreadCount == 0
-                ) {
-                    store.markAllAsRead()
+                Button(action: { store.markAllAsRead() }) {
+                    Label("Mark all as read", systemImage: "checkmark.circle.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
                 }
+                .buttonStyle(.borderless)
+                .help("Mark all as read")
+                .disabled(store.unreadCount == 0)
 
-                HeaderButton(
-                    systemImage: "xmark.circle.fill",
-                    help: "Quit"
-                ) {
-                    NSApplication.shared.terminate(nil)
+                Button(action: { NSApplication.shared.terminate(nil) }) {
+                    Label("Quit", systemImage: "xmark.circle.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
                 }
+                .buttonStyle(.borderless)
+                .help("Quit")
                 .keyboardShortcut("q")
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .overlay(
             Rectangle()
@@ -146,19 +156,22 @@ struct RSSReaderView: View {
     // MARK: - Filter Tabs View
 
     private var filterTabsView: some View {
-        HStack(spacing: 4) {
-            ForEach(FeedFilter.allCases, id: \.self) { filterOption in
-                filterTab(filterOption)
+        Picker("Filter", selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
+            ForEach(FeedFilter.allCases, id: \.self) { filter in
+                Label {
+                    Text(filter.rawValue)
+                } icon: {
+                    Image(systemName: filter.icon)
+                }
+                .tag(filter)
             }
         }
+        .pickerStyle(.segmented)
+        .labelsHidden()
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(.thinMaterial)
-    }
-
-    private func filterTab(_ filterOption: FeedFilter) -> some View {
-        FilterTabButton(filterOption: filterOption, store: store)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Item List View
@@ -376,113 +389,4 @@ struct FeedItemRow: View {
     }
 }
 
-// MARK: - Filter Tab Button
 
-struct FilterTabButton: View {
-    let filterOption: FeedFilter
-    @ObservedObject var store: FeedStore
-    @State private var isHovered: Bool = false
-
-    var body: some View {
-        let isSelected = store.filter == filterOption
-        let count: Int = {
-            switch filterOption {
-            case .all: return store.items.count
-            case .unread: return store.unreadCount
-            case .starred: return store.starredCount
-            }
-        }()
-
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                store.filter = filterOption
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: filterOption.icon)
-                    .font(.system(size: 11, weight: .medium))
-
-                Text(filterOption.rawValue)
-                    .font(.system(size: 12, weight: .medium))
-
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.15))
-                        .clipShape(Capsule())
-                }
-            }
-            .foregroundStyle(isSelected ? .primary : .secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Group {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.primary.opacity(0.1))
-                    } else if isHovered {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.primary.opacity(0.05))
-                    } else {
-                        Color.clear
-                    }
-                }
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-    }
-}
-
-// MARK: - Header Button
-
-struct HeaderButton: View {
-    let systemImage: String
-    let help: String
-    var isDisabled: Bool = false
-    var isAnimating: Bool = false
-    let action: () -> Void
-    
-    @State private var isHovered: Bool = false
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(foregroundColor)
-                .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(isHovered ? Color.primary.opacity(0.1) : Color.clear)
-                )
-                .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                .animation(
-                    isAnimating 
-                        ? .linear(duration: 1).repeatForever(autoreverses: false) 
-                        : .default,
-                    value: isAnimating
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-        .help(help)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-    }
-    
-    private var foregroundColor: Color {
-        if isDisabled {
-            return Color.secondary.opacity(0.5)
-        } else if isHovered {
-            return Color.primary
-        } else {
-            return Color.secondary
-        }
-    }
-}
