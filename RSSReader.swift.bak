@@ -1,0 +1,1446 @@
+import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
+import OSLog
+
+// MARK: - App Entry Point
+
+@main
+struct RSSReaderApp: App {
+    @StateObject private var store = FeedStore()
+    
+    var body: some Scene {
+        MenuBarExtra("RSS Reader", systemImage: store.unreadCount > 0 ? "newspaper.fill" : "newspaper") {
+            RSSReaderView()
+                .environmentObject(store)
+        }
+        .menuBarExtraStyle(.window)
+        
+        Window("Preferences", id: "preferences") {
+            PreferencesView()
+                .environmentObject(store)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+    }
+}
+
+// MARK: - Filter State
+
+enum FeedFilter: String, CaseIterable {
+    case all = "All"
+    case unread = "Unread"
+    case starred = "Starred"
+    
+    var icon: String {
+        switch self {
+        case .all: return "list.bullet"
+        case .unread: return "circle.fill"
+        case .starred: return "star.fill"
+        }
+    }
+}
+
+// MARK: - Data Models
+
+struct Feed: Codable, Identifiable, Hashable {
+    let id: UUID
+    var title: String
+    var url: String
+    var lastFetched: Date?
+    var iconURL: String?
+    
+    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, iconURL: String? = nil) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.lastFetched = lastFetched
+        self.iconURL = iconURL
+    }
+}
+
+struct FeedItem: Codable, Identifiable, Hashable {
+    let id: UUID
+    var feedId: UUID
+    var title: String
+    var link: String
+    var sourceId: String?
+    var description: String
+    var pubDate: Date?
+    var author: String?
+    var isRead: Bool
+    var isStarred: Bool
+    
+    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, isRead: Bool = false, isStarred: Bool = false) {
+        self.id = id
+        self.feedId = feedId
+        self.title = title
+        self.link = link
+        self.sourceId = sourceId
+        self.description = description
+        self.pubDate = pubDate
+        self.author = author
+        self.isRead = isRead
+        self.isStarred = isStarred
+    }
+}
+
+// MARK: - Feed Store
+
+@MainActor
+final class FeedStore: ObservableObject {
+    @Published var feeds: [Feed] = []
+    @Published var items: [FeedItem] = []
+    @Published var filter: FeedFilter = .all
+    @Published var isRefreshing: Bool = false
+    @Published var lastRefreshTime: Date?
+    @Published var errorMessage: String?
+    @Published var showingError: Bool = false
+    
+    @AppStorage("rssHideReadItems") var hideReadItems: Bool = false
+    @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
+    @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
+    @AppStorage("rssFontSize") var fontSize: Double = 13
+    @AppStorage("rssBackgroundColorHex") var backgroundColorHex: String = "#1E1E1E"
+    
+    private let feedsKey = "rssFeeds"
+    private let itemsKey = "rssItems"
+    private var refreshTimer: Timer?
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSReader")
+    
+    var filteredItems: [FeedItem] {
+        var result = items
+        
+        // Apply filter
+        switch filter {
+        case .all:
+            break
+        case .unread:
+            result = result.filter { !$0.isRead }
+        case .starred:
+            result = result.filter { $0.isStarred }
+        }
+        
+        // Optionally hide read items
+        if hideReadItems && filter == .all {
+            result = result.filter { !$0.isRead || $0.isStarred }
+        }
+        
+        // Sort by date, newest first
+        result.sort { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
+        
+        return result
+    }
+    
+    var unreadCount: Int {
+        items.filter { !$0.isRead }.count
+    }
+    
+    var starredCount: Int {
+        items.filter { $0.isStarred }.count
+    }
+    
+    init() {
+        load()
+        startRefreshTimer()
+        
+        // Add default feeds if empty
+        if feeds.isEmpty {
+            addDefaultFeeds()
+        }
+    }
+    
+    private func addDefaultFeeds() {
+        let defaultFeeds = [
+            Feed(title: "Daring Fireball", url: "https://daringfireball.net/feeds/main"),
+            Feed(title: "Swift by Sundell", url: "https://www.swiftbysundell.com/rss"),
+            Feed(title: "NSHipster", url: "https://nshipster.com/feed.xml")
+        ]
+        feeds = defaultFeeds
+        save()
+    }
+    
+    // MARK: - Persistence
+    
+    func load() {
+        if let feedsData = UserDefaults.standard.data(forKey: feedsKey),
+           let decoded = try? JSONDecoder().decode([Feed].self, from: feedsData) {
+            feeds = decoded
+        }
+        
+        if let itemsData = UserDefaults.standard.data(forKey: itemsKey),
+           let decoded = try? JSONDecoder().decode([FeedItem].self, from: itemsData) {
+            items = decoded
+        }
+    }
+    
+    func save() {
+        if let feedsData = try? JSONEncoder().encode(feeds) {
+            UserDefaults.standard.set(feedsData, forKey: feedsKey)
+        }
+        if let itemsData = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(itemsData, forKey: itemsKey)
+        }
+    }
+    
+    // MARK: - Feed Management
+    
+    func addFeed(url: String, title: String? = nil) {
+        let cleanURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanURL.isEmpty else { return }
+        
+        // Check for duplicates
+        if feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
+            showError("This feed is already added.")
+            return
+        }
+        
+        let feed = Feed(title: title ?? cleanURL, url: cleanURL)
+        feeds.append(feed)
+        save()
+        
+        // Fetch the new feed
+        Task {
+            await fetchFeed(feed)
+        }
+    }
+    
+    func removeFeed(_ feed: Feed) {
+        feeds.removeAll { $0.id == feed.id }
+        items.removeAll { $0.feedId == feed.id }
+        save()
+    }
+    
+    func feedTitle(for item: FeedItem) -> String {
+        feeds.first { $0.id == item.feedId }?.title ?? "Unknown"
+    }
+    
+    // MARK: - Item Management
+    
+    func markAsRead(_ item: FeedItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].isRead = true
+        save()
+    }
+    
+    func markAsUnread(_ item: FeedItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].isRead = false
+        save()
+    }
+    
+    func toggleStarred(_ item: FeedItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].isStarred.toggle()
+        save()
+    }
+    
+    func toggleRead(_ item: FeedItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].isRead.toggle()
+        save()
+    }
+    
+    func markAllAsRead() {
+        for i in items.indices {
+            items[i].isRead = true
+        }
+        save()
+    }
+    
+    func openItem(_ item: FeedItem) {
+        markAsRead(item)
+        if let url = URL(string: item.link) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    // MARK: - Refresh
+    
+    func startRefreshTimer() {
+        refreshTimer?.invalidate()
+        let interval = TimeInterval(max(1, refreshIntervalMinutes) * 60)
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshAll()
+            }
+        }
+    }
+    
+    func refreshAll() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        
+        await withTaskGroup(of: Void.self) { group in
+            for feed in feeds {
+                group.addTask { [weak self] in
+                    await self?.fetchFeed(feed)
+                }
+            }
+        }
+        
+        lastRefreshTime = Date()
+        isRefreshing = false
+        save()
+    }
+    
+    func fetchFeed(_ feed: Feed) async {
+        guard let url = URL(string: feed.url) else { return }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.setValue("macbar-rssreader/1.0", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
+                throw URLError(.badServerResponse)
+            }
+            let parser = RSSParser(feedId: feed.id)
+            let newItems = parser.parse(data: data)
+            
+            // Update feed title if we got one from the feed
+            if let parsedTitle = parser.feedTitle, !parsedTitle.isEmpty {
+                if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+                    feeds[index].title = parsedTitle
+                }
+            }
+            if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+                feeds[index].lastFetched = Date()
+            }
+            
+            // Merge items, avoiding duplicates by link
+            for newItem in newItems {
+                if !items.contains(where: { itemKey($0) == itemKey(newItem) }) {
+                    items.append(newItem)
+                }
+            }
+            
+            // Trim old items per feed
+            let feedItems = items.filter { $0.feedId == feed.id }
+            if feedItems.count > maxItemsPerFeed {
+                let sortedItems = feedItems.sorted { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
+                let toRemove = Set(sortedItems.dropFirst(maxItemsPerFeed).map { $0.id })
+                items.removeAll { toRemove.contains($0.id) }
+            }
+            
+        } catch {
+            logger.error("Fetch feed failed: \(error.localizedDescription, privacy: .public)")
+            await MainActor.run {
+                showError("Failed to fetch \(feed.title): \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    // MARK: - OPML Import/Export
+    
+    func exportOPML() -> String {
+        var opml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <opml version="2.0">
+          <head>
+            <title>RSS Reader Feeds</title>
+          </head>
+          <body>
+        """
+        
+        for feed in feeds {
+            let escapedTitle = feed.title.replacingOccurrences(of: "\"", with: "&quot;")
+            let escapedURL = feed.url.replacingOccurrences(of: "&", with: "&amp;")
+            opml += """
+            
+                <outline type="rss" text="\(escapedTitle)" title="\(escapedTitle)" xmlUrl="\(escapedURL)" />
+            """
+        }
+        
+        opml += """
+        
+          </body>
+        </opml>
+        """
+        
+        return opml
+    }
+    
+    func importOPML(from data: Data) {
+        let parser = OPMLParser()
+        let importedFeeds = parser.parse(data: data)
+        
+        var addedCount = 0
+        for importedFeed in importedFeeds {
+            if !feeds.contains(where: { $0.url.lowercased() == importedFeed.url.lowercased() }) {
+                feeds.append(importedFeed)
+                addedCount += 1
+            }
+        }
+        
+        save()
+        
+        if addedCount > 0 {
+            Task {
+                await refreshAll()
+            }
+        }
+    }
+    
+    // MARK: - Error Handling
+    
+    func showError(_ message: String) {
+        errorMessage = message
+        showingError = true
+    }
+
+    private func itemKey(_ item: FeedItem) -> String {
+        if let sourceId = item.sourceId, !sourceId.isEmpty {
+            return "\(item.feedId.uuidString)-\(sourceId)"
+        }
+        if !item.link.isEmpty {
+            return "\(item.feedId.uuidString)-\(item.link)"
+        }
+        let datePart = item.pubDate?.timeIntervalSince1970 ?? 0
+        return "\(item.feedId.uuidString)-\(item.title.lowercased())-\(datePart)"
+    }
+}
+
+// MARK: - RSS Parser
+
+final class RSSParser: NSObject, XMLParserDelegate {
+    private let feedId: UUID
+    private var items: [FeedItem] = []
+    private var currentElement: String = ""
+    private var currentTitle: String = ""
+    private var currentLink: String = ""
+    private var currentDescription: String = ""
+    private var currentPubDate: String = ""
+    private var currentPublished: String = ""
+    private var currentUpdated: String = ""
+    private var currentAuthor: String = ""
+    private var currentEntryId: String = ""
+    private var currentGuid: String = ""
+    private var isInItem: Bool = false
+    private var isInChannel: Bool = false
+    var feedTitle: String?
+    
+    init(feedId: UUID) {
+        self.feedId = feedId
+    }
+    
+    func parse(data: Data) -> [FeedItem] {
+        let parser = XMLParser(data: data)
+        parser.delegate = self
+        parser.parse()
+        return items
+    }
+    
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
+        currentElement = elementName
+        
+        if elementName == "channel" || elementName == "feed" {
+            isInChannel = true
+        }
+        
+        if elementName == "item" || elementName == "entry" {
+            // If we're already in an item and encounter another item tag,
+            // finalize the current one first (handles malformed feeds)
+            if isInItem && (!currentTitle.isEmpty || !currentLink.isEmpty) {
+                finalizeCurrentItem()
+            }
+            
+            isInItem = true
+            currentTitle = ""
+            currentLink = ""
+            currentDescription = ""
+            currentPubDate = ""
+            currentPublished = ""
+            currentUpdated = ""
+            currentAuthor = ""
+            currentEntryId = ""
+            currentGuid = ""
+        }
+        
+        // Handle Atom link elements
+        if elementName == "link" && isInItem {
+            if let href = attributeDict["href"] {
+                let rel = (attributeDict["rel"] ?? "").lowercased()
+                let type = (attributeDict["type"] ?? "").lowercased()
+                if rel.isEmpty || rel == "alternate" || type == "text/html" {
+                    currentLink = href
+                }
+            }
+        }
+    }
+    
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
+        if isInItem {
+            switch currentElement {
+            case "title":
+                currentTitle += trimmed
+            case "link":
+                currentLink += trimmed
+            case "description", "summary", "content":
+                currentDescription += trimmed
+            case "pubDate":
+                currentPubDate += trimmed
+            case "published":
+                currentPublished += trimmed
+            case "updated":
+                currentUpdated += trimmed
+            case "author", "dc:creator":
+                currentAuthor += trimmed
+            case "id":
+                currentEntryId += trimmed
+            case "guid":
+                currentGuid += trimmed
+            default:
+                break
+            }
+        } else if isInChannel && currentElement == "title" && feedTitle == nil {
+            feedTitle = trimmed
+        }
+    }
+    
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        if elementName == "item" || elementName == "entry" {
+            finalizeCurrentItem()
+            isInItem = false
+        }
+        
+        if elementName == "channel" || elementName == "feed" {
+            isInChannel = false
+        }
+    }
+    
+    private func finalizeCurrentItem() {
+        guard !currentTitle.isEmpty || !currentLink.isEmpty else { return }
+        
+        let sourceId = currentGuid.isEmpty ? currentEntryId : currentGuid
+        let resolvedLink = currentLink.isEmpty ? sourceId : currentLink
+        let dateString = !currentPubDate.isEmpty ? currentPubDate : (!currentPublished.isEmpty ? currentPublished : currentUpdated)
+        let item = FeedItem(
+            feedId: feedId,
+            title: currentTitle.isEmpty ? "Untitled" : currentTitle,
+            link: resolvedLink,
+            sourceId: sourceId.isEmpty ? nil : sourceId,
+            description: stripHTML(currentDescription),
+            pubDate: parseDate(dateString),
+            author: currentAuthor.isEmpty ? nil : currentAuthor
+        )
+        items.append(item)
+    }
+    
+    private func stripHTML(_ string: String) -> String {
+        guard let data = string.data(using: .utf8) else { return string }
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue
+        ]
+        if let attributed = try? NSAttributedString(data: data, options: options, documentAttributes: nil) {
+            return attributed.string
+        }
+        return string.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+    }
+    
+    private static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    
+    private static let iso8601FormatterNoFraction: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+    
+    private static let dateFormatters: [DateFormatter] = {
+        let rfc822 = DateFormatter()
+        rfc822.dateFormat = "EEE, dd MMM yyyy HH:mm:ss Z"
+        rfc822.locale = Locale(identifier: "en_US_POSIX")
+        
+        let rfc822Short = DateFormatter()
+        rfc822Short.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        rfc822Short.locale = Locale(identifier: "en_US_POSIX")
+        
+        let iso8601 = DateFormatter()
+        iso8601.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        iso8601.locale = Locale(identifier: "en_US_POSIX")
+        
+        let iso8601Full = DateFormatter()
+        iso8601Full.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        iso8601Full.locale = Locale(identifier: "en_US_POSIX")
+        
+        return [rfc822, rfc822Short, iso8601, iso8601Full]
+    }()
+    
+    private func parseDate(_ string: String) -> Date? {
+        if let iso = Self.iso8601Formatter.date(from: string) {
+            return iso
+        }
+        if let iso = Self.iso8601FormatterNoFraction.date(from: string) {
+            return iso
+        }
+        for formatter in Self.dateFormatters {
+            if let date = formatter.date(from: string) {
+                return date
+            }
+        }
+        return nil
+    }
+}
+
+// MARK: - OPML Parser
+
+final class OPMLParser: NSObject, XMLParserDelegate {
+    private var feeds: [Feed] = []
+    
+    func parse(data: Data) -> [Feed] {
+        let parser = XMLParser(data: data)
+        parser.delegate = self
+        parser.parse()
+        return feeds
+    }
+    
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
+        if elementName == "outline" {
+            if let xmlUrl = attributeDict["xmlUrl"], !xmlUrl.isEmpty {
+                let title = attributeDict["title"] ?? attributeDict["text"] ?? xmlUrl
+                let feed = Feed(title: title, url: xmlUrl)
+                feeds.append(feed)
+            }
+        }
+    }
+}
+
+// MARK: - Colors
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255, opacity: Double(a) / 255)
+    }
+}
+
+// Row colors for alternating items
+let rowColors: [Color] = [
+    Color(hex: "#2D5A4A"),  // Teal green
+    Color(hex: "#3D4A5C"),  // Slate blue
+    Color(hex: "#4A3D5C"),  // Purple
+    Color(hex: "#5C3D4A"),  // Rose
+    Color(hex: "#4A5C3D"),  // Olive
+]
+
+// MARK: - Main View
+
+struct RSSReaderView: View {
+    @EnvironmentObject private var store: FeedStore
+    @Environment(\.openWindow) private var openWindow
+    @State private var hoveredItemId: UUID?
+    
+    private var headerGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(hex: "#1a1a2e"), Color(hex: "#16213e")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with icon bar
+            headerView
+            
+            // Filter tabs
+            filterTabsView
+            
+            // Divider
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 1)
+            
+            // Content
+            if store.filteredItems.isEmpty {
+                emptyStateView
+            } else {
+                itemListView
+            }
+            
+            // Footer
+            footerView
+        }
+        .frame(width: 380, height: 520)
+        .background(Color(hex: store.backgroundColorHex))
+        .alert("Error", isPresented: $store.showingError) {
+            Button("OK") { store.showingError = false }
+        } message: {
+            Text(store.errorMessage ?? "An unknown error occurred.")
+        }
+    }
+    
+    // MARK: - Header View
+    
+    private var headerView: some View {
+        HStack(spacing: 16) {
+            // App icon
+            Image(systemName: "newspaper.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(.white.opacity(0.9))
+            
+            Spacer()
+            
+            // Icon buttons
+            HStack(spacing: 12) {
+                // Refresh button
+                Button {
+                    Task { await store.refreshAll() }
+                } label: {
+                    Image(systemName: store.isRefreshing ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
+                        .animation(store.isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: store.isRefreshing)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("r")
+                .help("Refresh feeds")
+                
+                // Preferences button
+                Button {
+                    openWindow(id: "preferences")
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(",")
+                .help("Preferences")
+                
+                // Mark all as read
+                Button {
+                    store.markAllAsRead()
+                } label: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("Mark all as read")
+                .disabled(store.unreadCount == 0)
+                
+                // Quit button
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("q")
+                .help("Quit")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(headerGradient)
+    }
+    
+    // MARK: - Filter Tabs View
+    
+    private var filterTabsView: some View {
+        HStack(spacing: 0) {
+            ForEach(FeedFilter.allCases, id: \.self) { filterOption in
+                filterTab(filterOption)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.2))
+    }
+    
+    private func filterTab(_ filterOption: FeedFilter) -> some View {
+        let isSelected = store.filter == filterOption
+        let count: Int = {
+            switch filterOption {
+            case .all: return store.items.count
+            case .unread: return store.unreadCount
+            case .starred: return store.starredCount
+            }
+        }()
+        
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                store.filter = filterOption
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: filterOption.icon)
+                    .font(.system(size: 11, weight: .medium))
+                
+                Text(filterOption.rawValue)
+                    .font(.system(size: 12, weight: .medium))
+                
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+            }
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.white.opacity(0.15) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Item List View
+    
+    private var itemListView: some View {
+        ScrollView {
+            LazyVStack(spacing: 1) {
+                ForEach(Array(store.filteredItems.enumerated()), id: \.element.id) { index, item in
+                    FeedItemRow(
+                        item: item,
+                        feedTitle: store.feedTitle(for: item),
+                        backgroundColor: rowColors[index % rowColors.count],
+                        isHovered: hoveredItemId == item.id,
+                        fontSize: store.fontSize
+                    )
+                    .onTapGesture {
+                        store.openItem(item)
+                    }
+                    .contextMenu {
+                        Button(item.isRead ? "Mark as Unread" : "Mark as Read") {
+                            store.toggleRead(item)
+                        }
+                        Button(item.isStarred ? "Unstar" : "Star") {
+                            store.toggleStarred(item)
+                        }
+                        Divider()
+                        Button("Copy Link") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(item.link, forType: .string)
+                        }
+                    }
+                    .onHover { isHovered in
+                        hoveredItemId = isHovered ? item.id : nil
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    // MARK: - Empty State View
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            Image(systemName: store.filter == .starred ? "star.slash" : "tray")
+                .font(.system(size: 40))
+                .foregroundStyle(.white.opacity(0.3))
+            
+            Text(emptyStateMessage)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+            
+            if store.feeds.isEmpty {
+                Button("Add Feeds") {
+                    openWindow(id: "preferences")
+                }
+                .buttonStyle(.borderedProminent)
+            } else if store.filter == .all {
+                Button("Refresh") {
+                    Task { await store.refreshAll() }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var emptyStateMessage: String {
+        switch store.filter {
+        case .all:
+            return store.feeds.isEmpty ? "No feeds added yet.\nAdd some feeds to get started." : "No items to show.\nTry refreshing your feeds."
+        case .unread:
+            return "All caught up!\nNo unread items."
+        case .starred:
+            return "No starred items.\nStar items to save them here."
+        }
+    }
+    
+    // MARK: - Footer View
+    
+    private var footerView: some View {
+        HStack {
+            // "All Unread" text with icon
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.system(size: 11))
+                Text("All Unread")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.5))
+            
+            Spacer()
+            
+            // Last refresh time
+            if let lastRefresh = store.lastRefreshTime {
+                Text(relativeTimeString(from: lastRefresh))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            
+            // Unread badge
+            if store.unreadCount > 0 {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 8, height: 8)
+                    Text("\(store.unreadCount)")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.3))
+    }
+    
+    private func relativeTimeString(from date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - Feed Item Row
+
+struct FeedItemRow: View {
+    let item: FeedItem
+    let feedTitle: String
+    let backgroundColor: Color
+    let isHovered: Bool
+    let fontSize: Double
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Unread indicator
+            Circle()
+                .fill(item.isRead ? Color.clear : Color.blue)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                // Title with star indicator
+                HStack(alignment: .top, spacing: 6) {
+                    if item.isStarred {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.yellow)
+                    }
+                    
+                    Text(item.title)
+                        .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
+                        .foregroundStyle(item.isRead ? .white.opacity(0.7) : .white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                // Feed name and date
+                HStack(spacing: 8) {
+                    Text(feedTitle)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                    
+                    if let pubDate = item.pubDate {
+                        Text("•")
+                            .foregroundStyle(.white.opacity(0.3))
+                        Text(formatDate(pubDate))
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(backgroundColor.opacity(isHovered ? 0.9 : 0.7))
+        .contentShape(Rectangle())
+    }
+    
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+    
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+    
+    private func formatDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return Self.timeFormatter.string(from: date)
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            return Self.dateFormatter.string(from: date)
+        }
+    }
+}
+
+// MARK: - Preferences View
+
+struct PreferencesView: View {
+    @EnvironmentObject private var store: FeedStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedTab: PreferencesTab = .feeds
+    
+    enum PreferencesTab: String, CaseIterable {
+        case feeds = "Feeds"
+        case settings = "Settings"
+        case help = "Help"
+        
+        var icon: String {
+            switch self {
+            case .feeds: return "link"
+            case .settings: return "gearshape"
+            case .help: return "questionmark.circle"
+            }
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with close button
+            HStack {
+                Spacer()
+                Text("Preferences")
+                    .font(.headline)
+                Spacer()
+            }
+            .padding(.vertical, 12)
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            // Tab bar
+            HStack(spacing: 24) {
+                ForEach(PreferencesTab.allCases, id: \.self) { tab in
+                    tabButton(tab)
+                }
+            }
+            .padding(.vertical, 8)
+            .background(Color(NSColor.controlBackgroundColor))
+            
+            Divider()
+            
+            // Content
+            Group {
+                switch selectedTab {
+                case .feeds:
+                    FeedsTabView()
+                case .settings:
+                    SettingsTabView()
+                case .help:
+                    HelpTabView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: 400, height: 450)
+        .environmentObject(store)
+    }
+    
+    private func tabButton(_ tab: PreferencesTab) -> some View {
+        let isSelected = selectedTab == tab
+        
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedTab = tab
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 20))
+                Text(tab.rawValue)
+                    .font(.system(size: 11))
+            }
+            .foregroundStyle(isSelected ? .blue : .secondary)
+            .frame(width: 60)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Feeds Tab
+
+struct FeedsTabView: View {
+    @EnvironmentObject private var store: FeedStore
+    @State private var newFeedURL: String = ""
+    @State private var selectedFeed: Feed?
+    @State private var showingAddSheet: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Feed list
+            List(selection: $selectedFeed) {
+                ForEach(store.feeds) { feed in
+                    HStack {
+                        Text(feed.title)
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .tag(feed)
+                }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        store.removeFeed(store.feeds[index])
+                    }
+                }
+            }
+            .listStyle(.inset)
+            
+            Divider()
+            
+            // Buttons
+            HStack {
+                Button {
+                    showingAddSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("Add feed")
+                
+                Button("Import") {
+                    importOPML()
+                }
+                
+                Button("Export") {
+                    exportOPML()
+                }
+                
+                Spacer()
+                
+                Button {
+                    if let feed = selectedFeed {
+                        store.removeFeed(feed)
+                        selectedFeed = nil
+                    }
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .disabled(selectedFeed == nil)
+                .help("Remove selected feed")
+            }
+            .padding(12)
+        }
+        .sheet(isPresented: $showingAddSheet) {
+            AddFeedSheet(isPresented: $showingAddSheet)
+                .environmentObject(store)
+        }
+    }
+    
+    private func importOPML() {
+        let panel = NSOpenPanel()
+        let opmlType = UTType(filenameExtension: "opml") ?? .xml
+        panel.allowedContentTypes = [.xml, opmlType]
+        panel.allowsMultipleSelection = false
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            if let data = try? Data(contentsOf: url) {
+                store.importOPML(from: data)
+            }
+        }
+    }
+    
+    private func exportOPML() {
+        let panel = NSSavePanel()
+        let opmlType = UTType(filenameExtension: "opml") ?? .xml
+        panel.allowedContentTypes = [opmlType]
+        panel.nameFieldStringValue = "feeds.opml"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            let opml = store.exportOPML()
+            try? opml.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+}
+
+// MARK: - Add Feed Sheet
+
+struct AddFeedSheet: View {
+    @EnvironmentObject private var store: FeedStore
+    @Binding var isPresented: Bool
+    @State private var feedURL: String = ""
+    @State private var feedTitle: String = ""
+    @FocusState private var isURLFocused: Bool
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Add Feed")
+                .font(.headline)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Feed URL")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("https://example.com/feed.xml", text: $feedURL)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isURLFocused)
+                
+                Text("Title (optional)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("My Feed", text: $feedTitle)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            HStack {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.escape)
+                
+                Spacer()
+                
+                Button("Add") {
+                    store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
+                    isPresented = false
+                }
+                .keyboardShortcut(.return)
+                .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 350)
+        .onAppear {
+            isURLFocused = true
+        }
+    }
+}
+
+// MARK: - Settings Tab
+
+struct SettingsTabView: View {
+    @EnvironmentObject private var store: FeedStore
+    @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
+    @AppStorage("rssStickyWindow") private var stickyWindow: Bool = false
+    
+    private let backgroundColors: [(name: String, hex: String)] = [
+        ("Dark", "#1E1E1E"),
+        ("Darker", "#121212"),
+        ("Navy", "#1a1a2e"),
+        ("Forest", "#1a2e1a"),
+        ("Wine", "#2e1a1a"),
+    ]
+    
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    Text("Font Size")
+                    Spacer()
+                    Slider(value: $store.fontSize, in: 10...18, step: 1) {
+                        Text("Font Size")
+                    }
+                    .frame(width: 150)
+                    Text("\(Int(store.fontSize))pt")
+                        .frame(width: 40, alignment: .trailing)
+                        .foregroundStyle(.secondary)
+                }
+                
+                HStack {
+                    Text("Max Items per Feed")
+                    Spacer()
+                    Picker("", selection: $store.maxItemsPerFeed) {
+                        Text("25").tag(25)
+                        Text("50").tag(50)
+                        Text("100").tag(100)
+                        Text("200").tag(200)
+                    }
+                    .frame(width: 100)
+                }
+                
+                HStack {
+                    Text("Background Color")
+                    Spacer()
+                    Picker("", selection: $store.backgroundColorHex) {
+                        ForEach(backgroundColors, id: \.hex) { color in
+                            HStack {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color(hex: color.hex))
+                                    .frame(width: 16, height: 16)
+                                Text(color.name)
+                            }
+                            .tag(color.hex)
+                        }
+                    }
+                    .frame(width: 120)
+                }
+            }
+            
+            Section {
+                Toggle("Hide Read Items", isOn: $store.hideReadItems)
+                Toggle("Sticky Window", isOn: $stickyWindow)
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+            }
+            
+            Section {
+                HStack {
+                    Text("Refresh Interval")
+                    Spacer()
+                    Picker("", selection: $store.refreshIntervalMinutes) {
+                        Text("5 min").tag(5)
+                        Text("15 min").tag(15)
+                        Text("30 min").tag(30)
+                        Text("1 hour").tag(60)
+                        Text("2 hours").tag(120)
+                    }
+                    .frame(width: 100)
+                    .onChange(of: store.refreshIntervalMinutes) { _, _ in
+                        store.startRefreshTimer()
+                    }
+                }
+            }
+            
+            Section {
+                HStack {
+                    Button("Quit App") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Clear All Data") {
+                        store.items.removeAll()
+                        store.save()
+                    }
+                    .foregroundStyle(.red)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+}
+
+// MARK: - Help Tab
+
+struct HelpTabView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Group {
+                    helpItem(
+                        icon: "newspaper",
+                        title: "Reading Articles",
+                        description: "Click on an article to open it in your browser and mark it as read."
+                    )
+                    
+                    helpItem(
+                        icon: "star",
+                        title: "Starring Items",
+                        description: "Right-click an article and select 'Star' to save it for later."
+                    )
+                    
+                    helpItem(
+                        icon: "arrow.clockwise",
+                        title: "Refreshing Feeds",
+                        description: "Press ⌘R or click the refresh button to fetch new articles."
+                    )
+                    
+                    helpItem(
+                        icon: "link",
+                        title: "Adding Feeds",
+                        description: "Go to Feeds tab and click + to add a new RSS feed URL."
+                    )
+                    
+                    helpItem(
+                        icon: "square.and.arrow.up",
+                        title: "Import/Export",
+                        description: "Use OPML files to import or export your feed subscriptions."
+                    )
+                }
+                
+                Divider()
+                
+                Text("Keyboard Shortcuts")
+                    .font(.headline)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    shortcutRow("⌘R", "Refresh feeds")
+                    shortcutRow("⌘,", "Open preferences")
+                    shortcutRow("⌘Q", "Quit app")
+                }
+                
+                Spacer()
+            }
+            .padding()
+        }
+    }
+    
+    private func helpItem(icon: String, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(.blue)
+                .frame(width: 30)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(description)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
+    private func shortcutRow(_ shortcut: String, _ description: String) -> some View {
+        HStack {
+            Text(shortcut)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.secondary.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            
+            Text(description)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
