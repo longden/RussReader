@@ -32,8 +32,7 @@ struct PreferencesView: View {
                 Spacer()
             }
             .padding(.vertical, 12)
-            .background(Color(NSColor.windowBackgroundColor))
-            
+
             HStack(spacing: 24) {
                 ForEach(PreferencesTab.allCases, id: \.self) { tab in
                     tabButton(tab)
@@ -41,10 +40,9 @@ struct PreferencesView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
-            
+
             Divider()
-            
+
             Group {
                 switch selectedTab {
                 case .feeds:
@@ -57,6 +55,8 @@ struct PreferencesView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .background(.ultraThinMaterial)
+        .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 400, height: 450)
         .environmentObject(store)
     }

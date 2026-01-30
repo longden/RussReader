@@ -31,6 +31,33 @@ extension Color {
 
 // MARK: - View Modifiers
 
+struct AppearanceApplier: NSViewRepresentable {
+    let appearanceMode: String
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            self.applyAppearance()
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            self.applyAppearance()
+        }
+    }
+
+    private func applyAppearance() {
+        let appearance: NSAppearance? = switch appearanceMode {
+        case "dark": NSAppearance(named: .darkAqua)
+        case "light": NSAppearance(named: .aqua)
+        default: nil
+        }
+        NSApp.appearance = appearance
+    }
+}
+
 struct HeaderButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -95,7 +122,6 @@ extension View {
 struct RSSReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("rssAppearanceMode") private var appearanceMode: String = "system"
     @State private var hoveredItemId: UUID?
 
     var body: some View {
@@ -103,31 +129,23 @@ struct RSSReaderView: View {
             headerView
             filterTabsView
             Divider()
-            
+
             if store.filteredItems.isEmpty {
                 emptyStateView
             } else {
                 itemListView
             }
-            
+
             Divider()
             footerView
         }
         .background(.ultraThinMaterial)
+        .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 380, height: 520)
-        .preferredColorScheme(colorScheme)
         .alert("Error", isPresented: $store.showingError) {
             Button("OK") { store.showingError = false }
         } message: {
             Text(store.errorMessage ?? "An unknown error occurred.")
-        }
-    }
-    
-    private var colorScheme: ColorScheme? {
-        switch appearanceMode {
-        case "light": return .light
-        case "dark": return .dark
-        default: return nil
         }
     }
 
@@ -169,7 +187,6 @@ struct RSSReaderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
         .sectionDivider()
     }
 
@@ -191,7 +208,6 @@ struct RSSReaderView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
     }
 
     // MARK: - Item List View
@@ -297,7 +313,6 @@ struct RSSReaderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
         .sectionDivider(alignment: .top)
     }
 
