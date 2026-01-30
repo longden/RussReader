@@ -1,6 +1,22 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Window Accessor for Z-ordering
+
+struct WindowAccessor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                window.level = .floating
+            }
+        }
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
 // MARK: - App Entry Point
 
 @main
@@ -17,6 +33,7 @@ struct RSSReaderApp: App {
         Window("Preferences", id: "preferences") {
             PreferencesView()
                 .environmentObject(store)
+                .background(WindowAccessor())
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

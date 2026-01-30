@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 // MARK: - Colors
@@ -9,18 +9,23 @@ extension Color {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
+        let a: UInt64
+        let r: UInt64
+        let g: UInt64
+        let b: UInt64
         switch hex.count {
-        case 3: // RGB (12-bit)
+        case 3:  // RGB (12-bit)
             (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
+        case 6:  // RGB (24-bit)
             (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
+        case 8:  // ARGB (32-bit)
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
             (a, r, g, b) = (255, 0, 0, 0)
         }
-        self.init(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255, opacity: Double(a) / 255)
+        self.init(
+            .sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255,
+            opacity: Double(a) / 255)
     }
 }
 
@@ -38,30 +43,23 @@ struct RSSReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredItemId: UUID?
-    
-    private var headerGradient: LinearGradient {
-        LinearGradient(
-            colors: [Color(hex: "#1a1a2e"), Color(hex: "#16213e")],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
+
             filterTabsView
-            
-            Rectangle()
-                .fill(Color.white.opacity(0.1))
-                .frame(height: 1)
-            
+
+            whiteSpacer
+
             if store.filteredItems.isEmpty {
                 emptyStateView
             } else {
                 itemListView
             }
-            
+
+            whiteSpacer
+
             footerView
         }
         .frame(width: 380, height: 520)
@@ -72,31 +70,43 @@ struct RSSReaderView: View {
             Text(store.errorMessage ?? "An unknown error occurred.")
         }
     }
-    
+
     // MARK: - Header View
-    
+
+    private var whiteSpacer: some View {
+        Spacer()
+            .frame(height: 1)
+            .background(Color.white.opacity(0.1))
+    }
+
     private var headerView: some View {
         HStack(spacing: 16) {
             Image(systemName: "newspaper.fill")
                 .font(.system(size: 18))
                 .foregroundStyle(.white.opacity(0.9))
-            
+
             Spacer()
-            
+
             HStack(spacing: 12) {
                 Button {
                     Task { await store.refreshAll() }
                 } label: {
-                    Image(systemName: store.isRefreshing ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
-                        .animation(store.isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: store.isRefreshing)
+                    Image(
+                        systemName: store.isRefreshing
+                            ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise"
+                    )
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
+                    .animation(
+                        store.isRefreshing
+                            ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
+                        value: store.isRefreshing)
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut("r")
                 .help("Refresh feeds")
-                
+
                 Button {
                     openWindow(id: "preferences")
                 } label: {
@@ -107,7 +117,7 @@ struct RSSReaderView: View {
                 .buttonStyle(.plain)
                 .keyboardShortcut(",")
                 .help("Preferences")
-                
+
                 Button {
                     store.markAllAsRead()
                 } label: {
@@ -118,7 +128,7 @@ struct RSSReaderView: View {
                 .buttonStyle(.plain)
                 .help("Mark all as read")
                 .disabled(store.unreadCount == 0)
-                
+
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
@@ -133,64 +143,29 @@ struct RSSReaderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(headerGradient)
+        .background(Color.black.opacity(0.2))
     }
-    
+
     // MARK: - Filter Tabs View
-    
+
     private var filterTabsView: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 4) {
             ForEach(FeedFilter.allCases, id: \.self) { filterOption in
                 filterTab(filterOption)
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
         .background(Color.black.opacity(0.2))
     }
-    
+
     private func filterTab(_ filterOption: FeedFilter) -> some View {
-        let isSelected = store.filter == filterOption
-        let count: Int = {
-            switch filterOption {
-            case .all: return store.items.count
-            case .unread: return store.unreadCount
-            case .starred: return store.starredCount
-            }
-        }()
-        
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                store.filter = filterOption
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: filterOption.icon)
-                    .font(.system(size: 11, weight: .medium))
-                
-                Text(filterOption.rawValue)
-                    .font(.system(size: 12, weight: .medium))
-                
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(isSelected ? Color.white.opacity(0.2) : Color.white.opacity(0.1))
-                        .clipShape(Capsule())
-                }
-            }
-            .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.white.opacity(0.15) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
+        FilterTabButton(filterOption: filterOption, store: store)
     }
-    
+
     // MARK: - Item List View
-    
+
     private var itemListView: some View {
         ScrollView {
             LazyVStack(spacing: 1) {
@@ -223,25 +198,24 @@ struct RSSReaderView: View {
                     }
                 }
             }
-            .padding(.vertical, 4)
         }
     }
-    
+
     // MARK: - Empty State View
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Spacer()
-            
+
             Image(systemName: store.filter == .starred ? "star.slash" : "tray")
                 .font(.system(size: 40))
                 .foregroundStyle(.white.opacity(0.3))
-            
+
             Text(emptyStateMessage)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white.opacity(0.5))
                 .multilineTextAlignment(.center)
-            
+
             if store.feeds.isEmpty {
                 Button("Add Feeds") {
                     openWindow(id: "preferences")
@@ -253,25 +227,27 @@ struct RSSReaderView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-            
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var emptyStateMessage: String {
         switch store.filter {
         case .all:
-            return store.feeds.isEmpty ? "No feeds added yet.\nAdd some feeds to get started." : "No items to show.\nTry refreshing your feeds."
+            return store.feeds.isEmpty
+                ? "No feeds added yet.\nAdd some feeds to get started."
+                : "No items to show.\nTry refreshing your feeds."
         case .unread:
             return "All caught up!\nNo unread items."
         case .starred:
             return "No starred items.\nStar items to save them here."
         }
     }
-    
+
     // MARK: - Footer View
-    
+
     private var footerView: some View {
         HStack {
             HStack(spacing: 6) {
@@ -281,15 +257,15 @@ struct RSSReaderView: View {
                     .font(.system(size: 11, weight: .medium))
             }
             .foregroundStyle(.white.opacity(0.5))
-            
+
             Spacer()
-            
+
             if let lastRefresh = store.lastRefreshTime {
                 Text(relativeTimeString(from: lastRefresh))
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.4))
             }
-            
+
             if store.unreadCount > 0 {
                 HStack(spacing: 4) {
                     Circle()
@@ -305,7 +281,7 @@ struct RSSReaderView: View {
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.3))
     }
-    
+
     private func relativeTimeString(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
@@ -321,14 +297,14 @@ struct FeedItemRow: View {
     let backgroundColor: Color
     let isHovered: Bool
     let fontSize: Double
-    
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
                 .fill(item.isRead ? Color.clear : Color.blue)
                 .frame(width: 8, height: 8)
                 .padding(.top, 6)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top, spacing: 6) {
                     if item.isStarred {
@@ -336,19 +312,19 @@ struct FeedItemRow: View {
                             .font(.system(size: 10))
                             .foregroundStyle(.yellow)
                     }
-                    
+
                     Text(item.title)
                         .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
                         .foregroundStyle(item.isRead ? .white.opacity(0.7) : .white)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
-                
+
                 HStack(spacing: 8) {
                     Text(feedTitle)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.5))
-                    
+
                     if let pubDate = item.pubDate {
                         Text("•")
                             .foregroundStyle(.white.opacity(0.3))
@@ -358,7 +334,7 @@ struct FeedItemRow: View {
                     }
                 }
             }
-            
+
             Spacer()
         }
         .padding(.horizontal, 12)
@@ -366,19 +342,19 @@ struct FeedItemRow: View {
         .background(backgroundColor.opacity(isHovered ? 0.9 : 0.7))
         .contentShape(Rectangle())
     }
-    
+
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         return formatter
     }()
-    
+
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         return formatter
     }()
-    
+
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
@@ -387,6 +363,80 @@ struct FeedItemRow: View {
             return "Yesterday"
         } else {
             return Self.dateFormatter.string(from: date)
+        }
+    }
+}
+
+// MARK: - Filter Tab Button
+
+struct FilterTabButton: View {
+    let filterOption: FeedFilter
+    @ObservedObject var store: FeedStore
+    @State private var isHovered: Bool = false
+
+    var body: some View {
+        let isSelected = store.filter == filterOption
+        let count: Int = {
+            switch filterOption {
+            case .all: return store.items.count
+            case .unread: return store.unreadCount
+            case .starred: return store.starredCount
+            }
+        }()
+
+        let backgroundColor: Color = {
+            if isSelected {
+                return rowColors[filterOption.colorIndex]
+            } else if isHovered {
+                return rowColors[filterOption.colorIndex].opacity(0.5)
+            } else {
+                return Color.clear
+            }
+        }()
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                store.filter = filterOption
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: filterOption.icon)
+                    .font(.system(size: 11, weight: .medium))
+
+                Text(filterOption.rawValue)
+                    .font(.system(size: 12, weight: .medium))
+
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.2))
+                        .clipShape(Capsule())
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(backgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+// MARK: - Feed Filter Extension
+
+extension FeedFilter {
+    var colorIndex: Int {
+        switch self {
+        case .all: return 0
+        case .unread: return 1
+        case .starred: return 3
         }
     }
 }
