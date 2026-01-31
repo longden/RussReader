@@ -327,6 +327,7 @@ struct AddFeedSheet: View {
     @Binding var isPresented: Bool
     @State private var feedURL: String = ""
     @State private var feedTitle: String = ""
+    @State private var errorMessage: String?
     
     var body: some View {
         VStack(spacing: 16) {
@@ -345,6 +346,13 @@ struct AddFeedSheet: View {
                     .foregroundStyle(.secondary)
                 FocusableTextField(text: $feedTitle, placeholder: "My Feed", shouldFocus: false)
                     .frame(height: 22)
+                
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.top, 4)
+                }
             }
             
             HStack {
@@ -357,16 +365,14 @@ struct AddFeedSheet: View {
 
                 if #available(macOS 26.0, *) {
                     Button("Add") {
-                        store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
-                        isPresented = false
+                        addFeed()
                     }
                     .buttonStyle(.glassProminent)
                     .keyboardShortcut(.return)
                     .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } else {
                     Button("Add") {
-                        store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
-                        isPresented = false
+                        addFeed()
                     }
                     .keyboardShortcut(.return)
                     .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -378,6 +384,20 @@ struct AddFeedSheet: View {
         .onAppear {
             // Activate the app to ensure keyboard focus works
             NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
+    private func addFeed() {
+        errorMessage = nil
+        
+        let cleanURL = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if store.feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
+            errorMessage = "This feed is already added."
+            return
+        }
+        
+        if store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle) {
+            isPresented = false
         }
     }
 }
@@ -479,6 +499,7 @@ struct SettingsTabView: View {
             }
             
             Section {
+                Toggle("Show Unread Badge", isOn: $store.showUnreadBadge)
                 Toggle("Hide Read Items", isOn: $store.hideReadItems)
                 Toggle("Sticky Window", isOn: $stickyWindow)
                 Toggle("Launch at Login", isOn: $launchAtLogin)
