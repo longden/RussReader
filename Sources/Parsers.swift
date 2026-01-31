@@ -20,15 +20,25 @@ final class RSSParser: NSObject, XMLParserDelegate {
     private var isInChannel: Bool = false
     var feedTitle: String?
     
+    private static let dateCache = NSCache<NSString, NSDate>()
+    
     init(feedId: UUID) {
         self.feedId = feedId
+        super.init()
+        Self.configureDateCache()
+    }
+    
+    private static func configureDateCache() {
+        dateCache.countLimit = 500
     }
     
     func parse(data: Data) -> [FeedItem] {
         let parser = XMLParser(data: data)
         parser.delegate = self
         parser.parse()
-        return items
+        let result = items
+        items.removeAll()
+        return result
     }
     
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
@@ -175,18 +185,30 @@ final class RSSParser: NSObject, XMLParserDelegate {
     }()
     
     private func parseDate(_ string: String) -> Date? {
+        let cacheKey = string as NSString
+        if let cached = Self.dateCache.object(forKey: cacheKey) {
+            return cached as Date
+        }
+        
+        var parsedDate: Date?
         if let iso = Self.iso8601Formatter.date(from: string) {
-            return iso
-        }
-        if let iso = Self.iso8601FormatterNoFraction.date(from: string) {
-            return iso
-        }
-        for formatter in Self.dateFormatters {
-            if let date = formatter.date(from: string) {
-                return date
+            parsedDate = iso
+        } else if let iso = Self.iso8601FormatterNoFraction.date(from: string) {
+            parsedDate = iso
+        } else {
+            for formatter in Self.dateFormatters {
+                if let date = formatter.date(from: string) {
+                    parsedDate = date
+                    break
+                }
             }
         }
-        return nil
+        
+        if let date = parsedDate {
+            Self.dateCache.setObject(date as NSDate, forKey: cacheKey)
+        }
+        
+        return parsedDate
     }
 }
 
