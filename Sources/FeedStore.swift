@@ -13,6 +13,7 @@ final class FeedStore: ObservableObject {
     @Published var lastRefreshTime: Date?
     @Published var errorMessage: String?
     @Published var showingError: Bool = false
+    @Published var filterRules: [FilterRule] = []
     
     @AppStorage("rssHideReadItems") var hideReadItems: Bool = false
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
@@ -20,18 +21,31 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssFontSize") var fontSize: Double = 13
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
+    @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
+    private let filterRulesKey = "rssFilterRules"
     private var refreshTimer: DispatchSourceTimer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSReader")
     private var saveWorkItem: DispatchWorkItem?
     private let maxTotalItems = 200
     private let itemRetentionDays = 30
     
+    // Cache for filter results
+    private var filterResultsCache: [UUID: FilteredItemResult] = [:]
+    private var lastFilterCacheUpdate: Date?
+    
     var filteredItems: [FeedItem] {
         var result = items
         
+        // Apply smart filters first
+        if smartFiltersEnabled && !filterRules.isEmpty {
+            let filterResults = applySmartFilters(to: result)
+            result = filterResults.filter { $0.isVisible }.map { $0.item }
+        }
+        
+        // Then apply view filter (all/unread/starred)
         switch filter {
         case .all:
             break
@@ -50,6 +64,30 @@ final class FeedStore: ObservableObject {
         return result
     }
     
+    var hiddenItemCount: Int {
+        guard smartFiltersEnabled && !filterRules.isEmpty else { return 0 }
+        let results = applySmartFilters(to: items)
+        return results.filter { !$0.isVisible }.count
+    }
+    
+    func highlightColor(for item: FeedItem) -> Color? {
+        guard smartFiltersEnabled && !filterRules.isEmpty else { return nil }
+        if let cached = filterResultsCache[item.id] {
+            return cached.highlightColor
+        }
+        let results = applySmartFilters(to: [item])
+        return results.first?.highlightColor
+    }
+    
+    func iconEmoji(for item: FeedItem) -> String? {
+        guard smartFiltersEnabled && !filterRules.isEmpty else { return nil }
+        if let cached = filterResultsCache[item.id] {
+            return cached.iconEmoji
+        }
+        let results = applySmartFilters(to: [item])
+        return results.first?.iconEmoji
+    }
+    
     var unreadCount: Int {
         items.filter { !$0.isRead }.count
     }
@@ -60,6 +98,7 @@ final class FeedStore: ObservableObject {
     
     init() {
         load()
+        loadFilterRules()
         startRefreshTimer()
         
         if feeds.isEmpty {
@@ -376,5 +415,174 @@ final class FeedStore: ObservableObject {
         }
         let datePart = item.pubDate?.timeIntervalSince1970 ?? 0
         return "\(item.feedId.uuidString)-\(item.title.lowercased())-\(datePart)"
+    }
+    
+    // MARK: - Smart Filter Rules
+    
+    func loadFilterRules() {
+        if let data = UserDefaults.standard.data(forKey: filterRulesKey),
+           let decoded = try? JSONDecoder().decode([FilterRule].self, from: data) {
+            filterRules = decoded
+        }
+    }
+    
+    func saveFilterRules() {
+        if let data = try? JSONEncoder().encode(filterRules) {
+            UserDefaults.standard.set(data, forKey: filterRulesKey)
+        }
+        invalidateFilterCache()
+    }
+    
+    func addFilterRule(_ rule: FilterRule) {
+        filterRules.append(rule)
+        saveFilterRules()
+    }
+    
+    func updateFilterRule(_ rule: FilterRule) {
+        if let index = filterRules.firstIndex(where: { $0.id == rule.id }) {
+            filterRules[index] = rule
+            saveFilterRules()
+        }
+    }
+    
+    func deleteFilterRule(_ rule: FilterRule) {
+        filterRules.removeAll { $0.id == rule.id }
+        saveFilterRules()
+    }
+    
+    func toggleFilterRule(_ rule: FilterRule) {
+        if let index = filterRules.firstIndex(where: { $0.id == rule.id }) {
+            filterRules[index].isEnabled.toggle()
+            saveFilterRules()
+        }
+    }
+    
+    private func invalidateFilterCache() {
+        filterResultsCache.removeAll()
+        lastFilterCacheUpdate = nil
+    }
+    
+    // MARK: - Filter Engine
+    
+    private func applySmartFilters(to items: [FeedItem]) -> [FilteredItemResult] {
+        let enabledRules = filterRules.filter { $0.isEnabled }
+        guard !enabledRules.isEmpty else {
+            return items.map { FilteredItemResult(item: $0) }
+        }
+        
+        var results: [FilteredItemResult] = []
+        let hasShowOnlyRule = enabledRules.contains { $0.action == .show }
+        
+        for item in items {
+            var result = FilteredItemResult(item: item)
+            var matchedShowRule = false
+            
+            for rule in enabledRules {
+                // Check feed scope first
+                if !ruleAppliesTo(rule, item: item) {
+                    continue
+                }
+                
+                let matches = evaluateRule(rule, for: item)
+                
+                if matches {
+                    result.matchedRuleIds.insert(rule.id)
+                    
+                    switch rule.action {
+                    case .show:
+                        matchedShowRule = true
+                    case .hide:
+                        result.isVisible = false
+                    case .highlight:
+                        result.highlightColor = rule.effectiveColor
+                    case .addIcon:
+                        result.iconEmoji = rule.iconEmoji
+                    case .autoStar:
+                        result.shouldAutoStar = true
+                    case .markRead:
+                        result.shouldMarkRead = true
+                    }
+                }
+            }
+            
+            // If there are "show only" rules and this item didn't match any, hide it
+            if hasShowOnlyRule && !matchedShowRule {
+                result.isVisible = false
+            }
+            
+            // Apply auto actions
+            if result.shouldAutoStar && !item.isStarred {
+                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
+                    self.items[index].isStarred = true
+                }
+            }
+            if result.shouldMarkRead && !item.isRead {
+                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
+                    self.items[index].isRead = true
+                }
+            }
+            
+            // Cache result
+            filterResultsCache[item.id] = result
+            results.append(result)
+        }
+        
+        lastFilterCacheUpdate = Date()
+        return results
+    }
+    
+    private func ruleAppliesTo(_ rule: FilterRule, item: FeedItem) -> Bool {
+        switch rule.feedScope {
+        case .allFeeds:
+            return true
+        case .specificFeeds(let feedIds):
+            return feedIds.contains(item.feedId)
+        }
+    }
+    
+    private func evaluateRule(_ rule: FilterRule, for item: FeedItem) -> Bool {
+        guard !rule.conditions.isEmpty else { return false }
+        
+        let conditionResults = rule.conditions.map { evaluateCondition($0, for: item) }
+        
+        switch rule.logic {
+        case .all:
+            return conditionResults.allSatisfy { $0 }
+        case .any:
+            return conditionResults.contains { $0 }
+        }
+    }
+    
+    private func evaluateCondition(_ condition: FilterCondition, for item: FeedItem) -> Bool {
+        let searchText: String
+        
+        switch condition.field {
+        case .title:
+            searchText = item.title
+        case .content:
+            searchText = item.description
+        case .author:
+            searchText = item.author ?? ""
+        case .link:
+            searchText = item.link
+        }
+        
+        let value = condition.value.lowercased()
+        let text = searchText.lowercased()
+        
+        guard !value.isEmpty else { return false }
+        
+        switch condition.comparison {
+        case .contains:
+            return text.contains(value)
+        case .notContains:
+            return !text.contains(value)
+        case .equals:
+            return text == value
+        case .startsWith:
+            return text.hasPrefix(value)
+        case .endsWith:
+            return text.hasSuffix(value)
+        }
     }
 }

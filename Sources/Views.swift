@@ -27,6 +27,30 @@ extension Color {
             .sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255,
             opacity: Double(a) / 255)
     }
+    
+    init(nsColor: NSColor) {
+        guard let rgbColor = nsColor.usingColorSpace(.sRGB) else {
+            self.init(.sRGB, red: 0, green: 0, blue: 0, opacity: 1)
+            return
+        }
+        self.init(
+            .sRGB,
+            red: Double(rgbColor.redComponent),
+            green: Double(rgbColor.greenComponent),
+            blue: Double(rgbColor.blueComponent),
+            opacity: Double(rgbColor.alphaComponent)
+        )
+    }
+    
+    func toHex() -> String {
+        guard let components = NSColor(self).usingColorSpace(.sRGB)?.cgColor.components else {
+            return "007AFF"
+        }
+        let r = Int((components[0] * 255).rounded())
+        let g = Int((components[1] * 255).rounded())
+        let b = Int((components[2] * 255).rounded())
+        return String(format: "%02X%02X%02X", r, g, b)
+    }
 }
 
 // MARK: - View Modifiers
@@ -303,6 +327,27 @@ struct FooterGlassButton: View {
     }
 }
 
+// MARK: - Window Helper
+
+func openPreferencesWindow(openWindow: OpenWindowAction) {
+    // First, try to bring existing window to front
+    if let existingWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "preferences" }) {
+        existingWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    } else {
+        // If window doesn't exist, open it
+        openWindow(id: "preferences")
+        // Give it a moment to create, then bring to front
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let newWindow = NSApp.windows.first(where: { $0.title == "Preferences" }) {
+                newWindow.identifier = NSUserInterfaceItemIdentifier("preferences")
+                newWindow.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+}
+
 // MARK: - Main View
 
 struct RSSReaderView: View {
@@ -372,7 +417,7 @@ struct RSSReaderView: View {
                         .keyboardShortcut("r")
 
                         headerButton("Preferences", icon: "gearshape.fill") {
-                            openWindow(id: "preferences")
+                            openPreferencesWindow(openWindow: openWindow)
                         }
                         .keyboardShortcut(",")
 
@@ -395,7 +440,7 @@ struct RSSReaderView: View {
                     .keyboardShortcut("r")
 
                     headerButton("Preferences", icon: "gearshape.fill") {
-                        openWindow(id: "preferences")
+                        openPreferencesWindow(openWindow: openWindow)
                     }
                     .keyboardShortcut(",")
 
@@ -467,7 +512,9 @@ struct RSSReaderView: View {
                         item: item,
                         feedTitle: store.feedTitle(for: item),
                         isHovered: hoveredItemId == item.id,
-                        fontSize: store.fontSize
+                        fontSize: store.fontSize,
+                        highlightColor: store.highlightColor(for: item),
+                        iconEmoji: store.iconEmoji(for: item)
                     )
                     .onTapGesture {
                         store.openItem(item)
@@ -476,6 +523,18 @@ struct RSSReaderView: View {
                     .onHover { isHovered in
                         hoveredItemId = isHovered ? item.id : nil
                     }
+                }
+                
+                // Hidden items indicator
+                if store.hiddenItemCount > 0 {
+                    HStack {
+                        Image(systemName: "eye.slash")
+                            .font(.system(size: 11))
+                        Text("\(store.hiddenItemCount) items hidden by filters")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 12)
                 }
             }
             .padding(.vertical, 0)
@@ -500,12 +559,12 @@ struct RSSReaderView: View {
             if store.feeds.isEmpty {
                 if #available(macOS 26.0, *) {
                     Button("Add Feeds") {
-                        openWindow(id: "preferences")
+                        openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.glassProminent)
                 } else {
                     Button("Add Feeds") {
-                        openWindow(id: "preferences")
+                        openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -551,7 +610,7 @@ struct RSSReaderView: View {
                     HStack(spacing: 8) {
                         FooterGlassButton(title: "Feeds", icon: "list.bullet", action: nil)
                         FooterGlassButton(title: "Settings", icon: "gearshape") {
-                            openWindow(id: "preferences")
+                            openPreferencesWindow(openWindow: openWindow)
                         }
                         FooterGlassButton(title: "Help", icon: "questionmark.circle", action: nil)
                     }
@@ -601,6 +660,16 @@ struct RSSReaderView: View {
     }
     
     private func relativeTimeString(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        
+        // Handle very recent times explicitly
+        if seconds < 2 {
+            return "just now"
+        } else if seconds < 60 {
+            return "\(seconds)s ago"
+        }
+        
+        // Use system formatter for longer durations
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
@@ -614,10 +683,12 @@ struct FeedItemRow: View {
     let feedTitle: String
     let isHovered: Bool
     let fontSize: Double
+    let highlightColor: Color?
+    let iconEmoji: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Unread/Star indicator on the left
+            // Left indicator: star or unread dot
             ZStack {
                 if item.isStarred {
                     Image(systemName: "star.fill")
@@ -629,8 +700,8 @@ struct FeedItemRow: View {
                         .frame(width: 8, height: 8)
                 }
             }
-            .frame(width: 10, height: 10)
-            .padding(.top, 6)
+            .frame(width: 12, height: 12)
+            .padding(.top, 5)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
@@ -655,16 +726,37 @@ struct FeedItemRow: View {
                 }
             }
             
-            // Match the left side spacing (10pt indicator + 12pt spacing = 22pt total)
             Spacer()
-                .frame(width: 10)
+            
+            // Right side: custom icon emoji from filter (in padding area)
+            if let emoji = iconEmoji {
+                Text(emoji)
+                    .font(.system(size: 14))
+                    .padding(.top, 2)
+            } else {
+                // Empty space to maintain padding
+                Text("")
+                    .frame(width: 16)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(isHovered ? Color.primary.opacity(0.08) : Color.clear)
+        .background(rowBackground)
         .sectionDivider()
         .contentShape(Rectangle())
+    }
+    
+    private var rowBackground: some View {
+        Group {
+            if isHovered {
+                Color.primary.opacity(0.08)
+            } else if let color = highlightColor {
+                color.opacity(0.12)
+            } else {
+                Color.clear
+            }
+        }
     }
 
     private static let timeFormatter: DateFormatter = {
