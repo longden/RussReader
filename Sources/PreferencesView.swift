@@ -6,13 +6,15 @@ import UniformTypeIdentifiers
 
 struct FeedIconView: View {
     let iconURL: String?
+    let feedURL: String?
     let size: CGFloat
     
     @State private var image: NSImage?
     @State private var isLoading = false
     
-    init(iconURL: String?, size: CGFloat = 16) {
+    init(iconURL: String?, feedURL: String? = nil, size: CGFloat = 16) {
         self.iconURL = iconURL
+        self.feedURL = feedURL
         self.size = size
     }
     
@@ -35,21 +37,51 @@ struct FeedIconView: View {
     }
     
     private func loadIcon() async {
-        guard !isLoading, image == nil, let iconURL = iconURL, let url = URL(string: iconURL) else { return }
+        guard !isLoading, image == nil else { return }
         isLoading = true
         
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            if let nsImage = NSImage(data: data) {
+        // Try the feed-provided icon URL first
+        if let iconURL = iconURL, let url = URL(string: iconURL) {
+            print("🖼️ Attempting to load feed icon from: \(iconURL)")
+            if let loadedImage = await tryLoadImage(from: url) {
                 await MainActor.run {
-                    self.image = nsImage
+                    print("✓ Successfully loaded icon from feed")
+                    self.image = loadedImage
+                }
+                isLoading = false
+                return
+            } else {
+                print("✗ Failed to load icon from feed URL")
+            }
+        }
+        
+        // Fall back to favicon from the website
+        if let feedURL = feedURL, let feedUrl = URL(string: feedURL) {
+            // Extract domain from feed URL
+            if let host = feedUrl.host {
+                let faviconURL = URL(string: "https://\(host)/favicon.ico")!
+                print("🖼️ Attempting to load favicon from: \(faviconURL)")
+                if let loadedImage = await tryLoadImage(from: faviconURL) {
+                    await MainActor.run {
+                        print("✓ Successfully loaded favicon")
+                        self.image = loadedImage
+                    }
+                } else {
+                    print("✗ Failed to load favicon")
                 }
             }
-        } catch {
-            // Failed to load icon, will show default
         }
         
         isLoading = false
+    }
+    
+    private func tryLoadImage(from url: URL) async -> NSImage? {
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return NSImage(data: data)
+        } catch {
+            return nil
+        }
     }
 }
 
@@ -206,7 +238,7 @@ struct FeedsTabView: View {
             List(selection: $selectedFeed) {
                 ForEach(store.feeds) { feed in
                     HStack(spacing: 8) {
-                        FeedIconView(iconURL: feed.iconURL, size: 16)
+                        FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 16)
                         Text(feed.title)
                             .lineLimit(1)
                         Spacer()
