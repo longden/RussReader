@@ -2,6 +2,57 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+// MARK: - Feed Icon View
+
+struct FeedIconView: View {
+    let iconURL: String?
+    let size: CGFloat
+    
+    @State private var image: NSImage?
+    @State private var isLoading = false
+    
+    init(iconURL: String?, size: CGFloat = 16) {
+        self.iconURL = iconURL
+        self.size = size
+    }
+    
+    var body: some View {
+        Group {
+            if let image = image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                Image(systemName: "link.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .task {
+            await loadIcon()
+        }
+    }
+    
+    private func loadIcon() async {
+        guard !isLoading, image == nil, let iconURL = iconURL, let url = URL(string: iconURL) else { return }
+        isLoading = true
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let nsImage = NSImage(data: data) {
+                await MainActor.run {
+                    self.image = nsImage
+                }
+            }
+        } catch {
+            // Failed to load icon, will show default
+        }
+        
+        isLoading = false
+    }
+}
+
 // MARK: - Preferences View
 
 struct PreferencesView: View {
@@ -154,7 +205,8 @@ struct FeedsTabView: View {
         VStack(spacing: 0) {
             List(selection: $selectedFeed) {
                 ForEach(store.feeds) { feed in
-                    HStack {
+                    HStack(spacing: 8) {
+                        FeedIconView(iconURL: feed.iconURL, size: 16)
                         Text(feed.title)
                             .lineLimit(1)
                         Spacer()
