@@ -60,10 +60,10 @@ struct PreferencesView: View {
         .frame(width: 400, height: 450)
         .environmentObject(store)
     }
-    
+
     private func tabButton(_ tab: PreferencesTab) -> some View {
         let isSelected = selectedTab == tab
-        
+
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) {
                 selectedTab = tab

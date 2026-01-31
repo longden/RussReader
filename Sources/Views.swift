@@ -31,6 +31,41 @@ extension Color {
 
 // MARK: - View Modifiers
 
+struct MenuBarWindowConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+
+        DispatchQueue.main.async {
+            if let window = view.window {
+                window.isOpaque = false
+                window.backgroundColor = .clear
+                window.hasShadow = true
+            }
+        }
+
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let window = nsView.window {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        }
+    }
+}
+
+struct VisualEffectBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let visualEffect = NSVisualEffectView()
+        visualEffect.blendingMode = .behindWindow
+        visualEffect.state = .active
+        visualEffect.material = .popover
+        return visualEffect
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 struct AppearanceApplier: NSViewRepresentable {
     let appearanceMode: String
 
@@ -139,7 +174,8 @@ struct RSSReaderView: View {
             Divider()
             footerView
         }
-        .background(.ultraThinMaterial)
+        .background(VisualEffectBackground())
+        .background(MenuBarWindowConfigurator())
         .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 380, height: 520)
         .alert("Error", isPresented: $store.showingError) {
