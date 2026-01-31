@@ -1,146 +1,116 @@
 import Foundation
 import AppKit
+import FeedKit
 
-// MARK: - RSS Parser
+// MARK: - RSS Parser using FeedKit
 
-final class RSSParser: NSObject, XMLParserDelegate {
+final class RSSParser {
     private let feedId: UUID
-    private var items: [FeedItem] = []
-    private var currentElement: String = ""
-    private var currentTitle: String = ""
-    private var currentLink: String = ""
-    private var currentDescription: String = ""
-    private var currentPubDate: String = ""
-    private var currentPublished: String = ""
-    private var currentUpdated: String = ""
-    private var currentAuthor: String = ""
-    private var currentEntryId: String = ""
-    private var currentGuid: String = ""
-    private var isInItem: Bool = false
-    private var isInChannel: Bool = false
     var feedTitle: String?
-    
-    private static let dateCache = NSCache<NSString, NSDate>()
     
     init(feedId: UUID) {
         self.feedId = feedId
-        super.init()
-        Self.configureDateCache()
-    }
-    
-    private static func configureDateCache() {
-        dateCache.countLimit = 500
     }
     
     func parse(data: Data) -> [FeedItem] {
-        let parser = XMLParser(data: data)
-        parser.delegate = self
-        parser.parse()
-        let result = items
-        items.removeAll()
-        return result
-    }
-    
-    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
-        currentElement = elementName
-        
-        if elementName == "channel" || elementName == "feed" {
-            isInChannel = true
-        }
-        
-        if elementName == "item" || elementName == "entry" {
-            // If we're already in an item and encounter another item tag,
-            // finalize the current one first (handles malformed feeds)
-            if isInItem && (!currentTitle.isEmpty || !currentLink.isEmpty) {
-                finalizeCurrentItem()
-            }
+        do {
+            // Use FeedKit's Feed enum (qualified to avoid conflict with our Feed model)
+            let parsedFeed = try FeedKit.Feed(data: data)
             
-            isInItem = true
-            currentTitle = ""
-            currentLink = ""
-            currentDescription = ""
-            currentPubDate = ""
-            currentPublished = ""
-            currentUpdated = ""
-            currentAuthor = ""
-            currentEntryId = ""
-            currentGuid = ""
-        }
-        
-        // Handle Atom link elements
-        if elementName == "link" && isInItem {
-            if let href = attributeDict["href"] {
-                let rel = (attributeDict["rel"] ?? "").lowercased()
-                let type = (attributeDict["type"] ?? "").lowercased()
-                if rel.isEmpty || rel == "alternate" || type == "text/html" {
-                    currentLink = href
-                }
+            switch parsedFeed {
+            case .rss(let rssFeed):
+                return parseRSSFeed(rssFeed)
+            case .atom(let atomFeed):
+                return parseAtomFeed(atomFeed)
+            case .json(let jsonFeed):
+                return parseJSONFeed(jsonFeed)
             }
+        } catch {
+            print("FeedKit parsing error: \(error)")
+            return []
         }
     }
     
-    func parser(_ parser: XMLParser, foundCharacters string: String) {
-        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+    private func parseRSSFeed(_ rssFeed: FeedKit.RSSFeed) -> [FeedItem] {
+        feedTitle = rssFeed.channel?.title
         
-        if isInItem {
-            switch currentElement {
-            case "title":
-                currentTitle += trimmed
-            case "link":
-                currentLink += trimmed
-            case "description", "summary", "content":
-                currentDescription += trimmed
-            case "pubDate":
-                currentPubDate += trimmed
-            case "published":
-                currentPublished += trimmed
-            case "updated":
-                currentUpdated += trimmed
-            case "author", "dc:creator":
-                currentAuthor += trimmed
-            case "id":
-                currentEntryId += trimmed
-            case "guid":
-                currentGuid += trimmed
-            default:
-                break
-            }
-        } else if isInChannel && currentElement == "title" && feedTitle == nil {
-            feedTitle = trimmed
+        guard let items = rssFeed.channel?.items else { return [] }
+        
+        return items.compactMap { item -> FeedItem? in
+            let title = item.title ?? "Untitled"
+            // RSSFeedGUID is XMLElement - use .text property
+            let link = item.link ?? item.guid?.text ?? ""
+            
+            guard !link.isEmpty else { return nil }
+            
+            return FeedItem(
+                feedId: feedId,
+                title: title,
+                link: link,
+                sourceId: item.guid?.text,
+                description: stripHTML(item.description ?? ""),
+                pubDate: item.pubDate,
+                author: item.author ?? item.dublinCore?.creator
+            )
         }
     }
     
-    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
-        if elementName == "item" || elementName == "entry" {
-            finalizeCurrentItem()
-            isInItem = false
-        }
+    private func parseAtomFeed(_ atomFeed: FeedKit.AtomFeed) -> [FeedItem] {
+        // AtomFeedTitle is XMLElement - use .text property
+        feedTitle = atomFeed.title?.text
         
-        if elementName == "channel" || elementName == "feed" {
-            isInChannel = false
+        guard let entries = atomFeed.entries else { return [] }
+        
+        return entries.compactMap { entry -> FeedItem? in
+            // AtomFeedEntry.title is String? directly
+            let title = entry.title ?? "Untitled"
+            
+            // Get link - prefer alternate or html type
+            let link = entry.links?.first(where: { 
+                $0.attributes?.rel == "alternate" || $0.attributes?.type == "text/html" 
+            })?.attributes?.href ?? entry.links?.first?.attributes?.href ?? entry.id ?? ""
+            
+            guard !link.isEmpty else { return nil }
+            
+            // AtomFeedSummary and AtomFeedContent are XMLElement - use .text
+            return FeedItem(
+                feedId: feedId,
+                title: title,
+                link: link,
+                sourceId: entry.id,
+                description: stripHTML(entry.summary?.text ?? entry.content?.text ?? ""),
+                pubDate: entry.published ?? entry.updated,
+                author: entry.authors?.first?.name
+            )
         }
     }
     
-    private func finalizeCurrentItem() {
-        guard !currentTitle.isEmpty || !currentLink.isEmpty else { return }
+    private func parseJSONFeed(_ jsonFeed: FeedKit.JSONFeed) -> [FeedItem] {
+        feedTitle = jsonFeed.title
         
-        let sourceId = currentGuid.isEmpty ? currentEntryId : currentGuid
-        let resolvedLink = currentLink.isEmpty ? sourceId : currentLink
-        let dateString = !currentPubDate.isEmpty ? currentPubDate : (!currentPublished.isEmpty ? currentPublished : currentUpdated)
-        let item = FeedItem(
-            feedId: feedId,
-            title: currentTitle.isEmpty ? "Untitled" : currentTitle,
-            link: resolvedLink,
-            sourceId: sourceId.isEmpty ? nil : sourceId,
-            description: stripHTML(currentDescription),
-            pubDate: parseDate(dateString),
-            author: currentAuthor.isEmpty ? nil : currentAuthor
-        )
-        items.append(item)
+        guard let items = jsonFeed.items else { return [] }
+        
+        return items.compactMap { item -> FeedItem? in
+            let title = item.title ?? "Untitled"
+            // externalURL has capital URL
+            let link = item.url ?? item.externalURL ?? item.id ?? ""
+            
+            guard !link.isEmpty else { return nil }
+            
+            return FeedItem(
+                feedId: feedId,
+                title: title,
+                link: link,
+                sourceId: item.id,
+                description: stripHTML(item.contentText ?? item.contentHtml ?? item.summary ?? ""),
+                pubDate: item.datePublished,
+                author: item.author?.name
+            )
+        }
     }
     
     private func stripHTML(_ string: String) -> String {
+        guard !string.isEmpty else { return string }
         guard let data = string.data(using: .utf8) else { return string }
         let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
             .documentType: NSAttributedString.DocumentType.html,
@@ -150,65 +120,6 @@ final class RSSParser: NSObject, XMLParserDelegate {
             return attributed.string
         }
         return string.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-    }
-    
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-    
-    private static let iso8601FormatterNoFraction: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-    
-    private static let dateFormatters: [DateFormatter] = {
-        let rfc822 = DateFormatter()
-        rfc822.dateFormat = "EEE, dd MMM yyyy HH:mm:ss Z"
-        rfc822.locale = Locale(identifier: "en_US_POSIX")
-        
-        let rfc822Short = DateFormatter()
-        rfc822Short.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-        rfc822Short.locale = Locale(identifier: "en_US_POSIX")
-        
-        let iso8601 = DateFormatter()
-        iso8601.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        iso8601.locale = Locale(identifier: "en_US_POSIX")
-        
-        let iso8601Full = DateFormatter()
-        iso8601Full.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-        iso8601Full.locale = Locale(identifier: "en_US_POSIX")
-        
-        return [rfc822, rfc822Short, iso8601, iso8601Full]
-    }()
-    
-    private func parseDate(_ string: String) -> Date? {
-        let cacheKey = string as NSString
-        if let cached = Self.dateCache.object(forKey: cacheKey) {
-            return cached as Date
-        }
-        
-        var parsedDate: Date?
-        if let iso = Self.iso8601Formatter.date(from: string) {
-            parsedDate = iso
-        } else if let iso = Self.iso8601FormatterNoFraction.date(from: string) {
-            parsedDate = iso
-        } else {
-            for formatter in Self.dateFormatters {
-                if let date = formatter.date(from: string) {
-                    parsedDate = date
-                    break
-                }
-            }
-        }
-        
-        if let date = parsedDate {
-            Self.dateCache.setObject(date as NSDate, forKey: cacheKey)
-        }
-        
-        return parsedDate
     }
 }
 
