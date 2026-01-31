@@ -52,7 +52,8 @@ final class RSSParser {
                 sourceId: item.guid?.text,
                 description: stripHTML(item.description ?? ""),
                 pubDate: item.pubDate,
-                author: item.author ?? item.dublinCore?.creator
+                author: item.author ?? item.dublinCore?.creator,
+                categories: item.categories?.compactMap { $0.text } ?? []
             )
         }
     }
@@ -84,7 +85,8 @@ final class RSSParser {
                 sourceId: entry.id,
                 description: stripHTML(entry.summary?.text ?? entry.content?.text ?? ""),
                 pubDate: entry.published ?? entry.updated,
-                author: entry.authors?.first?.name
+                author: entry.authors?.first?.name,
+                categories: entry.categories?.compactMap { $0.attributes?.term } ?? []
             )
         }
     }
@@ -109,7 +111,8 @@ final class RSSParser {
                 sourceId: item.id,
                 description: stripHTML(item.contentText ?? item.contentHtml ?? item.summary ?? ""),
                 pubDate: item.datePublished,
-                author: item.author?.name
+                author: item.author?.name,
+                categories: item.tags ?? []
             )
         }
     }

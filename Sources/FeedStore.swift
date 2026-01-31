@@ -22,6 +22,8 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
     @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true
+    @AppStorage("rssSelectedBrowser") var selectedBrowser: String = "default"
+    @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = false
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
@@ -86,6 +88,19 @@ final class FeedStore: ObservableObject {
         }
         let results = applySmartFilters(to: [item])
         return results.first?.iconEmoji
+    }
+    
+    func shouldShowSummary(for item: FeedItem) -> Bool {
+        // Show if global setting is on OR if filter says to show
+        if showSummaryGlobal {
+            return true
+        }
+        guard smartFiltersEnabled && !filterRules.isEmpty else { return false }
+        if let cached = filterResultsCache[item.id] {
+            return cached.shouldShowSummary
+        }
+        let results = applySmartFilters(to: [item])
+        return results.first?.shouldShowSummary ?? false
     }
     
     var unreadCount: Int {
@@ -223,7 +238,11 @@ final class FeedStore: ObservableObject {
     func openItem(_ item: FeedItem) {
         markAsRead(item)
         if let url = URL(string: item.link) {
-            NSWorkspace.shared.open(url)
+            if selectedBrowser == "default" {
+                NSWorkspace.shared.open(url)
+            } else {
+                NSWorkspace.shared.open([url], withApplicationAt: URL(fileURLWithPath: selectedBrowser), configuration: NSWorkspace.OpenConfiguration())
+            }
         }
     }
     
@@ -497,6 +516,8 @@ final class FeedStore: ObservableObject {
                         result.highlightColor = rule.effectiveColor
                     case .addIcon:
                         result.iconEmoji = rule.iconEmoji
+                    case .addSummary:
+                        result.shouldShowSummary = true
                     case .autoStar:
                         result.shouldAutoStar = true
                     case .markRead:
@@ -565,6 +586,8 @@ final class FeedStore: ObservableObject {
             searchText = item.author ?? ""
         case .link:
             searchText = item.link
+        case .category:
+            searchText = item.categories.joined(separator: " ")
         }
         
         let value = condition.value.lowercased()
@@ -584,5 +607,67 @@ final class FeedStore: ObservableObject {
         case .endsWith:
             return text.hasSuffix(value)
         }
+    }
+}
+
+// MARK: - Browser Detection
+
+struct BrowserInfo: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let path: String
+    
+    static func getInstalledBrowsers() -> [BrowserInfo] {
+        var browsers: [BrowserInfo] = []
+        var seenPaths = Set<String>()
+        
+        // Get default browser
+        if let defaultBrowserURL = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://")!) {
+            let defaultName = defaultBrowserURL.deletingPathExtension().lastPathComponent
+            browsers.append(BrowserInfo(
+                id: "default",
+                name: "System Default (\(defaultName))",
+                path: "default"
+            ))
+            seenPaths.insert("default")
+        } else {
+            browsers.append(BrowserInfo(
+                id: "default",
+                name: "System Default",
+                path: "default"
+            ))
+            seenPaths.insert("default")
+        }
+        
+        // Get ALL applications that can open HTTP URLs
+        if let httpURL = URL(string: "https://www.example.com"),
+           let browserURLs = LSCopyApplicationURLsForURL(httpURL as CFURL, .all)?.takeRetainedValue() as? [URL] {
+            
+            for appURL in browserURLs {
+                let appPath = appURL.path
+                
+                // Skip if already added
+                guard !seenPaths.contains(appPath) else { continue }
+                
+                // Get app name from bundle or filename
+                var appName = appURL.deletingPathExtension().lastPathComponent
+                
+                // Try to get better name from Info.plist
+                if let bundle = Bundle(url: appURL),
+                   let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? 
+                                     bundle.object(forInfoDictionaryKey: "CFBundleName") as? String {
+                    appName = displayName
+                }
+                
+                browsers.append(BrowserInfo(
+                    id: appPath,
+                    name: appName,
+                    path: appPath
+                ))
+                seenPaths.insert(appPath)
+            }
+        }
+        
+        return browsers
     }
 }

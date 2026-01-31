@@ -72,6 +72,7 @@ enum FilterAction: String, Codable, CaseIterable {
     case hide = "Hide"
     case highlight = "Highlight"
     case addIcon = "Add Icon"
+    case addSummary = "Add Summary"
     case autoStar = "Auto-Star"
     case markRead = "Mark as Read"
     
@@ -81,6 +82,7 @@ enum FilterAction: String, Codable, CaseIterable {
         case .hide: return "eye.slash"
         case .highlight: return "highlighter"
         case .addIcon: return "face.smiling"
+        case .addSummary: return "text.alignleft"
         case .autoStar: return "star.fill"
         case .markRead: return "checkmark.circle"
         }
@@ -92,6 +94,7 @@ enum FilterAction: String, Codable, CaseIterable {
         case .hide: return "Hide items that match this rule"
         case .highlight: return "Add colored background to matching items"
         case .addIcon: return "Show an emoji/icon next to matching items"
+        case .addSummary: return "Show 1-line article summary preview"
         case .autoStar: return "Automatically star matching items"
         case .markRead: return "Automatically mark matching items as read"
         }
@@ -129,6 +132,7 @@ enum FilterField: String, Codable, CaseIterable {
     case content = "Content"
     case author = "Author"
     case link = "URL"
+    case category = "Category"
     
     var icon: String {
         switch self {
@@ -136,6 +140,7 @@ enum FilterField: String, Codable, CaseIterable {
         case .content: return "doc.text"
         case .author: return "person"
         case .link: return "link"
+        case .category: return "tag"
         }
     }
     
@@ -145,6 +150,7 @@ enum FilterField: String, Codable, CaseIterable {
         case .content: return "Article description/summary text"
         case .author: return "The author's name (if available)"
         case .link: return "The article URL"
+        case .category: return "Article categories/tags"
         }
     }
 }
@@ -196,6 +202,7 @@ struct FilteredItemResult {
     var iconEmoji: String?
     var shouldAutoStar: Bool = false
     var shouldMarkRead: Bool = false
+    var shouldShowSummary: Bool = false
     var matchedRuleIds: Set<UUID> = []
 }
 
@@ -228,10 +235,11 @@ struct FeedItem: Codable, Identifiable, Hashable {
     var description: String
     var pubDate: Date?
     var author: String?
+    var categories: [String]
     var isRead: Bool
     var isStarred: Bool
     
-    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, isRead: Bool = false, isStarred: Bool = false) {
+    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, categories: [String] = [], isRead: Bool = false, isStarred: Bool = false) {
         self.id = id
         self.feedId = feedId
         self.title = title
@@ -240,6 +248,7 @@ struct FeedItem: Codable, Identifiable, Hashable {
         self.description = description
         self.pubDate = pubDate
         self.author = author
+        self.categories = categories
         self.isRead = isRead
         self.isStarred = isStarred
     }
