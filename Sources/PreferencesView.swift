@@ -2,6 +2,73 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+// MARK: - Favicon Cache
+
+final class FaviconCache {
+    static let shared = FaviconCache()
+    
+    private let cache = NSCache<NSString, NSImage>()
+    private let fileManager = FileManager.default
+    private let cacheDirectory: URL?
+    
+    private init() {
+        cache.countLimit = 100
+        
+        // Set up disk cache directory
+        if let cachesDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let faviconDir = cachesDir.appendingPathComponent("FaviconCache", isDirectory: true)
+            try? fileManager.createDirectory(at: faviconDir, withIntermediateDirectories: true)
+            cacheDirectory = faviconDir
+        } else {
+            cacheDirectory = nil
+        }
+    }
+    
+    func image(for url: URL) -> NSImage? {
+        let key = url.absoluteString as NSString
+        
+        // Check memory cache
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        
+        // Check disk cache
+        if let diskImage = loadFromDisk(for: url) {
+            cache.setObject(diskImage, forKey: key)
+            return diskImage
+        }
+        
+        return nil
+    }
+    
+    func store(_ image: NSImage, for url: URL) {
+        let key = url.absoluteString as NSString
+        cache.setObject(image, forKey: key)
+        saveToDisk(image, for: url)
+    }
+    
+    private func cacheFileURL(for url: URL) -> URL? {
+        guard let cacheDirectory = cacheDirectory else { return nil }
+        let filename = url.absoluteString.data(using: .utf8)?.base64EncodedString() ?? url.lastPathComponent
+        return cacheDirectory.appendingPathComponent(filename)
+    }
+    
+    private func loadFromDisk(for url: URL) -> NSImage? {
+        guard let fileURL = cacheFileURL(for: url),
+              fileManager.fileExists(atPath: fileURL.path),
+              let data = try? Data(contentsOf: fileURL) else { return nil }
+        return NSImage(data: data)
+    }
+    
+    private func saveToDisk(_ image: NSImage, for url: URL) {
+        guard let fileURL = cacheFileURL(for: url),
+              let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else { return }
+        try? pngData.write(to: fileURL)
+    }
+}
+
 // MARK: - Feed Icon View
 
 struct FeedIconView: View {
@@ -39,49 +106,44 @@ struct FeedIconView: View {
     private func loadIcon() async {
         guard !isLoading, image == nil else { return }
         isLoading = true
+        defer { isLoading = false }
         
         // Try the feed-provided icon URL first
         if let iconURL = iconURL, let url = URL(string: iconURL) {
-            print("🖼️ Attempting to load feed icon from: \(iconURL)")
-            if let loadedImage = await tryLoadImage(from: url) {
-                await MainActor.run {
-                    print("✓ Successfully loaded icon from feed")
-                    self.image = loadedImage
-                }
-                isLoading = false
+            if let loadedImage = await loadImageWithCache(from: url) {
+                await MainActor.run { self.image = loadedImage }
                 return
-            } else {
-                print("✗ Failed to load icon from feed URL")
             }
         }
         
         // Fall back to favicon from the website
-        if let feedURL = feedURL, let feedUrl = URL(string: feedURL) {
-            // Extract domain from feed URL
-            if let host = feedUrl.host {
-                let faviconURL = URL(string: "https://\(host)/favicon.ico")!
-                print("🖼️ Attempting to load favicon from: \(faviconURL)")
-                if let loadedImage = await tryLoadImage(from: faviconURL) {
-                    await MainActor.run {
-                        print("✓ Successfully loaded favicon")
-                        self.image = loadedImage
-                    }
-                } else {
-                    print("✗ Failed to load favicon")
-                }
+        if let feedURL = feedURL,
+           let feedUrl = URL(string: feedURL),
+           let host = feedUrl.host,
+           let faviconURL = URL(string: "https://\(host)/favicon.ico") {
+            if let loadedImage = await loadImageWithCache(from: faviconURL) {
+                await MainActor.run { self.image = loadedImage }
             }
         }
-        
-        isLoading = false
     }
     
-    private func tryLoadImage(from url: URL) async -> NSImage? {
+    private func loadImageWithCache(from url: URL) async -> NSImage? {
+        // Check cache first
+        if let cached = FaviconCache.shared.image(for: url) {
+            return cached
+        }
+        
+        // Fetch from network
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            return NSImage(data: data)
+            if let image = NSImage(data: data) {
+                FaviconCache.shared.store(image, for: url)
+                return image
+            }
         } catch {
-            return nil
+            // Silently fail - icon loading is non-critical
         }
+        return nil
     }
 }
 
@@ -233,9 +295,11 @@ struct PreferencesTabButton: View {
 
 struct FeedsTabView: View {
     @EnvironmentObject private var store: FeedStore
+    @Environment(\.openWindow) private var openWindow
     @State private var newFeedURL: String = ""
     @State private var selectedFeed: Feed?
     @State private var showingAddSheet: Bool = false
+    @State private var showingSuggestedFeeds: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -275,6 +339,14 @@ struct FeedsTabView: View {
                 Button("Export") {
                     exportOPML()
                 }
+
+                Button("Starter / Suggested Feeds") {
+                    if #available(macOS 13.0, *) {
+                        openWindow(id: "suggestedFeeds")
+                    } else {
+                        showingSuggestedFeeds = true
+                    }
+                }
                 
                 Spacer()
                 
@@ -295,6 +367,10 @@ struct FeedsTabView: View {
             AddFeedSheet(isPresented: $showingAddSheet)
                 .environmentObject(store)
                 .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showingSuggestedFeeds) {
+            SuggestedFeedsSheet(isPresented: $showingSuggestedFeeds)
+                .environmentObject(store)
         }
     }
     
@@ -320,6 +396,141 @@ struct FeedsTabView: View {
         if panel.runModal() == .OK, let url = panel.url {
             let opml = store.exportOPML()
             try? opml.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+}
+
+// MARK: - Suggested Feeds Sheet
+
+struct SuggestedFeedsSheet: View {
+    @EnvironmentObject private var store: FeedStore
+    @Binding var isPresented: Bool
+    var hideDoneButton: Bool = false
+    @State private var selectedFeedIds: Set<String> = []
+    @State private var feedbackMessage: String?
+    @State private var feedbackIsError: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Starter / Suggested Feeds")
+                    .font(.headline)
+                Spacer()
+                if !hideDoneButton {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .keyboardShortcut(.escape)
+                }
+            }
+            
+            if let feedbackMessage {
+                Text(feedbackMessage)
+                    .font(.caption)
+                    .foregroundStyle(feedbackIsError ? .red : .secondary)
+            }
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(SuggestedFeeds.packs) { pack in
+                        suggestedPackCard(pack)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .padding(20)
+        .frame(width: 520, height: 560)
+    }
+    
+    private func suggestedPackCard(_ pack: SuggestedFeedPack) -> some View {
+        let selectedInPack = selectedFeeds(in: pack)
+        let hasAddableFeeds = pack.feeds.contains { !isFeedAlreadyAdded($0) }
+        
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(pack.title)
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(pack.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                Button("Add All") {
+                    addFeeds(pack.feeds, packTitle: pack.title)
+                }
+                .disabled(!hasAddableFeeds)
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(pack.feeds) { feed in
+                    Toggle(isOn: Binding(
+                        get: { selectedFeedIds.contains(feed.id) },
+                        set: { isSelected in
+                            if isSelected {
+                                selectedFeedIds.insert(feed.id)
+                            } else {
+                                selectedFeedIds.remove(feed.id)
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 8) {
+                            Text(feed.title)
+                                .font(.system(size: 12, weight: .medium))
+                            Spacer()
+                            if isFeedAlreadyAdded(feed) {
+                                Text("Added")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                    .disabled(isFeedAlreadyAdded(feed))
+                }
+            }
+            
+            HStack {
+                Spacer()
+                Button("Add Selected") {
+                    addFeeds(selectedInPack, packTitle: pack.title)
+                }
+                .disabled(selectedInPack.isEmpty)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.primary.opacity(0.04))
+        )
+    }
+    
+    private func selectedFeeds(in pack: SuggestedFeedPack) -> [SuggestedFeed] {
+        pack.feeds.filter { selectedFeedIds.contains($0.id) }
+    }
+    
+    private func isFeedAlreadyAdded(_ feed: SuggestedFeed) -> Bool {
+        store.feeds.contains { $0.url.lowercased() == feed.url.lowercased() }
+    }
+    
+    private func addFeeds(_ feeds: [SuggestedFeed], packTitle: String) {
+        guard !feeds.isEmpty else { return }
+        let addedCount = store.addSuggestedFeeds(feeds)
+        feedbackIsError = addedCount == 0
+        if addedCount == 0 {
+            feedbackMessage = "All feeds in \(packTitle) are already added."
+        } else {
+            feedbackMessage = "Added \(addedCount) feed\(addedCount == 1 ? "" : "s") from \(packTitle)."
+        }
+        removeSelectedAlreadyAdded()
+    }
+    
+    private func removeSelectedAlreadyAdded() {
+        selectedFeedIds = selectedFeedIds.filter { id in
+            !store.feeds.contains { $0.url.lowercased() == id }
         }
     }
 }
@@ -1118,6 +1329,7 @@ struct FocusableTextField: NSViewRepresentable {
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
         textField.placeholderString = placeholder
+        textField.stringValue = text
         textField.delegate = context.coordinator
         textField.bezelStyle = .roundedBezel
         textField.font = .systemFont(ofSize: 13)
@@ -1126,7 +1338,11 @@ struct FocusableTextField: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: NSTextField, context: Context) {
-        nsView.stringValue = text
+        // Only update if the value actually changed and we're not currently editing
+        // This prevents the text field from resetting while the user is typing
+        if nsView.stringValue != text && nsView.currentEditor() == nil {
+            nsView.stringValue = text
+        }
         
         if shouldFocus && !context.coordinator.hasFocused {
             DispatchQueue.main.async {
@@ -1299,7 +1515,7 @@ struct HelpTabView: View {
                     helpItem(
                         icon: "link",
                         title: "Adding Feeds",
-                        description: "Go to Feeds tab and click + to add a new RSS feed URL."
+                        description: "Go to Feeds tab and click + to add a new RSS feed URL, or use Starter / Suggested Feeds for packs."
                     )
                     
                     helpItem(

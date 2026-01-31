@@ -136,10 +136,9 @@ struct HeaderButtonStyle: ViewModifier {
             content
                 .labelStyle(.iconOnly)
                 .font(.system(size: 14, weight: .medium))
-                .buttonStyle(.borderless)
                 .foregroundStyle(.primary)
                 .frame(width: 30, height: 30)
-                .contentShape(Circle())
+                .contentShape(Rectangle())
                 .glassEffect(
                     isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
                     in: .circle
@@ -153,7 +152,30 @@ struct HeaderButtonStyle: ViewModifier {
             content
                 .labelStyle(.iconOnly)
                 .font(.system(size: 14, weight: .medium))
-                .buttonStyle(.borderless)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+    }
+}
+
+struct HeaderButtonHoverModifier: ViewModifier {
+    @State private var isHovered = false
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .foregroundStyle(.primary)
+                .glassEffect(
+                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .circle
+                )
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isHovered = hovering
+                    }
+                }
+        } else {
+            content
         }
     }
 }
@@ -255,16 +277,17 @@ struct RefreshButton: View {
     
     var body: some View {
         Button(action: action) {
-            Image(systemName: isRefreshing ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise")
-                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+            // TimelineView properly stops when paused, unlike repeatForever animations
+            TimelineView(.animation(paused: !isRefreshing)) { context in
+                Image(systemName: "arrow.clockwise")
+                    .rotationEffect(.degrees(isRefreshing ? context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360 : 0))
+            }
+            .font(.system(size: 14, weight: .medium))
+            .frame(width: 30, height: 30)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .labelStyle(.iconOnly)
-        .font(.system(size: 14, weight: .medium))
         .foregroundStyle(.primary)
-        .frame(width: 30, height: 30)
-        .contentShape(Circle())
         .modifier(RefreshButtonGlassModifier(isHovered: isHovered))
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -655,8 +678,13 @@ struct RSSReaderView: View {
     private func headerButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: icon)
+                .labelStyle(.iconOnly)
+                .font(.system(size: 14, weight: .medium))
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
         }
-        .headerButtonStyle()
+        .buttonStyle(.plain)
+        .modifier(HeaderButtonHoverModifier())
         .help(title)
     }
     

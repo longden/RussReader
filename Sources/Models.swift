@@ -253,3 +253,113 @@ struct FeedItem: Codable, Identifiable, Hashable {
         self.isStarred = isStarred
     }
 }
+
+// MARK: - Suggested Feeds
+
+struct SuggestedFeed: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let url: String
+    
+    init(title: String, url: String) {
+        self.title = title
+        self.url = url
+        self.id = url.lowercased()
+    }
+}
+
+struct SuggestedFeedPack: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let description: String
+    let feeds: [SuggestedFeed]
+    
+    init(title: String, description: String, feeds: [SuggestedFeed]) {
+        self.title = title
+        self.description = description
+        self.feeds = feeds
+        self.id = title.lowercased()
+    }
+}
+
+enum SuggestedFeeds {
+    static let packs: [SuggestedFeedPack] = [
+        SuggestedFeedPack(
+            title: "AI Essentials",
+            description: "Official blogs and research highlights in AI.",
+            feeds: [
+                SuggestedFeed(title: "OpenAI News", url: "https://openai.com/news/rss.xml"),
+                SuggestedFeed(title: "Google AI Blog", url: "https://blog.google/technology/ai/rss/"),
+                SuggestedFeed(title: "Microsoft AI Blog", url: "https://blogs.microsoft.com/ai/feed/"),
+                SuggestedFeed(title: "MIT AI News", url: "https://news.mit.edu/rss"),
+                SuggestedFeed(title: "arXiv cs.AI", url: "https://rss.arxiv.org/rss/cs.AI")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "React Updates",
+            description: "React core news plus leading community voices.",
+            feeds: [
+                SuggestedFeed(title: "React Blog", url: "https://react.dev/rss.xml"),
+                SuggestedFeed(title: "React Native Blog", url: "https://reactnative.dev/blog/rss.xml"),
+                SuggestedFeed(title: "Overreacted", url: "https://overreacted.io/rss.xml"),
+                SuggestedFeed(title: "Josh W. Comeau", url: "https://www.joshwcomeau.com/rss.xml"),
+                SuggestedFeed(title: "React Status", url: "https://react.statuscode.com/rss")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "Startup Scene",
+            description: "Funding news, founder advice, and product launches.",
+            feeds: [
+                SuggestedFeed(title: "TechCrunch Startups", url: "https://techcrunch.com/category/startups/feed/"),
+                SuggestedFeed(title: "EU-Startups", url: "https://www.eu-startups.com/feed/"),
+                SuggestedFeed(title: "StartupNation", url: "https://startupnation.com/feed/"),
+                SuggestedFeed(title: "Product Hunt", url: "https://www.producthunt.com/feed"),
+                SuggestedFeed(title: "First Round Review", url: "https://firstround.com/review/")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "Cybersecurity",
+            description: "Threat intel, security news, and research.",
+            feeds: [
+                SuggestedFeed(title: "The Hacker News", url: "https://feeds.feedburner.com/TheHack"),
+                SuggestedFeed(title: "Krebs on Security", url: "https://krebsonsecurity.com/feed/"),
+                SuggestedFeed(title: "Dark Reading", url: "https://www.darkreading.com/rss.xml"),
+                SuggestedFeed(title: "BleepingComputer", url: "https://www.bleepingcomputer.com/feed/"),
+                SuggestedFeed(title: "SANS Internet Storm Center", url: "https://isc.sans.edu/rssfeed.xml")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "iOS / macOS",
+            description: "Swift, Apple dev, and platform news.",
+            feeds: [
+                SuggestedFeed(title: "Swift by Sundell", url: "https://www.swiftbysundell.com/rss"),
+                SuggestedFeed(title: "iOS Dev Weekly", url: "https://iosdevweekly.com/issues.rss"),
+                SuggestedFeed(title: "SwiftLee", url: "https://www.avanderlee.com/feed/"),
+                SuggestedFeed(title: "Hacking with Swift", url: "https://www.hackingwithswift.com/articles/rss"),
+                SuggestedFeed(title: "MacRumors", url: "https://feeds.macrumors.com/MacRumors-All")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "Product Management",
+            description: "Discovery, strategy, and product leadership.",
+            feeds: [
+                SuggestedFeed(title: "Product Talk", url: "https://producttalk.org/feed/"),
+                SuggestedFeed(title: "Mind the Product", url: "https://www.mindtheproduct.com/feed/"),
+                SuggestedFeed(title: "Roman Pichler", url: "https://www.romanpichler.com/feed/"),
+                SuggestedFeed(title: "Product Coalition", url: "https://productcoalition.com/feed"),
+                SuggestedFeed(title: "Sachin Rekhi", url: "https://sachinrekhi.com/feed/")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "Machine Learning",
+            description: "ML research, tutorials, and industry trends.",
+            feeds: [
+                SuggestedFeed(title: "Towards Data Science", url: "https://towardsdatascience.com/feed"),
+                SuggestedFeed(title: "Machine Learning Mastery", url: "https://machinelearningmastery.com/blog/feed"),
+                SuggestedFeed(title: "KDnuggets", url: "https://www.kdnuggets.com/feed"),
+                SuggestedFeed(title: "arXiv cs.LG", url: "https://arxiv.org/rss/cs.LG"),
+                SuggestedFeed(title: "BAIR Blog", url: "https://bair.berkeley.edu/blog/feed.xml")
+            ]
+        )
+    ]
+}

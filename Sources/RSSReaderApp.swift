@@ -79,5 +79,12 @@ struct RSSReaderApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+
+        Window("Suggested Feeds", id: "suggestedFeeds") {
+            SuggestedFeedsSheet(isPresented: .constant(false), hideDoneButton: true)
+                .environmentObject(store)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 }

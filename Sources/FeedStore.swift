@@ -34,16 +34,15 @@ final class FeedStore: ObservableObject {
     private let maxTotalItems = 200
     private let itemRetentionDays = 30
     
-    // Cache for filter results
+    // Cache for filter results (per-item metadata like highlight color)
     private var filterResultsCache: [UUID: FilteredItemResult] = [:]
-    private var lastFilterCacheUpdate: Date?
     
     var filteredItems: [FeedItem] {
         var result = items
         
-        // Apply smart filters first
+        // Apply smart filters first (without side effects)
         if smartFiltersEnabled && !filterRules.isEmpty {
-            let filterResults = applySmartFilters(to: result)
+            let filterResults = computeFilterResults(for: result)
             result = filterResults.filter { $0.isVisible }.map { $0.item }
         }
         
@@ -68,7 +67,7 @@ final class FeedStore: ObservableObject {
     
     var hiddenItemCount: Int {
         guard smartFiltersEnabled && !filterRules.isEmpty else { return 0 }
-        let results = applySmartFilters(to: items)
+        let results = computeFilterResults(for: items)
         return results.filter { !$0.isVisible }.count
     }
     
@@ -77,7 +76,7 @@ final class FeedStore: ObservableObject {
         if let cached = filterResultsCache[item.id] {
             return cached.highlightColor
         }
-        let results = applySmartFilters(to: [item])
+        let results = computeFilterResults(for: [item])
         return results.first?.highlightColor
     }
     
@@ -86,7 +85,7 @@ final class FeedStore: ObservableObject {
         if let cached = filterResultsCache[item.id] {
             return cached.iconEmoji
         }
-        let results = applySmartFilters(to: [item])
+        let results = computeFilterResults(for: [item])
         return results.first?.iconEmoji
     }
     
@@ -99,7 +98,7 @@ final class FeedStore: ObservableObject {
         if let cached = filterResultsCache[item.id] {
             return cached.shouldShowSummary
         }
-        let results = applySmartFilters(to: [item])
+        let results = computeFilterResults(for: [item])
         return results.first?.shouldShowSummary ?? false
     }
     
@@ -114,6 +113,11 @@ final class FeedStore: ObservableObject {
     init() {
         load()
         loadFilterRules()
+        
+        // Purge old items only on app startup, not during refresh
+        // This prevents deleting items the user just read
+        purgeOldItems()
+        
         startRefreshTimer()
         
         if feeds.isEmpty {
@@ -159,15 +163,20 @@ final class FeedStore: ObservableObject {
     func save() {
         saveWorkItem?.cancel()
         saveWorkItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            if let feedsData = try? JSONEncoder().encode(self.feeds) {
-                UserDefaults.standard.set(feedsData, forKey: self.feedsKey)
-            }
-            if let itemsData = try? JSONEncoder().encode(self.items) {
-                UserDefaults.standard.set(itemsData, forKey: self.itemsKey)
-            }
+            self?.saveImmediately()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: saveWorkItem!)
+    }
+    
+    private func saveImmediately() {
+        if let feedsData = try? JSONEncoder().encode(self.feeds) {
+            UserDefaults.standard.set(feedsData, forKey: self.feedsKey)
+        }
+        if let itemsData = try? JSONEncoder().encode(self.items) {
+            UserDefaults.standard.set(itemsData, forKey: self.itemsKey)
+        } else {
+            logger.error("Failed to encode items for save")
+        }
     }
     
     // MARK: - Feed Management
@@ -191,6 +200,27 @@ final class FeedStore: ObservableObject {
         
         return true
     }
+
+    func addSuggestedFeeds(_ suggestedFeeds: [SuggestedFeed]) -> Int {
+        var addedCount = 0
+        for suggested in suggestedFeeds {
+            let cleanURL = suggested.url.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanURL.isEmpty else { continue }
+            guard !feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) else { continue }
+            
+            let feed = Feed(title: suggested.title, url: cleanURL, customTitle: true)
+            feeds.append(feed)
+            addedCount += 1
+            
+            Task { await fetchFeed(feed) }
+        }
+        
+        if addedCount > 0 {
+            save()
+        }
+        
+        return addedCount
+    }
     
     func removeFeed(_ feed: Feed) {
         feeds.removeAll { $0.id == feed.id }
@@ -206,33 +236,48 @@ final class FeedStore: ObservableObject {
     
     func markAsRead(_ item: FeedItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].isRead = true
-        save()
+        var updatedItem = items[index]
+        updatedItem.isRead = true
+        items[index] = updatedItem
+        objectWillChange.send()
+        saveImmediately()
     }
     
     func markAsUnread(_ item: FeedItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].isRead = false
-        save()
+        var updatedItem = items[index]
+        updatedItem.isRead = false
+        items[index] = updatedItem
+        objectWillChange.send()
+        saveImmediately()
     }
     
     func toggleStarred(_ item: FeedItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].isStarred.toggle()
-        save()
+        var updatedItem = items[index]
+        updatedItem.isStarred.toggle()
+        items[index] = updatedItem
+        objectWillChange.send()
+        saveImmediately()
     }
     
     func toggleRead(_ item: FeedItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].isRead.toggle()
-        save()
+        var updatedItem = items[index]
+        updatedItem.isRead.toggle()
+        items[index] = updatedItem
+        objectWillChange.send()
+        saveImmediately()
     }
     
     func markAllAsRead() {
-        for i in items.indices {
-            items[i].isRead = true
+        items = items.map { item in
+            var updated = item
+            updated.isRead = true
+            return updated
         }
-        save()
+        objectWillChange.send()
+        saveImmediately()
     }
     
     func openItem(_ item: FeedItem) {
@@ -265,6 +310,7 @@ final class FeedStore: ObservableObject {
     func refreshAll() async {
         guard !isRefreshing else { return }
         isRefreshing = true
+        defer { isRefreshing = false }
         
         // Fetch feeds concurrently - network I/O happens off MainActor
         await withTaskGroup(of: (Feed, [FeedItem], String?, String?)?.self) { group in
@@ -282,7 +328,6 @@ final class FeedStore: ObservableObject {
         }
         
         lastRefreshTime = Date()
-        isRefreshing = false
         save()
     }
     
@@ -321,9 +366,21 @@ final class FeedStore: ObservableObject {
             feeds[index].lastFetched = Date()
         }
         
+        // Build a lookup of existing items by key for efficient deduplication
+        var existingItemsByKey: [String: Int] = [:]
+        for (index, item) in items.enumerated() {
+            existingItemsByKey[itemKey(item)] = index
+        }
+        
+        // Track which items are actually new
+        var actuallyNewItems: [FeedItem] = []
         for newItem in newItems {
-            if !items.contains(where: { itemKey($0) == itemKey(newItem) }) {
+            let key = itemKey(newItem)
+            if existingItemsByKey[key] == nil {
+                // Item doesn't exist, add it
                 items.append(newItem)
+                actuallyNewItems.append(newItem)
+                existingItemsByKey[key] = items.count - 1
             }
         }
         
@@ -334,10 +391,22 @@ final class FeedStore: ObservableObject {
             items.removeAll { toRemove.contains($0.id) }
         }
         
-        purgeOldItems()
+        // Don't purge old items during refresh - it was deleting items the user just read!
+        // purgeOldItems() is now only called on app startup
+        cleanupFilterCache()
+        
+        // Apply auto-actions (star, mark read) to newly added items
+        if smartFiltersEnabled && !filterRules.isEmpty && !actuallyNewItems.isEmpty {
+            applyAutoActions(for: actuallyNewItems)
+        }
+        
+        // Force UI update
+        objectWillChange.send()
     }
     
     private func purgeOldItems() {
+        // Only purge items that are BOTH old by publication date AND have been read
+        // This should only be called on app startup, not during refresh
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -itemRetentionDays, to: Date()) ?? Date()
         
         items.removeAll { item in
@@ -426,14 +495,40 @@ final class FeedStore: ObservableObject {
     }
 
     private func itemKey(_ item: FeedItem) -> String {
+        // Normalize the key components for more reliable deduplication
         if let sourceId = item.sourceId, !sourceId.isEmpty {
             return "\(item.feedId.uuidString)-\(sourceId)"
         }
         if !item.link.isEmpty {
-            return "\(item.feedId.uuidString)-\(item.link)"
+            // Normalize URL: remove trailing slashes and common tracking params
+            let normalizedLink = normalizeURL(item.link)
+            return "\(item.feedId.uuidString)-\(normalizedLink)"
         }
         let datePart = item.pubDate?.timeIntervalSince1970 ?? 0
         return "\(item.feedId.uuidString)-\(item.title.lowercased())-\(datePart)"
+    }
+    
+    private func normalizeURL(_ urlString: String) -> String {
+        guard var components = URLComponents(string: urlString) else {
+            return urlString.lowercased()
+        }
+        
+        // Remove common tracking query parameters
+        let trackingParams = Set(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref", "source"])
+        if let queryItems = components.queryItems {
+            components.queryItems = queryItems.filter { !trackingParams.contains($0.name.lowercased()) }
+            if components.queryItems?.isEmpty == true {
+                components.queryItems = nil
+            }
+        }
+        
+        // Normalize path (remove trailing slash)
+        if components.path.hasSuffix("/") && components.path.count > 1 {
+            components.path = String(components.path.dropLast())
+        }
+        
+        // Return normalized URL string, lowercased for consistency
+        return (components.string ?? urlString).lowercased()
     }
     
     // MARK: - Smart Filter Rules
@@ -478,12 +573,18 @@ final class FeedStore: ObservableObject {
     
     private func invalidateFilterCache() {
         filterResultsCache.removeAll()
-        lastFilterCacheUpdate = nil
+    }
+    
+    // Clean stale cache entries for items that no longer exist
+    private func cleanupFilterCache() {
+        let currentItemIds = Set(items.map { $0.id })
+        filterResultsCache = filterResultsCache.filter { currentItemIds.contains($0.key) }
     }
     
     // MARK: - Filter Engine
     
-    private func applySmartFilters(to items: [FeedItem]) -> [FilteredItemResult] {
+    /// Computes filter results WITHOUT side effects (pure function for display)
+    private func computeFilterResults(for items: [FeedItem]) -> [FilteredItemResult] {
         let enabledRules = filterRules.filter { $0.isEnabled }
         guard !enabledRules.isEmpty else {
             return items.map { FilteredItemResult(item: $0) }
@@ -531,25 +632,48 @@ final class FeedStore: ObservableObject {
                 result.isVisible = false
             }
             
-            // Apply auto actions
-            if result.shouldAutoStar && !item.isStarred {
-                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-                    self.items[index].isStarred = true
-                }
-            }
-            if result.shouldMarkRead && !item.isRead {
-                if let index = self.items.firstIndex(where: { $0.id == item.id }) {
-                    self.items[index].isRead = true
-                }
-            }
-            
-            // Cache result
+            // Cache result for later lookups (highlight color, emoji, etc.)
             filterResultsCache[item.id] = result
             results.append(result)
         }
         
-        lastFilterCacheUpdate = Date()
         return results
+    }
+    
+    /// Apply auto-actions (star, mark read) for new items - call explicitly after fetch
+    func applyAutoActions(for newItems: [FeedItem]) {
+        let enabledRules = filterRules.filter { $0.isEnabled }
+        guard !enabledRules.isEmpty else { return }
+        
+        var needsSave = false
+        
+        for item in newItems {
+            for rule in enabledRules {
+                if !ruleAppliesTo(rule, item: item) { continue }
+                guard evaluateRule(rule, for: item) else { continue }
+                
+                if rule.action == .autoStar && !item.isStarred {
+                    if let index = items.firstIndex(where: { $0.id == item.id }) {
+                        var updatedItem = items[index]
+                        updatedItem.isStarred = true
+                        items[index] = updatedItem
+                        needsSave = true
+                    }
+                }
+                if rule.action == .markRead && !item.isRead {
+                    if let index = items.firstIndex(where: { $0.id == item.id }) {
+                        var updatedItem = items[index]
+                        updatedItem.isRead = true
+                        items[index] = updatedItem
+                        needsSave = true
+                    }
+                }
+            }
+        }
+        
+        if needsSave {
+            save()
+        }
     }
     
     private func ruleAppliesTo(_ rule: FilterRule, item: FeedItem) -> Bool {
