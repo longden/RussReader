@@ -75,7 +75,6 @@ struct RSSReaderApp: App {
         Window("Preferences", id: "preferences") {
             PreferencesView()
                 .environmentObject(store)
-                .background(PanelAccessor().frame(width: 0, height: 0))
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

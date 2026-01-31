@@ -514,7 +514,8 @@ struct RSSReaderView: View {
                         isHovered: hoveredItemId == item.id,
                         fontSize: store.fontSize,
                         highlightColor: store.highlightColor(for: item),
-                        iconEmoji: store.iconEmoji(for: item)
+                        iconEmoji: store.iconEmoji(for: item),
+                        showSummary: store.shouldShowSummary(for: item)
                     )
                     .onTapGesture {
                         store.openItem(item)
@@ -685,10 +686,11 @@ struct FeedItemRow: View {
     let fontSize: Double
     let highlightColor: Color?
     let iconEmoji: String?
+    let showSummary: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Left indicator: star or unread dot
+            // Left indicator: star or unread dot (16pt wide to match right slot)
             ZStack {
                 if item.isStarred {
                     Image(systemName: "star.fill")
@@ -700,8 +702,8 @@ struct FeedItemRow: View {
                         .frame(width: 8, height: 8)
                 }
             }
-            .frame(width: 12, height: 12)
-            .padding(.top, 5)
+            .frame(width: 16, height: 16)
+            .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
@@ -709,6 +711,13 @@ struct FeedItemRow: View {
                     .foregroundStyle(.primary.opacity(item.isRead ? 0.7 : 1.0))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+
+                if showSummary && !item.description.isEmpty {
+                    Text(item.description)
+                        .font(.system(size: fontSize - 2))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
 
                 HStack(spacing: 8) {
                     Text(feedTitle)
@@ -726,22 +735,18 @@ struct FeedItemRow: View {
                 }
             }
             
-            Spacer()
-            
-            // Right side: custom icon emoji from filter (in padding area)
-            if let emoji = iconEmoji {
-                Text(emoji)
-                    .font(.system(size: 14))
-                    .padding(.top, 2)
-            } else {
-                // Empty space to maintain padding
-                Text("")
-                    .frame(width: 16)
+            ZStack {
+                if let emoji = iconEmoji {
+                    Text(emoji)
+                        .font(.system(size: 11))
+                }
             }
+            .frame(width: 16, height: 16)
+            .padding(.top, 2)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(rowBackground)
         .sectionDivider()
         .contentShape(Rectangle())
@@ -782,5 +787,3 @@ struct FeedItemRow: View {
         }
     }
 }
-
-

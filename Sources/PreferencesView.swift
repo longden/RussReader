@@ -370,7 +370,6 @@ struct FiltersTabView: View {
                 if let rule = selectedRule {
                     Button {
                         editingRule = rule
-                        showingRuleEditor = true
                     } label: {
                         Image(systemName: "pencil")
                     }
@@ -397,8 +396,12 @@ struct FiltersTabView: View {
             .padding(.vertical, 12)
             .frame(minHeight: 44)
         }
+        .sheet(item: $editingRule) { rule in
+            RuleEditorView(rule: rule)
+                .environmentObject(store)
+        }
         .sheet(isPresented: $showingRuleEditor) {
-            RuleEditorView(rule: editingRule, isPresented: $showingRuleEditor)
+            RuleEditorView(rule: nil)
                 .environmentObject(store)
         }
     }
@@ -451,7 +454,6 @@ struct FiltersTabView: View {
                     .contextMenu {
                         Button("Edit") {
                             editingRule = rule
-                            showingRuleEditor = true
                         }
                         Button(rule.isEnabled ? "Disable" : "Enable") {
                             store.toggleFilterRule(rule)
@@ -485,6 +487,7 @@ struct RuleRowView: View {
                 } else if rule.action == .addIcon, let emoji = rule.iconEmoji {
                     Text(emoji)
                         .font(.system(size: 12))
+                        .frame(height: 12)
                 } else {
                     Image(systemName: rule.action.icon)
                         .font(.system(size: 12))
@@ -528,7 +531,7 @@ struct RuleRowView: View {
 
 struct RuleEditorView: View {
     @EnvironmentObject private var store: FeedStore
-    @Binding var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
     
     @State private var name: String
     @State private var action: FilterAction
@@ -547,11 +550,10 @@ struct RuleEditorView: View {
     private let existingRule: FilterRule?
     private var isEditing: Bool { existingRule != nil }
     
-    private let commonEmojis = ["⭐", "🔥", "💡", "📌", "🎯", "⚡", "💎", "🚀", "📣", "🏆", "❗", "✨"]
+    private let commonEmojis = ["⭐", "🔥", "💡", "📌", "🎯", "✅", "❗", "🚀"]
     
-    init(rule: FilterRule?, isPresented: Binding<Bool>) {
+    init(rule: FilterRule?) {
         self.existingRule = rule
-        self._isPresented = isPresented
         
         if let rule = rule {
             _name = State(initialValue: rule.name)
@@ -829,7 +831,7 @@ struct RuleEditorView: View {
             // Footer buttons
             HStack {
                 Button("Cancel") {
-                    isPresented = false
+                    dismiss()
                 }
                 .keyboardShortcut(.escape)
                 
@@ -905,7 +907,7 @@ struct RuleEditorView: View {
             store.addFilterRule(rule)
         }
         
-        isPresented = false
+        dismiss()
     }
 }
 
@@ -1162,10 +1164,12 @@ struct SettingsTabView: View {
     @EnvironmentObject private var store: FeedStore
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
     @AppStorage("rssStickyWindow") private var stickyWindow: Bool = false
+    @State private var installedBrowsers: [BrowserInfo] = []
     
     var body: some View {
         Form {
-            Section {
+            // General Settings
+            Section(header: Text("General")) {
                 HStack {
                     Text("Appearance")
                     Spacer()
@@ -1178,6 +1182,24 @@ struct SettingsTabView: View {
                 }
                 
                 HStack {
+                    Text("Browser")
+                    Spacer()
+                    Picker("", selection: $store.selectedBrowser) {
+                        ForEach(installedBrowsers) { browser in
+                            Text(browser.name).tag(browser.path)
+                        }
+                    }
+                    .frame(width: 200)
+                }
+                
+                Toggle("Show Unread Badge", isOn: $store.showUnreadBadge)
+                Toggle("Sticky Window", isOn: $stickyWindow)
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+            }
+            
+            // RSS Appearance Settings
+            Section(header: Text("RSS Appearance")) {
+                HStack {
                     Text("Font Size")
                     Spacer()
                     Slider(value: $store.fontSize, in: 10...18, step: 1) {
@@ -1189,6 +1211,12 @@ struct SettingsTabView: View {
                         .foregroundStyle(.secondary)
                 }
                 
+                Toggle("Show Summary", isOn: $store.showSummaryGlobal)
+                Toggle("Hide Read Items", isOn: $store.hideReadItems)
+            }
+            
+            // Feed Settings
+            Section(header: Text("Feed Settings")) {
                 HStack {
                     Text("Max Items per Feed")
                     Spacer()
@@ -1200,16 +1228,7 @@ struct SettingsTabView: View {
                     }
                     .frame(width: 100)
                 }
-            }
-            
-            Section {
-                Toggle("Show Unread Badge", isOn: $store.showUnreadBadge)
-                Toggle("Hide Read Items", isOn: $store.hideReadItems)
-                Toggle("Sticky Window", isOn: $stickyWindow)
-                Toggle("Launch at Login", isOn: $launchAtLogin)
-            }
-            
-            Section {
+                
                 HStack {
                     Text("Refresh Interval")
                     Spacer()
@@ -1227,6 +1246,7 @@ struct SettingsTabView: View {
                 }
             }
             
+            // Danger Zone
             Section {
                 HStack {
                     Button("Quit App") {
@@ -1245,6 +1265,9 @@ struct SettingsTabView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            installedBrowsers = BrowserInfo.getInstalledBrowsers()
+        }
     }
 }
 
@@ -1283,6 +1306,12 @@ struct HelpTabView: View {
                         icon: "square.and.arrow.up",
                         title: "Import/Export",
                         description: "Use OPML files to import or export your feed subscriptions."
+                    )
+                    
+                    helpItem(
+                        icon: "line.3.horizontal.decrease.circle",
+                        title: "Smart Filters",
+                        description: "Create rules in the Filters tab to automatically highlight, hide, star, or add icons to articles based on title, content, author, URL, or category. Combine conditions with 'All' or 'Any' logic."
                     )
                 }
                 
