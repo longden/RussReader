@@ -7,6 +7,7 @@ import FeedKit
 final class RSSParser {
     private let feedId: UUID
     var feedTitle: String?
+    var feedIconURL: String?
     
     init(feedId: UUID) {
         self.feedId = feedId
@@ -33,6 +34,7 @@ final class RSSParser {
     
     private func parseRSSFeed(_ rssFeed: FeedKit.RSSFeed) -> [FeedItem] {
         feedTitle = rssFeed.channel?.title
+        feedIconURL = rssFeed.channel?.image?.url ?? rssFeed.channel?.iTunes?.image?.attributes?.href
         
         guard let items = rssFeed.channel?.items else { return [] }
         
@@ -58,6 +60,8 @@ final class RSSParser {
     private func parseAtomFeed(_ atomFeed: FeedKit.AtomFeed) -> [FeedItem] {
         // AtomFeedTitle is XMLElement - use .text property
         feedTitle = atomFeed.title?.text
+        // Atom feeds may have logo or icon
+        feedIconURL = atomFeed.logo ?? atomFeed.icon
         
         guard let entries = atomFeed.entries else { return [] }
         
@@ -87,6 +91,7 @@ final class RSSParser {
     
     private func parseJSONFeed(_ jsonFeed: FeedKit.JSONFeed) -> [FeedItem] {
         feedTitle = jsonFeed.title
+        feedIconURL = jsonFeed.icon ?? jsonFeed.favicon
         
         guard let items = jsonFeed.items else { return [] }
         

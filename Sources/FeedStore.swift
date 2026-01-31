@@ -206,7 +206,7 @@ final class FeedStore: ObservableObject {
         isRefreshing = true
         
         // Fetch feeds concurrently - network I/O happens off MainActor
-        await withTaskGroup(of: (Feed, [FeedItem], String?)?.self) { group in
+        await withTaskGroup(of: (Feed, [FeedItem], String?, String?)?.self) { group in
             for feed in feeds {
                 group.addTask { [weak self] in
                     await self?.fetchFeedData(feed)
@@ -214,8 +214,8 @@ final class FeedStore: ObservableObject {
             }
             
             for await result in group {
-                if let (feed, newItems, parsedTitle) = result {
-                    processFetchedFeed(feed, items: newItems, parsedTitle: parsedTitle)
+                if let (feed, newItems, parsedTitle, parsedIconURL) = result {
+                    processFetchedFeed(feed, items: newItems, parsedTitle: parsedTitle, parsedIconURL: parsedIconURL)
                 }
             }
         }
@@ -226,7 +226,7 @@ final class FeedStore: ObservableObject {
     }
     
     // Network fetching - runs off MainActor for true concurrency
-    nonisolated private func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?)? {
+    nonisolated private func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?, String?)? {
         guard let url = URL(string: feed.url) else { return nil }
         
         do {
@@ -238,17 +238,22 @@ final class FeedStore: ObservableObject {
             }
             let parser = RSSParser(feedId: feed.id)
             let newItems = parser.parse(data: data)
-            return (feed, newItems, parser.feedTitle)
+            return (feed, newItems, parser.feedTitle, parser.feedIconURL)
         } catch {
             return nil
         }
     }
     
     // Process results on MainActor
-    private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?) {
+    private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?, parsedIconURL: String?) {
         if let parsedTitle = parsedTitle, !parsedTitle.isEmpty {
             if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
                 feeds[index].title = parsedTitle
+            }
+        }
+        if let parsedIconURL = parsedIconURL, !parsedIconURL.isEmpty {
+            if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+                feeds[index].iconURL = parsedIconURL
             }
         }
         if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
@@ -294,7 +299,7 @@ final class FeedStore: ObservableObject {
     
     func fetchFeed(_ feed: Feed) async {
         if let result = await fetchFeedData(feed) {
-            processFetchedFeed(result.0, items: result.1, parsedTitle: result.2)
+            processFetchedFeed(result.0, items: result.1, parsedTitle: result.2, parsedIconURL: result.3)
             save()
         } else {
             showError("Failed to fetch \(feed.title)")
