@@ -1,11 +1,13 @@
 import Foundation
 import AppKit
 import FeedKit
+import OSLog
 
 // MARK: - RSS Parser using FeedKit
 
 final class RSSParser {
     private let feedId: UUID
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSParser")
     var feedTitle: String?
     var feedIconURL: String?
     
@@ -15,7 +17,6 @@ final class RSSParser {
     
     func parse(data: Data) -> [FeedItem] {
         do {
-            // Use FeedKit's Feed enum (qualified to avoid conflict with our Feed model)
             let parsedFeed = try FeedKit.Feed(data: data)
             
             switch parsedFeed {
@@ -27,7 +28,8 @@ final class RSSParser {
                 return parseJSONFeed(jsonFeed)
             }
         } catch {
-            print("FeedKit parsing error: \(error)")
+            // FeedKit can fail on malformed feeds - log but don't crash
+            logger.warning("Feed parsing failed: \(error.localizedDescription)")
             return []
         }
     }
@@ -40,7 +42,6 @@ final class RSSParser {
         
         return items.compactMap { item -> FeedItem? in
             let title = item.title ?? "Untitled"
-            // RSSFeedGUID is XMLElement - use .text property
             let link = item.link ?? item.guid?.text ?? ""
             
             guard !link.isEmpty else { return nil }
@@ -59,25 +60,20 @@ final class RSSParser {
     }
     
     private func parseAtomFeed(_ atomFeed: FeedKit.AtomFeed) -> [FeedItem] {
-        // AtomFeedTitle is XMLElement - use .text property
         feedTitle = atomFeed.title?.text
-        // Atom feeds may have logo or icon
         feedIconURL = atomFeed.logo ?? atomFeed.icon
         
         guard let entries = atomFeed.entries else { return [] }
         
         return entries.compactMap { entry -> FeedItem? in
-            // AtomFeedEntry.title is String? directly
             let title = entry.title ?? "Untitled"
             
-            // Get link - prefer alternate or html type
             let link = entry.links?.first(where: { 
                 $0.attributes?.rel == "alternate" || $0.attributes?.type == "text/html" 
             })?.attributes?.href ?? entry.links?.first?.attributes?.href ?? entry.id ?? ""
             
             guard !link.isEmpty else { return nil }
             
-            // AtomFeedSummary and AtomFeedContent are XMLElement - use .text
             return FeedItem(
                 feedId: feedId,
                 title: title,
@@ -99,7 +95,6 @@ final class RSSParser {
         
         return items.compactMap { item -> FeedItem? in
             let title = item.title ?? "Untitled"
-            // externalURL has capital URL
             let link = item.url ?? item.externalURL ?? item.id ?? ""
             
             guard !link.isEmpty else { return nil }
