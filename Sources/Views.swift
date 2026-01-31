@@ -617,42 +617,47 @@ struct FeedItemRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(item.isRead ? Color.clear : Color.blue)
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
+            // Unread/Star indicator on the left
+            ZStack {
+                if item.isStarred {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.yellow)
+                } else if !item.isRead {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .frame(width: 10, height: 10)
+            .padding(.top, 6)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top, spacing: 6) {
-                    if item.isStarred {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.yellow)
-                    }
-
-                    Text(item.title)
-                        .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
-                        .foregroundStyle(.primary.opacity(item.isRead ? 0.7 : 1.0))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
+                Text(item.title)
+                    .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
+                    .foregroundStyle(.primary.opacity(item.isRead ? 0.7 : 1.0))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
                 HStack(spacing: 8) {
                     Text(feedTitle)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
-
+                    
+                    Spacer()
+                    
+                    // Date aligned to the right on same row as feed name
                     if let pubDate = item.pubDate {
-                        Text("•")
-                            .foregroundStyle(.secondary.opacity(0.5))
                         Text(formatDate(pubDate))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-
+            
+            // Match the left side spacing (10pt indicator + 12pt spacing = 22pt total)
             Spacer()
+                .frame(width: 10)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
