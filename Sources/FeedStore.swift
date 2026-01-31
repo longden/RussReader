@@ -22,8 +22,11 @@ final class FeedStore: ObservableObject {
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
-    private var refreshTimer: Timer?
+    private var refreshTimer: DispatchSourceTimer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSReader")
+    private var saveWorkItem: DispatchWorkItem?
+    private let maxTotalItems = 200
+    private let itemRetentionDays = 30
     
     var filteredItems: [FeedItem] {
         var result = items
@@ -64,7 +67,8 @@ final class FeedStore: ObservableObject {
     }
     
     deinit {
-        refreshTimer?.invalidate()
+        refreshTimer?.cancel()
+        saveWorkItem?.cancel()
     }
     
     private func addDefaultFeeds() {
@@ -98,12 +102,17 @@ final class FeedStore: ObservableObject {
     }
     
     func save() {
-        if let feedsData = try? JSONEncoder().encode(feeds) {
-            UserDefaults.standard.set(feedsData, forKey: feedsKey)
+        saveWorkItem?.cancel()
+        saveWorkItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            if let feedsData = try? JSONEncoder().encode(self.feeds) {
+                UserDefaults.standard.set(feedsData, forKey: self.feedsKey)
+            }
+            if let itemsData = try? JSONEncoder().encode(self.items) {
+                UserDefaults.standard.set(itemsData, forKey: self.itemsKey)
+            }
         }
-        if let itemsData = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(itemsData, forKey: itemsKey)
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: saveWorkItem!)
     }
     
     // MARK: - Feed Management
@@ -179,13 +188,17 @@ final class FeedStore: ObservableObject {
     // MARK: - Refresh
     
     func startRefreshTimer() {
-        refreshTimer?.invalidate()
-        let interval = TimeInterval(max(1, refreshIntervalMinutes) * 60)
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        refreshTimer?.cancel()
+        let interval = DispatchTimeInterval.seconds(max(1, refreshIntervalMinutes) * 60)
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.main)
+        timer.schedule(deadline: .now() + interval, repeating: interval)
+        timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 await self?.refreshAll()
             }
         }
+        timer.resume()
+        refreshTimer = timer
     }
     
     func refreshAll() async {
@@ -253,6 +266,29 @@ final class FeedStore: ObservableObject {
             let sortedItems = feedItems.sorted { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
             let toRemove = Set(sortedItems.dropFirst(maxItemsPerFeed).map { $0.id })
             items.removeAll { toRemove.contains($0.id) }
+        }
+        
+        purgeOldItems()
+    }
+    
+    private func purgeOldItems() {
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -itemRetentionDays, to: Date()) ?? Date()
+        
+        items.removeAll { item in
+            guard item.isRead && !item.isStarred else { return false }
+            guard let pubDate = item.pubDate else { return false }
+            return pubDate < cutoffDate
+        }
+        
+        if items.count > maxTotalItems {
+            let sortedItems = items.sorted { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
+            let unreadAndStarred = sortedItems.filter { !$0.isRead || $0.isStarred }
+            let readItems = sortedItems.filter { $0.isRead && !$0.isStarred }
+            
+            let keepCount = maxTotalItems - unreadAndStarred.count
+            let itemsToKeep = unreadAndStarred + readItems.prefix(max(0, keepCount))
+            let keepIds = Set(itemsToKeep.map { $0.id })
+            items.removeAll { !keepIds.contains($0.id) }
         }
     }
     

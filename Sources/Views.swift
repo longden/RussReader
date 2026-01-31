@@ -55,15 +55,26 @@ struct MenuBarWindowConfigurator: NSViewRepresentable {
 }
 
 struct VisualEffectBackground: NSViewRepresentable {
+    var material: NSVisualEffectView.Material
+    var blendingMode: NSVisualEffectView.BlendingMode
+
+    init(material: NSVisualEffectView.Material = .hudWindow, blendingMode: NSVisualEffectView.BlendingMode = .behindWindow) {
+        self.material = material
+        self.blendingMode = blendingMode
+    }
+
     func makeNSView(context: Context) -> NSVisualEffectView {
         let visualEffect = NSVisualEffectView()
-        visualEffect.blendingMode = .behindWindow
+        visualEffect.material = material
+        visualEffect.blendingMode = blendingMode
         visualEffect.state = .active
-        visualEffect.material = .popover
         return visualEffect
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
+    }
 }
 
 struct AppearanceApplier: NSViewRepresentable {
@@ -94,11 +105,32 @@ struct AppearanceApplier: NSViewRepresentable {
 }
 
 struct HeaderButtonStyle: ViewModifier {
+    @State private var isHovered = false
+    
     func body(content: Content) -> some View {
-        content
-            .labelStyle(.iconOnly)
-            .font(.system(size: 14, weight: .medium))
-            .buttonStyle(.borderless)
+        if #available(macOS 26.0, *) {
+            content
+                .labelStyle(.iconOnly)
+                .font(.system(size: 14, weight: .medium))
+                .buttonStyle(.borderless)
+                .foregroundStyle(.primary)
+                .frame(width: 30, height: 30)
+                .contentShape(Circle())
+                .glassEffect(
+                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .circle
+                )
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isHovered = hovering
+                    }
+                }
+        } else {
+            content
+                .labelStyle(.iconOnly)
+                .font(.system(size: 14, weight: .medium))
+                .buttonStyle(.borderless)
+        }
     }
 }
 
@@ -152,6 +184,125 @@ extension View {
     }
 }
 
+// MARK: - Filter Tab Button (macOS 26+)
+
+@available(macOS 26.0, *)
+struct FilterTabButton: View {
+    let filter: FeedFilter
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
+            Label {
+                Text(filter.rawValue)
+            } icon: {
+                Image(systemName: filter.icon)
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(isSelected ? .primary : .secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contentShape(Capsule())
+        .glassEffect(
+            isSelected 
+                ? .regular.interactive() 
+                : (isHovered ? .clear.interactive().tint(.primary.opacity(0.12)) : .clear.interactive()),
+            in: .capsule
+        )
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+// MARK: - Refresh Button
+
+struct RefreshButton: View {
+    let isRefreshing: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isRefreshing ? "arrow.trianglehead.2.clockwise.rotate.90" : "arrow.clockwise")
+                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+        }
+        .buttonStyle(.plain)
+        .labelStyle(.iconOnly)
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(.primary)
+        .frame(width: 30, height: 30)
+        .contentShape(Circle())
+        .modifier(RefreshButtonGlassModifier(isHovered: isHovered))
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
+        .help("Refresh feeds")
+    }
+}
+
+struct RefreshButtonGlassModifier: ViewModifier {
+    let isHovered: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(
+                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .circle
+                )
+        } else {
+            content
+        }
+    }
+}
+
+// MARK: - Footer Button (macOS 26+)
+
+@available(macOS 26.0, *)
+struct FooterGlassButton: View {
+    let title: String
+    let icon: String
+    let action: (() -> Void)?
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button {
+            action?()
+        } label: {
+            Label(title, systemImage: icon)
+                .labelStyle(.iconOnly)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contentShape(Capsule())
+        .glassEffect(
+            isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+            in: .capsule
+        )
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
+        .help(title)
+    }
+}
+
 // MARK: - Main View
 
 struct RSSReaderView: View {
@@ -159,8 +310,9 @@ struct RSSReaderView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredItemId: UUID?
 
+    @ViewBuilder
     var body: some View {
-        VStack(spacing: 0) {
+        let content = VStack(spacing: 0) {
             headerView
             filterTabsView
             Divider()
@@ -174,19 +326,35 @@ struct RSSReaderView: View {
             Divider()
             footerView
         }
-        .background(VisualEffectBackground())
-        .background(MenuBarWindowConfigurator())
-        .background(AppearanceApplier(appearanceMode: store.appearanceMode))
-        .frame(width: 380, height: 520)
-        .alert("Error", isPresented: $store.showingError) {
-            Button("OK") { store.showingError = false }
-        } message: {
-            Text(store.errorMessage ?? "An unknown error occurred.")
+
+        if #available(macOS 26.0, *) {
+            content
+                .background(.ultraThinMaterial)
+                .background(MenuBarWindowConfigurator())
+                .background(AppearanceApplier(appearanceMode: store.appearanceMode))
+                .frame(width: 380, height: 520)
+                .alert("Error", isPresented: $store.showingError) {
+                    Button("OK") { store.showingError = false }
+                } message: {
+                    Text(store.errorMessage ?? "An unknown error occurred.")
+                }
+        } else {
+            content
+                .background(VisualEffectBackground(material: .hudWindow, blendingMode: .behindWindow))
+                .background(MenuBarWindowConfigurator())
+                .background(AppearanceApplier(appearanceMode: store.appearanceMode))
+                .frame(width: 380, height: 520)
+                .alert("Error", isPresented: $store.showingError) {
+                    Button("OK") { store.showingError = false }
+                } message: {
+                    Text(store.errorMessage ?? "An unknown error occurred.")
+                }
         }
     }
 
     // MARK: - Header View
 
+    @ViewBuilder
     private var headerView: some View {
         HStack(spacing: 16) {
             Image(systemName: "newspaper.fill")
@@ -195,30 +363,52 @@ struct RSSReaderView: View {
 
             Spacer()
 
-            HStack(spacing: 12) {
-                headerButton("Refresh feeds", icon: store.isRefreshing 
-                    ? "arrow.trianglehead.2.clockwise.rotate.90" 
-                    : "arrow.clockwise") {
-                    Task { await store.refreshAll() }
-                }
-                .keyboardShortcut("r")
-                .rotationEffect(.degrees(store.isRefreshing ? 360 : 0))
-                .animation(store.isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: store.isRefreshing)
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer {
+                    HStack(spacing: 8) {
+                        RefreshButton(isRefreshing: store.isRefreshing) {
+                            Task { await store.refreshAll() }
+                        }
+                        .keyboardShortcut("r")
 
-                headerButton("Preferences", icon: "gearshape.fill") {
-                    openWindow(id: "preferences")
-                }
-                .keyboardShortcut(",")
+                        headerButton("Preferences", icon: "gearshape.fill") {
+                            openWindow(id: "preferences")
+                        }
+                        .keyboardShortcut(",")
 
-                headerButton("Mark all as read", icon: "checkmark.circle.fill") {
-                    store.markAllAsRead()
-                }
-                .disabled(store.unreadCount == 0)
+                        headerButton("Mark all as read", icon: "checkmark.circle.fill") {
+                            store.markAllAsRead()
+                        }
+                        .disabled(store.unreadCount == 0)
 
-                headerButton("Quit", icon: "xmark.circle.fill") {
-                    NSApplication.shared.terminate(nil)
+                        headerButton("Quit", icon: "xmark.circle.fill") {
+                            NSApplication.shared.terminate(nil)
+                        }
+                        .keyboardShortcut("q")
+                    }
                 }
-                .keyboardShortcut("q")
+            } else {
+                HStack(spacing: 12) {
+                    RefreshButton(isRefreshing: store.isRefreshing) {
+                        Task { await store.refreshAll() }
+                    }
+                    .keyboardShortcut("r")
+
+                    headerButton("Preferences", icon: "gearshape.fill") {
+                        openWindow(id: "preferences")
+                    }
+                    .keyboardShortcut(",")
+
+                    headerButton("Mark all as read", icon: "checkmark.circle.fill") {
+                        store.markAllAsRead()
+                    }
+                    .disabled(store.unreadCount == 0)
+
+                    headerButton("Quit", icon: "xmark.circle.fill") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .keyboardShortcut("q")
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -228,22 +418,43 @@ struct RSSReaderView: View {
 
     // MARK: - Filter Tabs View
 
+    @ViewBuilder
     private var filterTabsView: some View {
-        Picker("Filter", selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
-            ForEach(FeedFilter.allCases, id: \.self) { filter in
-                Label {
-                    Text(filter.rawValue)
-                } icon: {
-                    Image(systemName: filter.icon)
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer {
+                HStack(spacing: 8) {
+                    ForEach(FeedFilter.allCases, id: \.self) { filter in
+                        FilterTabButton(
+                            filter: filter,
+                            isSelected: store.filter == filter
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                store.filter = filter
+                            }
+                        }
+                    }
                 }
-                .tag(filter)
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+        } else {
+            Picker("Filter", selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
+                ForEach(FeedFilter.allCases, id: \.self) { filter in
+                    Label {
+                        Text(filter.rawValue)
+                    } icon: {
+                        Image(systemName: filter.icon)
+                    }
+                    .tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Item List View
@@ -287,15 +498,29 @@ struct RSSReaderView: View {
                 .multilineTextAlignment(.center)
 
             if store.feeds.isEmpty {
-                Button("Add Feeds") {
-                    openWindow(id: "preferences")
+                if #available(macOS 26.0, *) {
+                    Button("Add Feeds") {
+                        openWindow(id: "preferences")
+                    }
+                    .buttonStyle(.glassProminent)
+                } else {
+                    Button("Add Feeds") {
+                        openWindow(id: "preferences")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             } else if store.filter == .all {
-                Button("Refresh") {
-                    Task { await store.refreshAll() }
+                if #available(macOS 26.0, *) {
+                    Button("Refresh") {
+                        Task { await store.refreshAll() }
+                    }
+                    .buttonStyle(.glassProminent)
+                } else {
+                    Button("Refresh") {
+                        Task { await store.refreshAll() }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
 
             Spacer()
@@ -318,15 +543,28 @@ struct RSSReaderView: View {
 
     // MARK: - Footer View
 
+    @ViewBuilder
     private var footerView: some View {
         HStack {
-            HStack(spacing: 6) {
-                Image(systemName: "clock")
-                    .font(.system(size: 11))
-                Text("All Unread")
-                    .font(.system(size: 11, weight: .medium))
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer {
+                    HStack(spacing: 8) {
+                        FooterGlassButton(title: "Feeds", icon: "list.bullet", action: nil)
+                        FooterGlassButton(title: "Settings", icon: "gearshape") {
+                            openWindow(id: "preferences")
+                        }
+                        FooterGlassButton(title: "Help", icon: "questionmark.circle", action: nil)
+                    }
+                }
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 11))
+                    Text("All Unread")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(.secondary)
             }
-            .foregroundStyle(.secondary)
 
             Spacer()
 

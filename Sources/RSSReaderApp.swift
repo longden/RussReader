@@ -1,19 +1,53 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Window Accessor for Z-ordering
+// MARK: - Floating Panel (properly handles focus for text input)
 
-struct WindowAccessor: NSViewRepresentable {
+class FloatingPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+// MARK: - Panel Accessor
+
+struct PanelAccessor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
+
         DispatchQueue.main.async {
-            if let window = view.window {
-                window.level = .floating
+            guard let currentWindow = view.window else { return }
+
+            // Create panel with same frame
+            let panel = FloatingPanel(
+                contentRect: currentWindow.frame,
+                styleMask: [.titled, .closable, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+
+            panel.level = .floating
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            panel.isFloatingPanel = true
+            panel.becomesKeyOnlyIfNeeded = false
+            panel.hidesOnDeactivate = false
+            panel.titleVisibility = .hidden
+            panel.titlebarAppearsTransparent = true
+            panel.styleMask.insert(.fullSizeContentView)
+
+            // Transfer content
+            if let contentView = currentWindow.contentView {
+                panel.contentView = contentView
             }
+
+            panel.center()
+            panel.makeKeyAndOrderFront(nil)
+
+            currentWindow.close()
         }
+
         return view
     }
-    
+
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
@@ -33,7 +67,7 @@ struct RSSReaderApp: App {
         Window("Preferences", id: "preferences") {
             PreferencesView()
                 .environmentObject(store)
-                .background(WindowAccessor())
+                .background(PanelAccessor().frame(width: 0, height: 0))
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)

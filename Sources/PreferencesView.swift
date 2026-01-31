@@ -61,25 +61,84 @@ struct PreferencesView: View {
         .environmentObject(store)
     }
 
+    @ViewBuilder
     private func tabButton(_ tab: PreferencesTab) -> some View {
         let isSelected = selectedTab == tab
 
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                selectedTab = tab
+        if #available(macOS 26.0, *) {
+            PreferencesTabButton(tab: tab, isSelected: isSelected) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    selectedTab = tab
+                }
             }
-        } label: {
+        } else {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    selectedTab = tab
+                }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 20))
+                    Text(tab.rawValue)
+                        .font(.system(size: 11))
+                }
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .frame(width: 70)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(
+                Group {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(.regularMaterial)
+                    }
+                }
+            )
+            .opacity(isSelected ? 1.0 : 0.7)
+        }
+    }
+}
+
+@available(macOS 26.0, *)
+struct PreferencesTabButton: View {
+    let tab: PreferencesView.PreferencesTab
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 20))
                 Text(tab.rawValue)
                     .font(.system(size: 11))
             }
-            .foregroundStyle(isSelected ? .blue : .secondary)
-            .frame(width: 60)
+            .foregroundStyle(isSelected ? .primary : .secondary)
+            .frame(width: 70)
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.clear)
+                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 8))
+            } else if isHovered {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.primary.opacity(0.08))
+            }
+        }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
     }
 }
 
@@ -147,6 +206,7 @@ struct FeedsTabView: View {
         .sheet(isPresented: $showingAddSheet) {
             AddFeedSheet(isPresented: $showingAddSheet)
                 .environmentObject(store)
+                .interactiveDismissDisabled()
         }
     }
     
@@ -183,7 +243,6 @@ struct AddFeedSheet: View {
     @Binding var isPresented: Bool
     @State private var feedURL: String = ""
     @State private var feedTitle: String = ""
-    @FocusState private var isURLFocused: Bool
     
     var body: some View {
         VStack(spacing: 16) {
@@ -194,15 +253,14 @@ struct AddFeedSheet: View {
                 Text("Feed URL")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("https://example.com/feed.xml", text: $feedURL)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($isURLFocused)
+                FocusableTextField(text: $feedURL, placeholder: "https://example.com/feed.xml", shouldFocus: true)
+                    .frame(height: 22)
                 
                 Text("Title (optional)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                TextField("My Feed", text: $feedTitle)
-                    .textFieldStyle(.roundedBorder)
+                FocusableTextField(text: $feedTitle, placeholder: "My Feed", shouldFocus: false)
+                    .frame(height: 22)
             }
             
             HStack {
@@ -210,21 +268,82 @@ struct AddFeedSheet: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
-                
+
                 Spacer()
-                
-                Button("Add") {
-                    store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
-                    isPresented = false
+
+                if #available(macOS 26.0, *) {
+                    Button("Add") {
+                        store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
+                        isPresented = false
+                    }
+                    .buttonStyle(.glassProminent)
+                    .keyboardShortcut(.return)
+                    .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } else {
+                    Button("Add") {
+                        store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
+                        isPresented = false
+                    }
+                    .keyboardShortcut(.return)
+                    .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .keyboardShortcut(.return)
-                .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(20)
         .frame(width: 350)
         .onAppear {
-            isURLFocused = true
+            // Activate the app to ensure keyboard focus works
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+}
+
+// MARK: - Focusable TextField (AppKit wrapper for reliable focus)
+
+struct FocusableTextField: NSViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var shouldFocus: Bool
+    
+    func makeNSView(context: Context) -> NSTextField {
+        let textField = NSTextField()
+        textField.placeholderString = placeholder
+        textField.delegate = context.coordinator
+        textField.bezelStyle = .roundedBezel
+        textField.font = .systemFont(ofSize: 13)
+        textField.focusRingType = .exterior
+        return textField
+    }
+    
+    func updateNSView(_ nsView: NSTextField, context: Context) {
+        nsView.stringValue = text
+        
+        if shouldFocus && !context.coordinator.hasFocused {
+            DispatchQueue.main.async {
+                if let window = nsView.window {
+                    window.makeFirstResponder(nsView)
+                    context.coordinator.hasFocused = true
+                }
+            }
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: FocusableTextField
+        var hasFocused = false
+        
+        init(_ parent: FocusableTextField) {
+            self.parent = parent
+        }
+        
+        func controlTextDidChange(_ obj: Notification) {
+            if let textField = obj.object as? NSTextField {
+                parent.text = textField.stringValue
+            }
         }
     }
 }
