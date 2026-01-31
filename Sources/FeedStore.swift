@@ -19,6 +19,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
     @AppStorage("rssFontSize") var fontSize: Double = 13
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
+    @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
@@ -117,22 +118,24 @@ final class FeedStore: ObservableObject {
     
     // MARK: - Feed Management
     
-    func addFeed(url: String, title: String? = nil) {
+    func addFeed(url: String, title: String? = nil) -> Bool {
         let cleanURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanURL.isEmpty else { return }
+        guard !cleanURL.isEmpty else { return false }
         
         if feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
             showError("This feed is already added.")
-            return
+            return false
         }
         
-        let feed = Feed(title: title ?? cleanURL, url: cleanURL)
+        let feed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil)
         feeds.append(feed)
         save()
         
         Task {
             await fetchFeed(feed)
         }
+        
+        return true
     }
     
     func removeFeed(_ feed: Feed) {
@@ -247,7 +250,7 @@ final class FeedStore: ObservableObject {
     // Process results on MainActor
     private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?, parsedIconURL: String?) {
         if let parsedTitle = parsedTitle, !parsedTitle.isEmpty {
-            if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+            if let index = feeds.firstIndex(where: { $0.id == feed.id }), !feeds[index].customTitle {
                 feeds[index].title = parsedTitle
             }
         }

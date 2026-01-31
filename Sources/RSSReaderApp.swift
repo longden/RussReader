@@ -58,9 +58,17 @@ struct RSSReaderApp: App {
     @StateObject private var store = FeedStore()
 
     var body: some Scene {
-        MenuBarExtra("RSS Reader", systemImage: store.unreadCount > 0 ? "newspaper.fill" : "newspaper") {
+        MenuBarExtra {
             RSSReaderView()
                 .environmentObject(store)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: store.unreadCount > 0 ? "newspaper.fill" : "newspaper")
+                if store.showUnreadBadge && store.unreadCount > 0 {
+                    Text("\(store.unreadCount)")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                }
+            }
         }
         .menuBarExtraStyle(.window)
 

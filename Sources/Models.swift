@@ -24,13 +24,15 @@ struct Feed: Codable, Identifiable, Hashable {
     var url: String
     var lastFetched: Date?
     var iconURL: String?
+    var customTitle: Bool
     
-    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, iconURL: String? = nil) {
+    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, iconURL: String? = nil, customTitle: Bool = false) {
         self.id = id
         self.title = title
         self.url = url
         self.lastFetched = lastFetched
         self.iconURL = iconURL
+        self.customTitle = customTitle
     }
 }
 
