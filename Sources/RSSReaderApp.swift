@@ -95,5 +95,12 @@ struct RSSReaderApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+
+        Window("Add Feed", id: "addFeed") {
+            AddFeedWindow()
+                .environmentObject(store)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
     }
 }

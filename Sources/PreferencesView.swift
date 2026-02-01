@@ -1329,6 +1329,28 @@ final class FeedDiscovery {
     }
 }
 
+// MARK: - Add Feed Window (standalone window wrapper)
+
+struct AddFeedWindow: View {
+    @EnvironmentObject private var store: FeedStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var shouldClose = false
+    
+    var body: some View {
+        AddFeedSheet(isPresented: $shouldClose)
+            .environmentObject(store)
+            .onChange(of: shouldClose) { _, newValue in
+                if newValue {
+                    // Close the window when the sheet wants to dismiss
+                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
+                        window.close()
+                    }
+                }
+            }
+            .background(PanelAccessor())
+    }
+}
+
 // MARK: - Add Feed Sheet
 
 struct AddFeedSheet: View {
@@ -1488,21 +1510,54 @@ struct AddFeedSheet: View {
             return
         }
 
-        if store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle) {
-            isPresented = false
+        // Show loading state and validate feed
+        isDiscovering = true
+        Task {
+            let result = await store.addFeed(url: feedURL, title: feedTitle.isEmpty ? nil : feedTitle)
+            await MainActor.run {
+                isDiscovering = false
+                if result.success {
+                    isPresented = false
+                } else {
+                    errorMessage = result.errorMessage
+                }
+            }
         }
     }
 }
 
 // MARK: - Focusable TextField (AppKit wrapper for reliable focus)
 
+// Custom NSTextField that handles tab properly in sheets
+class SheetTextField: NSTextField {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Handle tab key within the sheet context
+        if event.keyCode == 48 { // Tab key
+            if event.modifierFlags.contains(.shift) {
+                // Shift-Tab: move to previous control
+                if let window = self.window {
+                    window.selectPreviousKeyView(nil)
+                }
+                return true
+            } else {
+                // Tab: move to next control
+                if let window = self.window {
+                    window.selectNextKeyView(nil)
+                }
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
 struct FocusableTextField: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
     var shouldFocus: Bool
     
-    func makeNSView(context: Context) -> NSTextField {
-        let textField = NSTextField()
+    func makeNSView(context: Context) -> SheetTextField {
+        let textField = SheetTextField()
         textField.placeholderString = placeholder
         textField.stringValue = text
         textField.delegate = context.coordinator
@@ -1512,7 +1567,7 @@ struct FocusableTextField: NSViewRepresentable {
         return textField
     }
     
-    func updateNSView(_ nsView: NSTextField, context: Context) {
+    func updateNSView(_ nsView: SheetTextField, context: Context) {
         // Only update if the value actually changed and we're not currently editing
         // This prevents the text field from resetting while the user is typing
         if nsView.stringValue != text && nsView.currentEditor() == nil {
