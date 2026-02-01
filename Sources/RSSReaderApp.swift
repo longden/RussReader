@@ -56,6 +56,15 @@ struct PanelAccessor: NSViewRepresentable {
 @main
 struct RSSReaderApp: App {
     @StateObject private var store = FeedStore()
+    
+    init() {
+        // Apply stored language preference on app launch
+        if let languageCode = UserDefaults.standard.string(forKey: "rssLanguage"),
+           languageCode != "system" {
+            UserDefaults.standard.set([languageCode], forKey: "AppleLanguages")
+            UserDefaults.standard.synchronize()
+        }
+    }
 
     var body: some Scene {
         MenuBarExtra {

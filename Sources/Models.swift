@@ -8,6 +8,14 @@ enum FeedFilter: String, CaseIterable {
     case unread = "Unread"
     case starred = "Starred"
     
+    var localizedName: String {
+        switch self {
+        case .all: return String(localized: "All", bundle: .module)
+        case .unread: return String(localized: "Unread", bundle: .module)
+        case .starred: return String(localized: "Starred", bundle: .module)
+        }
+    }
+    
     var icon: String {
         switch self {
         case .all: return "list.bullet"
@@ -72,9 +80,21 @@ enum FilterAction: String, Codable, CaseIterable {
     case hide = "Hide"
     case highlight = "Highlight"
     case addIcon = "Add Icon"
-    case addSummary = "Add Summary"
+    case addSummary = "Show Summary"
     case autoStar = "Auto-Star"
-    case markRead = "Mark as Read"
+    case markRead = "Mark Read"
+    
+    var localizedName: String {
+        switch self {
+        case .show: return String(localized: "Show Only", bundle: .module)
+        case .hide: return String(localized: "Hide", bundle: .module)
+        case .highlight: return String(localized: "Highlight", bundle: .module)
+        case .addIcon: return String(localized: "Add Icon", bundle: .module)
+        case .addSummary: return String(localized: "Show Summary", bundle: .module)
+        case .autoStar: return String(localized: "Auto-Star", bundle: .module)
+        case .markRead: return String(localized: "Mark Read", bundle: .module)
+        }
+    }
     
     var icon: String {
         switch self {
@@ -88,15 +108,15 @@ enum FilterAction: String, Codable, CaseIterable {
         }
     }
     
-    var description: String {
+    var localizedDescription: String {
         switch self {
-        case .show: return "Only show items that match this rule"
-        case .hide: return "Hide items that match this rule"
-        case .highlight: return "Add colored background to matching items"
-        case .addIcon: return "Show an emoji/icon next to matching items"
-        case .addSummary: return "Show 1-line article summary preview"
-        case .autoStar: return "Automatically star matching items"
-        case .markRead: return "Automatically mark matching items as read"
+        case .show: return String(localized: "Only show items that match this rule", bundle: .module)
+        case .hide: return String(localized: "Hide items that match this rule", bundle: .module)
+        case .highlight: return String(localized: "Add colored background to matching items", bundle: .module)
+        case .addIcon: return String(localized: "Show an emoji/icon next to matching items", bundle: .module)
+        case .addSummary: return String(localized: "Show 1-line article summary preview", bundle: .module)
+        case .autoStar: return String(localized: "Automatically star matching items", bundle: .module)
+        case .markRead: return String(localized: "Automatically mark matching items as read", bundle: .module)
         }
     }
 }
@@ -105,10 +125,10 @@ enum FilterLogic: String, Codable, CaseIterable {
     case all = "All"
     case any = "Any"
     
-    var description: String {
+    var localizedDescription: String {
         switch self {
-        case .all: return "all conditions match"
-        case .any: return "any condition matches"
+        case .all: return String(localized: "all conditions", bundle: .module)
+        case .any: return String(localized: "any condition", bundle: .module)
         }
     }
 }
@@ -131,8 +151,18 @@ enum FilterField: String, Codable, CaseIterable {
     case title = "Title"
     case content = "Content"
     case author = "Author"
-    case link = "URL"
+    case link = "Link"
     case category = "Category"
+    
+    var localizedName: String {
+        switch self {
+        case .title: return String(localized: "Title", bundle: .module)
+        case .content: return String(localized: "Content", bundle: .module)
+        case .author: return String(localized: "Author", bundle: .module)
+        case .link: return String(localized: "Link", bundle: .module)
+        case .category: return String(localized: "Category", bundle: .module)
+        }
+    }
     
     var icon: String {
         switch self {
@@ -143,24 +173,24 @@ enum FilterField: String, Codable, CaseIterable {
         case .category: return "tag"
         }
     }
-    
-    var helpText: String {
-        switch self {
-        case .title: return "The article headline"
-        case .content: return "Article description/summary text"
-        case .author: return "The author's name (if available)"
-        case .link: return "The article URL"
-        case .category: return "Article categories/tags"
-        }
-    }
 }
 
 enum FilterComparison: String, Codable, CaseIterable {
     case contains = "contains"
-    case notContains = "doesn't contain"
+    case notContains = "does not contain"
     case equals = "equals"
     case startsWith = "starts with"
     case endsWith = "ends with"
+    
+    var localizedName: String {
+        switch self {
+        case .contains: return String(localized: "contains", bundle: .module)
+        case .notContains: return String(localized: "does not contain", bundle: .module)
+        case .equals: return String(localized: "equals", bundle: .module)
+        case .startsWith: return String(localized: "starts with", bundle: .module)
+        case .endsWith: return String(localized: "ends with", bundle: .module)
+        }
+    }
 }
 
 enum HighlightColor: String, Codable, CaseIterable {

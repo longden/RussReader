@@ -24,6 +24,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true
     @AppStorage("rssSelectedBrowser") var selectedBrowser: String = "default"
     @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = false
+    @AppStorage("rssLanguage") var selectedLanguage: String = "system"
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
@@ -186,7 +187,7 @@ final class FeedStore: ObservableObject {
         guard !cleanURL.isEmpty else { return false }
         
         if feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
-            showError("This feed is already added.")
+            showError(String(localized: "This feed is already added.", bundle: .module))
             return false
         }
         
@@ -229,7 +230,7 @@ final class FeedStore: ObservableObject {
     }
     
     func feedTitle(for item: FeedItem) -> String {
-        feeds.first { $0.id == item.feedId }?.title ?? "Unknown"
+        feeds.first { $0.id == item.feedId }?.title ?? String(localized: "Unknown", bundle: .module)
     }
     
     // MARK: - Item Management
@@ -432,7 +433,7 @@ final class FeedStore: ObservableObject {
             processFetchedFeed(result.0, items: result.1, parsedTitle: result.2, parsedIconURL: result.3)
             save()
         } else {
-            showError("Failed to fetch \(feed.title)")
+            showError(String(localized: "Failed to fetch \(feed.title)", bundle: .module))
         }
     }
     
