@@ -371,6 +371,25 @@ func openPreferencesWindow(openWindow: OpenWindowAction) {
     }
 }
 
+func openAddFeedWindow(openWindow: OpenWindowAction) {
+    // First, try to bring existing window to front
+    if let existingWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
+        existingWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    } else {
+        // If window doesn't exist, open it
+        openWindow(id: "addFeed")
+        // Give it a moment to create, then bring to front
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let newWindow = NSApp.windows.first(where: { $0.title == "Add Feed" }) {
+                newWindow.identifier = NSUserInterfaceItemIdentifier("addFeed")
+                newWindow.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+}
+
 // MARK: - Main View
 
 struct RSSReaderView: View {
@@ -632,19 +651,29 @@ struct RSSReaderView: View {
             if #available(macOS 26.0, *) {
                 GlassEffectContainer {
                     HStack(spacing: 8) {
-                        FooterGlassButton(title: String(localized: "Feeds", bundle: .module), icon: "list.bullet", action: nil)
-                        FooterGlassButton(title: String(localized: "Settings", bundle: .module), icon: "gearshape") {
-                            openPreferencesWindow(openWindow: openWindow)
+                        FooterGlassButton(title: String(localized: "Filter", bundle: .module), icon: "line.3.horizontal.decrease.circle", action: nil)
+                        FooterGlassButton(title: String(localized: "Add Feed", bundle: .module), icon: "plus") {
+                            openAddFeedWindow(openWindow: openWindow)
                         }
-                        FooterGlassButton(title: String(localized: "Help", bundle: .module), icon: "questionmark.circle", action: nil)
                     }
                 }
             } else {
-                HStack(spacing: 6) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 11))
-                    Text(String(localized: "All Unread", bundle: .module))
-                        .font(.system(size: 11, weight: .medium))
+                HStack(spacing: 8) {
+                    Button {
+                        // Filter action - not implemented
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        openAddFeedWindow(openWindow: openWindow)
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .foregroundStyle(.secondary)
             }

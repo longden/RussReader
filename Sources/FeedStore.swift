@@ -182,24 +182,49 @@ final class FeedStore: ObservableObject {
     
     // MARK: - Feed Management
     
-    func addFeed(url: String, title: String? = nil) -> Bool {
+    func addFeed(url: String, title: String? = nil) async -> (success: Bool, errorMessage: String?) {
         let cleanURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanURL.isEmpty else { return false }
+        guard !cleanURL.isEmpty else { return (false, String(localized: "Feed URL cannot be empty.", bundle: .module)) }
         
         if feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
-            showError(String(localized: "This feed is already added.", bundle: .module))
-            return false
+            return (false, String(localized: "This feed is already added.", bundle: .module))
         }
         
-        let feed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil)
+        // Validate the feed by attempting to fetch it first
+        let tempFeed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil)
+        guard let result = await fetchFeedData(tempFeed) else {
+            return (false, String(localized: "Unable to fetch feed. Please check the URL and try again.", bundle: .module))
+        }
+        
+        let (_, fetchedItems, parsedTitle, parsedIconURL) = result
+        
+        // Ensure we got at least some items
+        guard !fetchedItems.isEmpty else {
+            return (false, String(localized: "No items found in feed. The URL may not be a valid RSS/Atom feed.", bundle: .module))
+        }
+        
+        // Feed is valid, add it to the list
+        var feed = tempFeed
+        if let parsedTitle = parsedTitle, !parsedTitle.isEmpty, !feed.customTitle {
+            feed.title = parsedTitle
+        }
+        if let parsedIconURL = parsedIconURL, !parsedIconURL.isEmpty {
+            feed.iconURL = parsedIconURL
+        }
+        feed.lastFetched = Date()
+        
         feeds.append(feed)
-        save()
         
-        Task {
-            await fetchFeed(feed)
+        // Add the fetched items
+        for item in fetchedItems {
+            let key = itemKey(item)
+            if !items.contains(where: { itemKey($0) == key }) {
+                items.append(item)
+            }
         }
         
-        return true
+        save()
+        return (true, nil)
     }
 
     func addSuggestedFeeds(_ suggestedFeeds: [SuggestedFeed]) -> Int {
@@ -333,7 +358,7 @@ final class FeedStore: ObservableObject {
     }
     
     // Network fetching - runs off MainActor for true concurrency
-    nonisolated private func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?, String?)? {
+    nonisolated func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?, String?)? {
         guard let url = URL(string: feed.url) else { return nil }
         
         do {
