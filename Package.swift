@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "RSSReader",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
     ],
@@ -13,7 +14,10 @@ let package = Package(
         .executableTarget(
             name: "RSSReader",
             dependencies: ["FeedKit"],
-            path: "Sources"
+            path: "Sources",
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )

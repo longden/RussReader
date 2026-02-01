@@ -1,0 +1,1174 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Mark as Unread" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Als ungelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar como no leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Marquer comme non lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标记为未读" } }
+      }
+    },
+    "Mark as Read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar como leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Marquer comme lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标记为已读" } }
+      }
+    },
+    "Unstar" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Stern entfernen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Quitar estrella" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Retirer l'étoile" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消收藏" } }
+      }
+    },
+    "Star" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Destacar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mettre en favori" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收藏" } }
+      }
+    },
+    "Copy Link" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Link kopieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Copiar enlace" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Copier le lien" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复制链接" } }
+      }
+    },
+    "Refresh feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds aktualisieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actualizar feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Actualiser les flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新订阅" } }
+      }
+    },
+    "Preferences" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Preferencias" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Préférences" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "偏好设置" } }
+      }
+    },
+    "Mark all as read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar todo como leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout marquer comme lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部标记为已读" } }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出" } }
+      }
+    },
+    "Quit Now" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jetzt beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir ahora" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter maintenant" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "立即退出" } }
+      }
+    },
+    "Restart Required" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neustart erforderlich" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Reinicio requerido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Redémarrage requis" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要重启" } }
+      }
+    },
+    "Please quit and restart the app for the language change to take effect." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bitte beenden und starten Sie die App neu, damit die Sprachänderung wirksam wird." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Por favor, salga y reinicie la aplicación para que el cambio de idioma surta efecto." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Veuillez quitter et redémarrer l'application pour que le changement de langue prenne effet." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请退出并重新启动应用程序以使语言更改生效。" } }
+      }
+    },
+    "Requires app restart" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erfordert App-Neustart" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Requiere reinicio de la aplicación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nécessite le redémarrage de l'application" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要重启应用" } }
+      }
+    },
+    "Filter" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Filtro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Filtre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "筛选" } }
+      }
+    },
+    "%lld items hidden by filters" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Elemente durch Filter ausgeblendet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld elementos ocultos por filtros" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld éléments masqués par les filtres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 个项目被筛选隐藏" } }
+      }
+    },
+    "Add Feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter des flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加订阅" } }
+      }
+    },
+    "Refresh" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actualizar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Actualiser" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新" } }
+      }
+    },
+    "No feeds added yet.\nAdd some feeds to get started." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Feeds hinzugefügt.\nFügen Sie Feeds hinzu, um zu beginnen." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aún no hay feeds.\nAñade algunos para comenzar." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun flux ajouté.\nAjoutez des flux pour commencer." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚未添加订阅。\n添加一些订阅以开始。" } }
+      }
+    },
+    "No items to show.\nTry refreshing your feeds." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Elemente zum Anzeigen.\nVersuchen Sie, Ihre Feeds zu aktualisieren." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay elementos para mostrar.\nIntenta actualizar tus feeds." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun élément à afficher.\nEssayez d'actualiser vos flux." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有内容显示。\n尝试刷新您的订阅。" } }
+      }
+    },
+    "All caught up!\nNo unread items." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alles gelesen!\nKeine ungelesenen Elemente." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "¡Todo al día!\nNo hay elementos sin leer." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout est lu !\nAucun élément non lu." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部已读！\n没有未读项目。" } }
+      }
+    },
+    "No starred items.\nStar items to save them here." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine markierten Elemente.\nMarkieren Sie Elemente, um sie hier zu speichern." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay elementos destacados.\nDestaca elementos para guardarlos aquí." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun élément favori.\nMettez des éléments en favori pour les sauvegarder ici." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有收藏项目。\n收藏项目以保存在这里。" } }
+      }
+    },
+    "Feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "订阅" } }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réglages" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+      }
+    },
+    "Help" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hilfe" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ayuda" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aide" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "帮助" } }
+      }
+    },
+    "All Unread" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Ungelesenen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todos sin leer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous non lus" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部未读" } }
+      }
+    },
+    "just now" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "gerade eben" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "ahora mismo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "à l'instant" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刚刚" } }
+      }
+    },
+    "%llds ago" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "vor %llds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "hace %llds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "il y a %llds" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld秒前" } }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gestern" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ayer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Hier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "昨天" } }
+      }
+    },
+    "Error" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fehler" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Error" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Erreur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "错误" } }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "好" } }
+      }
+    },
+    "An unknown error occurred." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ein unbekannter Fehler ist aufgetreten." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocurrió un error desconocido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Une erreur inconnue s'est produite." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发生了未知错误。" } }
+      }
+    },
+    "All" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部" } }
+      }
+    },
+    "Unread" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ungelesen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sin leer" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Non lus" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "未读" } }
+      }
+    },
+    "Starred" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Markiert" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Destacados" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Favoris" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收藏" } }
+      }
+    },
+    "Filters" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Filtros" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Filtres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "筛选器" } }
+      }
+    },
+    "Add feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter un flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加订阅" } }
+      }
+    },
+    "Import" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Importieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Importar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importer" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入" } }
+      }
+    },
+    "Export" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Exportieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Exportar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exporter" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出" } }
+      }
+    },
+    "Starter / Suggested Feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Starter / Empfohlene Feeds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Feeds de inicio / Sugeridos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux de démarrage / Suggérés" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "入门 / 推荐订阅" } }
+      }
+    },
+    "Remove selected feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausgewählten Feed entfernen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar feed seleccionado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer le flux sélectionné" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "移除选中的订阅" } }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fertig" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Listo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Terminé" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
+      }
+    },
+    "Add All" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir todos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout ajouter" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部添加" } }
+      }
+    },
+    "Added" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hinzugefügt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouté" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已添加" } }
+      }
+    },
+    "Add Selected" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausgewählte hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir seleccionados" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter la sélection" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加选中项" } }
+      }
+    },
+    "Enable filters" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter aktivieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activar filtros" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activer les filtres" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用筛选器" } }
+      }
+    },
+    "No filter rules yet" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Filterregeln" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aún no hay reglas de filtro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pas encore de règles de filtre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚无筛选规则" } }
+      }
+    },
+    "Highlight articles about \"Swift\"" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Artikel über \"Swift\" hervorheben" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Resaltar artículos sobre \"Swift\"" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Surligner les articles sur \"Swift\"" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "高亮关于 \"Swift\" 的文章" } }
+      }
+    },
+    "Hide items containing \"sponsored\"" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elemente mit \"sponsored\" ausblenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar elementos con \"sponsored\"" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer les éléments contenant \"sponsored\"" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐藏包含 \"sponsored\" 的项目" } }
+      }
+    },
+    "Auto-star posts from favorite feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beiträge aus Lieblings-Feeds automatisch markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Destacar automáticamente publicaciones de feeds favoritos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mettre en favori automatiquement les articles des flux favoris" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自动收藏来自收藏订阅的文章" } }
+      }
+    },
+    "Create First Rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erste Regel erstellen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Crear primera regla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Créer la première règle" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "创建第一条规则" } }
+      }
+    },
+    "Add filter rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filterregel hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir regla de filtro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter une règle de filtre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加筛选规则" } }
+      }
+    },
+    "Edit selected rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausgewählte Regel bearbeiten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar regla seleccionada" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Modifier la règle sélectionnée" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑选中的规则" } }
+      }
+    },
+    "Delete selected rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausgewählte Regel löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar regla seleccionada" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer la règle sélectionnée" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除选中的规则" } }
+      }
+    },
+    "%lld active" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld aktiv" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld activo(s)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld actif(s)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 个已启用" } }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bearbeiten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Modifier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑" } }
+      }
+    },
+    "Disable" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Deaktivieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desactivar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Désactiver" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "禁用" } }
+      }
+    },
+    "Enable" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktivieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activer" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用" } }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
+      }
+    },
+    "Edit Rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Regel bearbeiten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar regla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Modifier la règle" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑规则" } }
+      }
+    },
+    "New Rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Regel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nueva regla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nouvelle règle" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建规则" } }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nombre" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nom" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "名称" } }
+      }
+    },
+    "e.g., Highlight Swift articles" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "z.B. Swift-Artikel hervorheben" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "ej., Resaltar artículos de Swift" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ex. Surligner les articles Swift" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "例如，高亮 Swift 文章" } }
+      }
+    },
+    "Apply to" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anwenden auf" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aplicar a" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Appliquer à" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "应用于" } }
+      }
+    },
+    "All feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Feeds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todos los feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous les flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有订阅" } }
+      }
+    },
+    "%lld feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Feeds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 个订阅" } }
+      }
+    },
+    "Action" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktion" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acción" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Action" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "操作" } }
+      }
+    },
+    "Background Color" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hintergrundfarbe" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Color de fondo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Couleur de fond" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "背景颜色" } }
+      }
+    },
+    "Choose Custom Color" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzerdefinierte Farbe wählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir color personalizado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Choisir une couleur personnalisée" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择自定义颜色" } }
+      }
+    },
+    "Hex Code" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hex-Code" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Código Hex" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Code Hex" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "十六进制代码" } }
+      }
+    },
+    "e.g. FF5733" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "z.B. FF5733" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "ej. FF5733" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ex. FF5733" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "例如 FF5733" } }
+      }
+    },
+    "Icon" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Symbol" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Icono" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Icône" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "图标" } }
+      }
+    },
+    "Or type custom:" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Oder eigenes eingeben:" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "O escribir personalizado:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ou saisir personnalisé:" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "或输入自定义：" } }
+      }
+    },
+    "Conditions" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bedingungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Condiciones" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Conditions" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "条件" } }
+      }
+    },
+    "Match" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Übereinstimmung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Coincidir" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Correspondre à" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "匹配" } }
+      }
+    },
+    "all conditions" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "alle Bedingungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "todas las condiciones" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "toutes les conditions" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有条件" } }
+      }
+    },
+    "any condition" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "eine Bedingung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "cualquier condición" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "une condition" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "任意条件" } }
+      }
+    },
+    "Add Condition" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bedingung hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir condición" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter une condition" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加条件" } }
+      }
+    },
+    "Search text" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Suchtext" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Texto de búsqueda" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Texte de recherche" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "搜索文本" } }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abbrechen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Annuler" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Speichern" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Guardar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Enregistrer" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
+      }
+    },
+    "Appearance" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erscheinungsbild" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Apariencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Apparence" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "外观" } }
+      }
+    },
+    "System" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "System" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sistema" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Système" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "系统" } }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hell" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Claro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Clair" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "浅色" } }
+      }
+    },
+    "Dark" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dunkel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Oscuro" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sombre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "深色" } }
+      }
+    },
+    "Font Size" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Schriftgröße" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tamaño de fuente" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Taille de police" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "字体大小" } }
+      }
+    },
+    "Small" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Klein" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pequeño" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Petit" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "小" } }
+      }
+    },
+    "Large" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Groß" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Grande" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Grand" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "大" } }
+      }
+    },
+    "Max items per feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Max. Elemente pro Feed" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Máx. elementos por feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Éléments max par flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "每个订阅最大项目数" } }
+      }
+    },
+    "Hide read items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gelesene Elemente ausblenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar elementos leídos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer les éléments lus" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐藏已读项目" } }
+      }
+    },
+    "Show item summary" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elementzusammenfassung anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar resumen del elemento" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le résumé de l'élément" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示项目摘要" } }
+      }
+    },
+    "Refresh interval" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisierungsintervall" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Intervalo de actualización" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Intervalle d'actualisation" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新间隔" } }
+      }
+    },
+    "%lld min" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Min." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld min" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld min" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 分钟" } }
+      }
+    },
+    "Open links in" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Links öffnen in" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir enlaces en" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrir les liens dans" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开链接使用" } }
+      }
+    },
+    "Show unread badge" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ungelesen-Badge anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar insignia de no leídos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le badge non lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示未读标记" } }
+      }
+    },
+    "Getting Started" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erste Schritte" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Primeros pasos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mise en route" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始使用" } }
+      }
+    },
+    "Add feeds via Preferences > Feeds tab. You can also import OPML files from other readers." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fügen Sie Feeds über Einstellungen > Feeds-Tab hinzu. Sie können auch OPML-Dateien von anderen Readern importieren." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade feeds en Preferencias > pestaña Feeds. También puedes importar archivos OPML de otros lectores." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajoutez des flux via Préférences > onglet Flux. Vous pouvez aussi importer des fichiers OPML d'autres lecteurs." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通过偏好设置 > 订阅选项卡添加订阅。您也可以从其他阅读器导入 OPML 文件。" } }
+      }
+    },
+    "Reading Items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elemente lesen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Leer elementos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lire les éléments" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "阅读项目" } }
+      }
+    },
+    "Click an item to open it in your browser. Right-click for more options like starring or marking as read/unread." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Klicken Sie auf ein Element, um es im Browser zu öffnen. Rechtsklick für weitere Optionen wie Markieren oder Als gelesen/ungelesen markieren." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Haz clic en un elemento para abrirlo en tu navegador. Clic derecho para más opciones como destacar o marcar como leído/no leído." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Cliquez sur un élément pour l'ouvrir dans votre navigateur. Clic droit pour plus d'options comme mettre en favori ou marquer comme lu/non lu." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "点击项目在浏览器中打开。右键点击可获取更多选项，如收藏或标记为已读/未读。" } }
+      }
+    },
+    "Keyboard Shortcuts" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Tastaturkürzel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Atajos de teclado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Raccourcis clavier" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "键盘快捷键" } }
+      }
+    },
+    "⌘R - Refresh feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "⌘R - Feeds aktualisieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "⌘R - Actualizar feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "⌘R - Actualiser les flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "⌘R - 刷新订阅" } }
+      }
+    },
+    "⌘, - Open preferences" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "⌘, - Einstellungen öffnen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "⌘, - Abrir preferencias" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "⌘, - Ouvrir les préférences" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "⌘, - 打开偏好设置" } }
+      }
+    },
+    "⌘Q - Quit app" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "⌘Q - App beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "⌘Q - Salir de la aplicación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "⌘Q - Quitter l'application" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "⌘Q - 退出应用" } }
+      }
+    },
+    "Unknown" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Unbekannt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desconocido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Inconnu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "未知" } }
+      }
+    },
+    "This feed is already added." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Feed wurde bereits hinzugefügt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Este feed ya está añadido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ce flux est déjà ajouté." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此订阅已添加。" } }
+      }
+    },
+    "Failed to fetch %@" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fehler beim Abrufen von %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Error al obtener %@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Échec de la récupération de %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "获取 %@ 失败" } }
+      }
+    },
+    "Add Feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter un flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加订阅" } }
+      }
+    },
+    "Feed URL" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed-URL" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "URL del feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "URL du flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "订阅 URL" } }
+      }
+    },
+    "https://example.com/feed.xml" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "https://example.com/feed.xml" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "https://ejemplo.com/feed.xml" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "https://exemple.com/feed.xml" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "https://example.com/feed.xml" } }
+      }
+    },
+    "Custom name (optional)" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzerdefinierter Name (optional)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nombre personalizado (opcional)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nom personnalisé (optionnel)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自定义名称（可选）" } }
+      }
+    },
+    "My Feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mein Feed" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mi feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mon flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我的订阅" } }
+      }
+    },
+    "Add" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加" } }
+      }
+    },
+    "Select feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds auswählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Seleccionar feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Sélectionner les flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择订阅" } }
+      }
+    },
+    "Select All" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle auswählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Seleccionar todo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout sélectionner" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全选" } }
+      }
+    },
+    "Deselect All" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle abwählen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Deseleccionar todo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout désélectionner" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消全选" } }
+      }
+    },
+    "%lld selected" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld ausgewählt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld seleccionado(s)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld sélectionné(s)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已选择 %lld 个" } }
+      }
+    },
+    "Show Only" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nur anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar solo" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher uniquement" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅显示" } }
+      }
+    },
+    "Hide" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausblenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐藏" } }
+      }
+    },
+    "Highlight" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hervorheben" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Resaltar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Surligner" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "高亮" } }
+      }
+    },
+    "Add Icon" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Symbol hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir icono" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter une icône" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加图标" } }
+      }
+    },
+    "Show Summary" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zusammenfassung anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar resumen" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le résumé" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示摘要" } }
+      }
+    },
+    "Auto-Star" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Auto-Markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Auto-Destacar" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Auto-Favori" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自动收藏" } }
+      }
+    },
+    "Mark Read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar como leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Marquer lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标记为已读" } }
+      }
+    },
+    "Title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Titel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Título" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Titre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标题" } }
+      }
+    },
+    "Content" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhalt" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Contenido" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Contenu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "内容" } }
+      }
+    },
+    "Author" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Autor" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Autor" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Auteur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "作者" } }
+      }
+    },
+    "Link" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Link" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Enlace" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lien" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "链接" } }
+      }
+    },
+    "Category" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kategorie" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Categoría" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Catégorie" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分类" } }
+      }
+    },
+    "contains" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "enthält" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "contiene" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "contient" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "包含" } }
+      }
+    },
+    "does not contain" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "enthält nicht" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "no contiene" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ne contient pas" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不包含" } }
+      }
+    },
+    "equals" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "ist gleich" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "es igual a" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "égal à" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等于" } }
+      }
+    },
+    "starts with" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "beginnt mit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "empieza con" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "commence par" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "以...开头" } }
+      }
+    },
+    "ends with" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "endet mit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "termina con" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "finit par" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "以...结尾" } }
+      }
+    },
+    "RSS Reader Feeds" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "RSS Reader Feeds" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Feeds de RSS Reader" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux RSS Reader" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "RSS Reader 订阅" } }
+      }
+    },
+    "Only show items that match this rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nur Elemente anzeigen, die dieser Regel entsprechen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solo mostrar elementos que coincidan con esta regla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher uniquement les éléments correspondant à cette règle" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅显示符合此规则的项目" } }
+      }
+    },
+    "Hide items that match this rule" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elemente ausblenden, die dieser Regel entsprechen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ocultar elementos que coincidan con esta regla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer les éléments correspondant à cette règle" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "隐藏符合此规则的项目" } }
+      }
+    },
+    "Add colored background to matching items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Farbigen Hintergrund für passende Elemente hinzufügen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir fondo de color a elementos coincidentes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter un arrière-plan coloré aux éléments correspondants" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为匹配项目添加彩色背景" } }
+      }
+    },
+    "Show an emoji/icon next to matching items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Emoji/Symbol neben passenden Elementen anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar emoji/icono junto a elementos coincidentes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher un emoji/icône à côté des éléments correspondants" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在匹配项目旁显示表情/图标" } }
+      }
+    },
+    "Show 1-line article summary preview" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "1-zeilige Artikelzusammenfassung anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar resumen de artículo de 1 línea" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher un aperçu de l'article sur 1 ligne" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示一行文章摘要预览" } }
+      }
+    },
+    "Automatically star matching items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Passende Elemente automatisch markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Destacar automáticamente elementos coincidentes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Mettre automatiquement en favori les éléments correspondants" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自动收藏匹配的项目" } }
+      }
+    },
+    "Automatically mark matching items as read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Passende Elemente automatisch als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar automáticamente como leídos los elementos coincidentes" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Marquer automatiquement les éléments correspondants comme lus" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "自动将匹配项目标记为已读" } }
+      }
+    },
+    "does not contain" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "enthält nicht" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "no contiene" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "ne contient pas" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不包含" } }
+      }
+    },
+    "Language" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sprache" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Idioma" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Langue" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
+      }
+    },
+    "Requires app restart to take effect" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erfordert Neustart der App" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Requiere reiniciar la aplicación" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nécessite un redémarrage de l'application" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要重启应用以生效" } }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Allgemein" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Général" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
+      }
+    },
+    "Browser" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Browser" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Navegador" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Navigateur" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "浏览器" } }
+      }
+    },
+    "Show Unread Badge" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ungelesen-Badge anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar insignia de no leídos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le badge non lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示未读标记" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

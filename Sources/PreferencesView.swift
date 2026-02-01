@@ -154,11 +154,20 @@ struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: PreferencesTab = .feeds
     
-    enum PreferencesTab: String, CaseIterable {
-        case feeds = "Feeds"
-        case filters = "Filters"
-        case settings = "Settings"
-        case help = "Help"
+    enum PreferencesTab: CaseIterable {
+        case feeds
+        case filters
+        case settings
+        case help
+        
+        var title: String {
+            switch self {
+            case .feeds: return String(localized: "Feeds", bundle: .module)
+            case .filters: return String(localized: "Filters", bundle: .module)
+            case .settings: return String(localized: "Settings", bundle: .module)
+            case .help: return String(localized: "Help", bundle: .module)
+            }
+        }
         
         var icon: String {
             switch self {
@@ -174,7 +183,7 @@ struct PreferencesView: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Text("Preferences")
+                Text(String(localized: "Preferences", bundle: .module))
                     .font(.headline)
                 Spacer()
             }
@@ -229,7 +238,7 @@ struct PreferencesView: View {
                 VStack(spacing: 4) {
                     Image(systemName: tab.icon)
                         .font(.system(size: 20))
-                    Text(tab.rawValue)
+                    Text(tab.title)
                         .font(.system(size: 11))
                 }
                 .foregroundStyle(isSelected ? .primary : .secondary)
@@ -263,7 +272,7 @@ struct PreferencesTabButton: View {
             VStack(spacing: 4) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 20))
-                Text(tab.rawValue)
+                Text(tab.title)
                     .font(.system(size: 11))
             }
             .foregroundStyle(isSelected ? .primary : .secondary)
@@ -330,17 +339,17 @@ struct FeedsTabView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help("Add feed")
+                .help(String(localized: "Add feed", bundle: .module))
                 
-                Button("Import") {
+                Button(String(localized: "Import", bundle: .module)) {
                     importOPML()
                 }
                 
-                Button("Export") {
+                Button(String(localized: "Export", bundle: .module)) {
                     exportOPML()
                 }
 
-                Button("Starter / Suggested Feeds") {
+                Button(String(localized: "Starter / Suggested Feeds", bundle: .module)) {
                     if #available(macOS 13.0, *) {
                         openWindow(id: "suggestedFeeds")
                     } else {
@@ -359,7 +368,7 @@ struct FeedsTabView: View {
                     Image(systemName: "trash")
                 }
                 .disabled(selectedFeed == nil)
-                .help("Remove selected feed")
+                .help(String(localized: "Remove selected feed", bundle: .module))
             }
             .padding(12)
         }
@@ -413,11 +422,11 @@ struct SuggestedFeedsSheet: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack {
-                Text("Starter / Suggested Feeds")
+                Text(String(localized: "Starter / Suggested Feeds", bundle: .module))
                     .font(.headline)
                 Spacer()
                 if !hideDoneButton {
-                    Button("Done") {
+                    Button(String(localized: "Done", bundle: .module)) {
                         isPresented = false
                     }
                     .keyboardShortcut(.escape)
@@ -459,7 +468,7 @@ struct SuggestedFeedsSheet: View {
                 
                 Spacer()
                 
-                Button("Add All") {
+                Button(String(localized: "Add All", bundle: .module)) {
                     addFeeds(pack.feeds, packTitle: pack.title)
                 }
                 .disabled(!hasAddableFeeds)
@@ -482,7 +491,7 @@ struct SuggestedFeedsSheet: View {
                                 .font(.system(size: 12, weight: .medium))
                             Spacer()
                             if isFeedAlreadyAdded(feed) {
-                                Text("Added")
+                                Text(String(localized: "Added", bundle: .module))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
@@ -495,7 +504,7 @@ struct SuggestedFeedsSheet: View {
             
             HStack {
                 Spacer()
-                Button("Add Selected") {
+                Button(String(localized: "Add Selected", bundle: .module)) {
                     addFeeds(selectedInPack, packTitle: pack.title)
                 }
                 .disabled(selectedInPack.isEmpty)
@@ -521,9 +530,9 @@ struct SuggestedFeedsSheet: View {
         let addedCount = store.addSuggestedFeeds(feeds)
         feedbackIsError = addedCount == 0
         if addedCount == 0 {
-            feedbackMessage = "All feeds in \(packTitle) are already added."
+            feedbackMessage = String(localized: "All feeds in \(packTitle) are already added.", bundle: .module)
         } else {
-            feedbackMessage = "Added \(addedCount) feed\(addedCount == 1 ? "" : "s") from \(packTitle)."
+            feedbackMessage = String(localized: "Added \(addedCount) feed(s) from \(packTitle).", bundle: .module)
         }
         removeSelectedAlreadyAdded()
     }
@@ -550,7 +559,7 @@ struct FiltersTabView: View {
                 Toggle("", isOn: $store.smartFiltersEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.small)
-                Text("Enable filters")
+                Text(String(localized: "Enable filters", bundle: .module))
                     .font(.system(size: 13, weight: .medium))
                 Spacer()
             }
@@ -576,7 +585,7 @@ struct FiltersTabView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help("Add filter rule")
+                .help(String(localized: "Add filter rule", bundle: .module))
                 
                 if let rule = selectedRule {
                     Button {
@@ -584,7 +593,7 @@ struct FiltersTabView: View {
                     } label: {
                         Image(systemName: "pencil")
                     }
-                    .help("Edit selected rule")
+                    .help(String(localized: "Edit selected rule", bundle: .module))
                     
                     Button {
                         store.deleteFilterRule(rule)
@@ -592,13 +601,13 @@ struct FiltersTabView: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .help("Delete selected rule")
+                    .help(String(localized: "Delete selected rule", bundle: .module))
                 }
                 
                 Spacer()
                 
                 if store.smartFiltersEnabled && !store.filterRules.isEmpty {
-                    Text("\(store.filterRules.filter { $0.isEnabled }.count) active")
+                    Text(String(localized: "\(store.filterRules.filter { $0.isEnabled }.count) active", bundle: .module))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -623,18 +632,18 @@ struct FiltersTabView: View {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 32))
                 .foregroundStyle(.secondary)
-            Text("No filter rules yet")
+            Text(String(localized: "No filter rules yet", bundle: .module))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             
             VStack(alignment: .leading, spacing: 6) {
-                exampleRow(icon: "highlighter", color: .orange, text: "Highlight articles about \"Swift\"")
-                exampleRow(icon: "eye.slash", color: .gray, text: "Hide items containing \"sponsored\"")
-                exampleRow(icon: "star.fill", color: .yellow, text: "Auto-star posts from favorite feeds")
+                exampleRow(icon: "highlighter", color: .orange, text: String(localized: "Highlight articles about \"Swift\"", bundle: .module))
+                exampleRow(icon: "eye.slash", color: .gray, text: String(localized: "Hide items containing \"sponsored\"", bundle: .module))
+                exampleRow(icon: "star.fill", color: .yellow, text: String(localized: "Auto-star posts from favorite feeds", bundle: .module))
             }
             .padding(.vertical, 8)
             
-            Button("Create First Rule") {
+            Button(String(localized: "Create First Rule", bundle: .module)) {
                 editingRule = nil
                 showingRuleEditor = true
             }
@@ -663,14 +672,14 @@ struct FiltersTabView: View {
                 RuleRowView(rule: rule)
                     .tag(rule)
                     .contextMenu {
-                        Button("Edit") {
+                        Button(String(localized: "Edit", bundle: .module)) {
                             editingRule = rule
                         }
-                        Button(rule.isEnabled ? "Disable" : "Enable") {
+                        Button(rule.isEnabled ? String(localized: "Disable", bundle: .module) : String(localized: "Enable", bundle: .module)) {
                             store.toggleFilterRule(rule)
                         }
                         Divider()
-                        Button("Delete", role: .destructive) {
+                        Button(String(localized: "Delete", bundle: .module), role: .destructive) {
                             store.deleteFilterRule(rule)
                             if selectedRule?.id == rule.id {
                                 selectedRule = nil
@@ -732,8 +741,8 @@ struct RuleRowView: View {
     
     private var ruleDescription: String {
         let conditionCount = rule.conditions.count
-        let conditionText = conditionCount == 1 ? "1 condition" : "\(conditionCount) conditions"
-        let feedText = rule.feedScope.isAllFeeds ? "All feeds" : "\(rule.feedScope.selectedFeedIds.count) feeds"
+        let conditionText = conditionCount == 1 ? String(localized: "1 condition", bundle: .module) : String(localized: "\(conditionCount) conditions", bundle: .module)
+        let feedText = rule.feedScope.isAllFeeds ? String(localized: "All feeds", bundle: .module) : String(localized: "\(rule.feedScope.selectedFeedIds.count) feeds", bundle: .module)
         return "\(rule.action.rawValue) • \(conditionText) • \(feedText)"
     }
 }
@@ -795,7 +804,7 @@ struct RuleEditorView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(isEditing ? "Edit Rule" : "New Rule")
+                Text(isEditing ? String(localized: "Edit Rule", bundle: .module) : String(localized: "New Rule", bundle: .module))
                     .font(.headline)
                 Spacer()
             }
@@ -808,16 +817,16 @@ struct RuleEditorView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // Rule name
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Name")
+                        Text(String(localized: "Name", bundle: .module))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
-                        TextField("e.g., Highlight Swift articles", text: $name)
+                        TextField(String(localized: "e.g., Highlight Swift articles", bundle: .module), text: $name)
                             .textFieldStyle(.roundedBorder)
                     }
                     
                     // Feed scope - button to show multi-select sheet
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Apply to")
+                        Text(String(localized: "Apply to", bundle: .module))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                         
@@ -844,7 +853,7 @@ struct RuleEditorView: View {
                     
                     // Action picker
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Action")
+                        Text(String(localized: "Action", bundle: .module))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                         
@@ -857,7 +866,7 @@ struct RuleEditorView: View {
                         .labelsHidden()
                         .pickerStyle(.menu)
                         
-                        Text(action.description)
+                        Text(action.localizedDescription)
                             .font(.system(size: 11))
                             .foregroundStyle(.tertiary)
                     }
@@ -865,7 +874,7 @@ struct RuleEditorView: View {
                     // Color picker (only for highlight)
                     if action == .highlight {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Background Color")
+                            Text(String(localized: "Background Color", bundle: .module))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -914,7 +923,7 @@ struct RuleEditorView: View {
                                 .buttonStyle(.plain)
                                 .popover(isPresented: $showingColorPicker) {
                                     VStack(spacing: 12) {
-                                        Text("Choose Custom Color")
+                                        Text(String(localized: "Choose Custom Color", bundle: .module))
                                             .font(.system(size: 12, weight: .medium))
                                         
                                         // Show current color
@@ -928,13 +937,13 @@ struct RuleEditorView: View {
                                         
                                         // Hex code input
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text("Hex Code")
+                                            Text(String(localized: "Hex Code", bundle: .module))
                                                 .font(.system(size: 11))
                                                 .foregroundStyle(.secondary)
                                             HStack {
                                                 Text("#")
                                                     .foregroundStyle(.secondary)
-                                                TextField("e.g. FF5733", text: $hexInput)
+                                                TextField(String(localized: "e.g. FF5733", bundle: .module), text: $hexInput)
                                                     .textFieldStyle(.roundedBorder)
                                                     .frame(width: 100)
                                                     .onChange(of: hexInput) { _, newValue in
@@ -946,7 +955,7 @@ struct RuleEditorView: View {
                                             }
                                         }
                                         
-                                        Button("Done") {
+                                        Button(String(localized: "Done", bundle: .module)) {
                                             showingColorPicker = false
                                         }
                                         .buttonStyle(.borderedProminent)
@@ -965,7 +974,7 @@ struct RuleEditorView: View {
                     // Emoji picker (only for addIcon)
                     if action == .addIcon {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Icon")
+                            Text(String(localized: "Icon", bundle: .module))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -983,7 +992,7 @@ struct RuleEditorView: View {
                             }
                             
                             HStack {
-                                Text("Or type custom:")
+                                Text(String(localized: "Or type custom:", bundle: .module))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                 TextField("", text: $iconEmoji)
@@ -998,7 +1007,7 @@ struct RuleEditorView: View {
                     // Conditions
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("When")
+                            Text(String(localized: "When", bundle: .module))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -1011,7 +1020,7 @@ struct RuleEditorView: View {
                             .pickerStyle(.segmented)
                             .frame(width: 100)
                             
-                            Text(logic.description)
+                            Text(logic.localizedDescription)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
                         }
@@ -1027,7 +1036,7 @@ struct RuleEditorView: View {
                         Button {
                             conditions.append(FilterCondition())
                         } label: {
-                            Label("Add Condition", systemImage: "plus.circle")
+                            Label(String(localized: "Add Condition", bundle: .module), systemImage: "plus.circle")
                                 .font(.system(size: 12))
                         }
                         .buttonStyle(.plain)
@@ -1041,14 +1050,14 @@ struct RuleEditorView: View {
             
             // Footer buttons
             HStack {
-                Button("Cancel") {
+                Button(String(localized: "Cancel", bundle: .module)) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
                 
                 Spacer()
                 
-                Button(isEditing ? "Save" : "Add Rule") {
+                Button(isEditing ? String(localized: "Save", bundle: .module) : String(localized: "Add Rule", bundle: .module)) {
                     saveRule()
                 }
                 .buttonStyle(.borderedProminent)
@@ -1080,14 +1089,14 @@ struct RuleEditorView: View {
     
     private var feedScopeLabel: String {
         if applyToAllFeeds {
-            return "All Feeds"
+            return String(localized: "All Feeds", bundle: .module)
         } else if selectedFeedIds.isEmpty {
-            return "Select feeds..."
+            return String(localized: "Select feeds...", bundle: .module)
         } else if selectedFeedIds.count == 1 {
             let feedId = selectedFeedIds.first!
-            return store.feeds.first { $0.id == feedId }?.title ?? "1 feed"
+            return store.feeds.first { $0.id == feedId }?.title ?? String(localized: "1 feed", bundle: .module)
         } else {
-            return "\(selectedFeedIds.count) feeds"
+            return String(localized: "\(selectedFeedIds.count) feeds", bundle: .module)
         }
     }
     
@@ -1145,7 +1154,7 @@ struct ConditionRow: View {
             .labelsHidden()
             .frame(width: 120)
             
-            TextField("value", text: $condition.value)
+            TextField(String(localized: "value", bundle: .module), text: $condition.value)
                 .textFieldStyle(.roundedBorder)
             
             Button {
@@ -1174,10 +1183,10 @@ struct FeedSelectorSheet: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Select Feeds")
+                Text(String(localized: "Select Feeds", bundle: .module))
                     .font(.headline)
                 Spacer()
-                Button("Done") {
+                Button(String(localized: "Done", bundle: .module)) {
                     isPresented = false
                 }
                 .buttonStyle(.borderedProminent)
@@ -1195,7 +1204,7 @@ struct FeedSelectorSheet: View {
                         Image(systemName: "globe")
                             .font(.system(size: 14))
                             .foregroundStyle(.blue)
-                        Text("All Feeds")
+                        Text(String(localized: "All Feeds", bundle: .module))
                             .font(.system(size: 13, weight: .medium))
                     }
                 }
@@ -1248,20 +1257,20 @@ struct AddFeedSheet: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Text("Add Feed")
+            Text(String(localized: "Add Feed", bundle: .module))
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Feed URL")
+                Text(String(localized: "Feed URL", bundle: .module))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                FocusableTextField(text: $feedURL, placeholder: "https://example.com/feed.xml", shouldFocus: true)
+                FocusableTextField(text: $feedURL, placeholder: String(localized: "https://example.com/feed.xml", bundle: .module), shouldFocus: true)
                     .frame(height: 22)
                 
-                Text("Title (optional)")
+                Text(String(localized: "Title (optional)", bundle: .module))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                FocusableTextField(text: $feedTitle, placeholder: "My Feed", shouldFocus: false)
+                FocusableTextField(text: $feedTitle, placeholder: String(localized: "My Feed", bundle: .module), shouldFocus: false)
                     .frame(height: 22)
                 
                 if let errorMessage = errorMessage {
@@ -1273,7 +1282,7 @@ struct AddFeedSheet: View {
             }
             
             HStack {
-                Button("Cancel") {
+                Button(String(localized: "Cancel", bundle: .module)) {
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
@@ -1281,14 +1290,14 @@ struct AddFeedSheet: View {
                 Spacer()
 
                 if #available(macOS 26.0, *) {
-                    Button("Add") {
+                    Button(String(localized: "Add", bundle: .module)) {
                         addFeed()
                     }
                     .buttonStyle(.glassProminent)
                     .keyboardShortcut(.return)
                     .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } else {
-                    Button("Add") {
+                    Button(String(localized: "Add", bundle: .module)) {
                         addFeed()
                     }
                     .keyboardShortcut(.return)
@@ -1309,7 +1318,7 @@ struct AddFeedSheet: View {
         
         let cleanURL = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
         if store.feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
-            errorMessage = "This feed is already added."
+            errorMessage = String(localized: "This feed is already added.", bundle: .module)
             return
         }
         
@@ -1381,24 +1390,47 @@ struct SettingsTabView: View {
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
     @AppStorage("rssStickyWindow") private var stickyWindow: Bool = false
     @State private var installedBrowsers: [BrowserInfo] = []
+    @State private var previousLanguage: String = ""
+    @State private var showRestartAlert = false
     
     var body: some View {
         Form {
             // General Settings
-            Section(header: Text("General")) {
+            Section(header: Text(String(localized: "General", bundle: .module))) {
                 HStack {
-                    Text("Appearance")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "Language", bundle: .module))
+                        Text(String(localized: "Requires app restart", bundle: .module))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Picker("", selection: $store.selectedLanguage) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.nativeName).tag(language.rawValue)
+                        }
+                    }
+                    .frame(width: 150)
+                    .onChange(of: store.selectedLanguage) { oldValue, newValue in
+                        if !previousLanguage.isEmpty && oldValue != newValue {
+                            showRestartAlert = true
+                        }
+                    }
+                }
+                
+                HStack {
+                    Text(String(localized: "Appearance", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.appearanceMode) {
-                        Text("System").tag("system")
-                        Text("Light").tag("light")
-                        Text("Dark").tag("dark")
+                        Text(String(localized: "System", bundle: .module)).tag("system")
+                        Text(String(localized: "Light", bundle: .module)).tag("light")
+                        Text(String(localized: "Dark", bundle: .module)).tag("dark")
                     }
                     .frame(width: 120)
                 }
                 
                 HStack {
-                    Text("Browser")
+                    Text(String(localized: "Browser", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.selectedBrowser) {
                         ForEach(installedBrowsers) { browser in
@@ -1408,18 +1440,18 @@ struct SettingsTabView: View {
                     .frame(width: 200)
                 }
                 
-                Toggle("Show Unread Badge", isOn: $store.showUnreadBadge)
-                Toggle("Sticky Window", isOn: $stickyWindow)
-                Toggle("Launch at Login", isOn: $launchAtLogin)
+                Toggle(String(localized: "Show Unread Badge", bundle: .module), isOn: $store.showUnreadBadge)
+                Toggle(String(localized: "Sticky Window", bundle: .module), isOn: $stickyWindow)
+                Toggle(String(localized: "Launch at Login", bundle: .module), isOn: $launchAtLogin)
             }
             
             // RSS Appearance Settings
-            Section(header: Text("RSS Appearance")) {
+            Section(header: Text(String(localized: "RSS Appearance", bundle: .module))) {
                 HStack {
-                    Text("Font Size")
+                    Text(String(localized: "Font Size", bundle: .module))
                     Spacer()
                     Slider(value: $store.fontSize, in: 10...18, step: 1) {
-                        Text("Font Size")
+                        Text(String(localized: "Font Size", bundle: .module))
                     }
                     .frame(width: 150)
                     Text("\(Int(store.fontSize))pt")
@@ -1427,14 +1459,14 @@ struct SettingsTabView: View {
                         .foregroundStyle(.secondary)
                 }
                 
-                Toggle("Show Summary", isOn: $store.showSummaryGlobal)
-                Toggle("Hide Read Items", isOn: $store.hideReadItems)
+                Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)
+                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
             }
             
             // Feed Settings
-            Section(header: Text("Feed Settings")) {
+            Section(header: Text(String(localized: "Feed Settings", bundle: .module))) {
                 HStack {
-                    Text("Max Items per Feed")
+                    Text(String(localized: "Max Items per Feed", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.maxItemsPerFeed) {
                         Text("25").tag(25)
@@ -1446,14 +1478,14 @@ struct SettingsTabView: View {
                 }
                 
                 HStack {
-                    Text("Refresh Interval")
+                    Text(String(localized: "Refresh Interval", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.refreshIntervalMinutes) {
-                        Text("5 min").tag(5)
-                        Text("15 min").tag(15)
-                        Text("30 min").tag(30)
-                        Text("1 hour").tag(60)
-                        Text("2 hours").tag(120)
+                        Text(String(localized: "5 min", bundle: .module)).tag(5)
+                        Text(String(localized: "15 min", bundle: .module)).tag(15)
+                        Text(String(localized: "30 min", bundle: .module)).tag(30)
+                        Text(String(localized: "1 hour", bundle: .module)).tag(60)
+                        Text(String(localized: "2 hours", bundle: .module)).tag(120)
                     }
                     .frame(width: 100)
                     .onChange(of: store.refreshIntervalMinutes) { _, _ in
@@ -1465,13 +1497,13 @@ struct SettingsTabView: View {
             // Danger Zone
             Section {
                 HStack {
-                    Button("Quit App") {
+                    Button(String(localized: "Quit App", bundle: .module)) {
                         NSApplication.shared.terminate(nil)
                     }
                     
                     Spacer()
                     
-                    Button("Clear All Data") {
+                    Button(String(localized: "Clear All Data", bundle: .module)) {
                         store.items.removeAll()
                         store.save()
                     }
@@ -1483,6 +1515,15 @@ struct SettingsTabView: View {
         .padding()
         .onAppear {
             installedBrowsers = BrowserInfo.getInstalledBrowsers()
+            previousLanguage = store.selectedLanguage
+        }
+        .alert(String(localized: "Restart Required", bundle: .module), isPresented: $showRestartAlert) {
+            Button(String(localized: "OK", bundle: .module), role: .cancel) { }
+            Button(String(localized: "Quit Now", bundle: .module)) {
+                NSApplication.shared.terminate(nil)
+            }
+        } message: {
+            Text(String(localized: "Please quit and restart the app for the language change to take effect.", bundle: .module))
         }
     }
 }
@@ -1496,50 +1537,50 @@ struct HelpTabView: View {
                 Group {
                     helpItem(
                         icon: "newspaper",
-                        title: "Reading Articles",
-                        description: "Click on an article to open it in your browser and mark it as read."
+                        title: String(localized: "Reading Articles", bundle: .module),
+                        description: String(localized: "Click on an article to open it in your browser and mark it as read.", bundle: .module)
                     )
                     
                     helpItem(
                         icon: "star",
-                        title: "Starring Items",
-                        description: "Right-click an article and select 'Star' to save it for later."
+                        title: String(localized: "Starring Items", bundle: .module),
+                        description: String(localized: "Right-click an article and select 'Star' to save it for later.", bundle: .module)
                     )
                     
                     helpItem(
                         icon: "arrow.clockwise",
-                        title: "Refreshing Feeds",
-                        description: "Press ⌘R or click the refresh button to fetch new articles."
+                        title: String(localized: "Refreshing Feeds", bundle: .module),
+                        description: String(localized: "Press ⌘R or click the refresh button to fetch new articles.", bundle: .module)
                     )
                     
                     helpItem(
                         icon: "link",
-                        title: "Adding Feeds",
-                        description: "Go to Feeds tab and click + to add a new RSS feed URL, or use Starter / Suggested Feeds for packs."
+                        title: String(localized: "Adding Feeds", bundle: .module),
+                        description: String(localized: "Go to Feeds tab and click + to add a new RSS feed URL, or use Starter / Suggested Feeds for packs.", bundle: .module)
                     )
                     
                     helpItem(
                         icon: "square.and.arrow.up",
-                        title: "Import/Export",
-                        description: "Use OPML files to import or export your feed subscriptions."
+                        title: String(localized: "Import/Export", bundle: .module),
+                        description: String(localized: "Use OPML files to import or export your feed subscriptions.", bundle: .module)
                     )
                     
                     helpItem(
                         icon: "line.3.horizontal.decrease.circle",
-                        title: "Smart Filters",
-                        description: "Create rules in the Filters tab to automatically highlight, hide, star, or add icons to articles based on title, content, author, URL, or category. Combine conditions with 'All' or 'Any' logic."
+                        title: String(localized: "Smart Filters", bundle: .module),
+                        description: String(localized: "Create rules in the Filters tab to automatically highlight, hide, star, or add icons to articles based on title, content, author, URL, or category. Combine conditions with 'All' or 'Any' logic.", bundle: .module)
                     )
                 }
                 
                 Divider()
                 
-                Text("Keyboard Shortcuts")
+                Text(String(localized: "Keyboard Shortcuts", bundle: .module))
                     .font(.headline)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    shortcutRow("⌘R", "Refresh feeds")
-                    shortcutRow("⌘,", "Open preferences")
-                    shortcutRow("⌘Q", "Quit app")
+                    shortcutRow("⌘R", String(localized: "Refresh feeds", bundle: .module))
+                    shortcutRow("⌘,", String(localized: "Open preferences", bundle: .module))
+                    shortcutRow("⌘Q", String(localized: "Quit app", bundle: .module))
                 }
                 
                 Spacer()

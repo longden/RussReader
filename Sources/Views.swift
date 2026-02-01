@@ -187,14 +187,14 @@ struct FeedItemContextMenu: ViewModifier {
     func body(content: Content) -> some View {
         content
             .contextMenu {
-                Button(item.isRead ? "Mark as Unread" : "Mark as Read") {
+                Button(item.isRead ? String(localized: "Mark as Unread", bundle: .module) : String(localized: "Mark as Read", bundle: .module)) {
                     store.toggleRead(item)
                 }
-                Button(item.isStarred ? "Unstar" : "Star") {
+                Button(item.isStarred ? String(localized: "Unstar", bundle: .module) : String(localized: "Star", bundle: .module)) {
                     store.toggleStarred(item)
                 }
                 Divider()
-                Button("Copy Link") {
+                Button(String(localized: "Copy Link", bundle: .module)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.link, forType: .string)
                 }
@@ -242,7 +242,7 @@ struct FilterTabButton: View {
     var body: some View {
         Button(action: action) {
             Label {
-                Text(filter.rawValue)
+                Text(filter.localizedName)
             } icon: {
                 Image(systemName: filter.icon)
             }
@@ -294,7 +294,7 @@ struct RefreshButton: View {
                 isHovered = hovering
             }
         }
-        .help("Refresh feeds")
+        .help(String(localized: "Refresh feeds", bundle: .module))
     }
 }
 
@@ -401,10 +401,10 @@ struct RSSReaderView: View {
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: 380, height: 520)
-                .alert("Error", isPresented: $store.showingError) {
-                    Button("OK") { store.showingError = false }
+                .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
+                    Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
                 } message: {
-                    Text(store.errorMessage ?? "An unknown error occurred.")
+                    Text(store.errorMessage ?? String(localized: "An unknown error occurred.", bundle: .module))
                 }
         } else {
             content
@@ -412,10 +412,10 @@ struct RSSReaderView: View {
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: 380, height: 520)
-                .alert("Error", isPresented: $store.showingError) {
-                    Button("OK") { store.showingError = false }
+                .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
+                    Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
                 } message: {
-                    Text(store.errorMessage ?? "An unknown error occurred.")
+                    Text(store.errorMessage ?? String(localized: "An unknown error occurred.", bundle: .module))
                 }
         }
     }
@@ -439,17 +439,17 @@ struct RSSReaderView: View {
                         }
                         .keyboardShortcut("r")
 
-                        headerButton("Preferences", icon: "gearshape.fill") {
+                        headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
                             openPreferencesWindow(openWindow: openWindow)
                         }
                         .keyboardShortcut(",")
 
-                        headerButton("Mark all as read", icon: "checkmark.circle.fill") {
+                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checkmark.circle.fill") {
                             store.markAllAsRead()
                         }
                         .disabled(store.unreadCount == 0)
 
-                        headerButton("Quit", icon: "xmark.circle.fill") {
+                        headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
                             NSApplication.shared.terminate(nil)
                         }
                         .keyboardShortcut("q")
@@ -462,17 +462,17 @@ struct RSSReaderView: View {
                     }
                     .keyboardShortcut("r")
 
-                    headerButton("Preferences", icon: "gearshape.fill") {
+                    headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .keyboardShortcut(",")
 
-                    headerButton("Mark all as read", icon: "checkmark.circle.fill") {
+                    headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checkmark.circle.fill") {
                         store.markAllAsRead()
                     }
                     .disabled(store.unreadCount == 0)
 
-                    headerButton("Quit", icon: "xmark.circle.fill") {
+                    headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
                         NSApplication.shared.terminate(nil)
                     }
                     .keyboardShortcut("q")
@@ -507,10 +507,10 @@ struct RSSReaderView: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity)
         } else {
-            Picker("Filter", selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
+            Picker(String(localized: "Filter", bundle: .module), selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
                 ForEach(FeedFilter.allCases, id: \.self) { filter in
                     Label {
-                        Text(filter.rawValue)
+                        Text(filter.localizedName)
                     } icon: {
                         Image(systemName: filter.icon)
                     }
@@ -554,7 +554,7 @@ struct RSSReaderView: View {
                     HStack {
                         Image(systemName: "eye.slash")
                             .font(.system(size: 11))
-                        Text("\(store.hiddenItemCount) items hidden by filters")
+                        Text(String(localized: "\(store.hiddenItemCount) items hidden by filters", bundle: .module))
                             .font(.system(size: 11))
                     }
                     .foregroundStyle(.secondary)
@@ -582,24 +582,24 @@ struct RSSReaderView: View {
 
             if store.feeds.isEmpty {
                 if #available(macOS 26.0, *) {
-                    Button("Add Feeds") {
+                    Button(String(localized: "Add Feeds", bundle: .module)) {
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.glassProminent)
                 } else {
-                    Button("Add Feeds") {
+                    Button(String(localized: "Add Feeds", bundle: .module)) {
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.borderedProminent)
                 }
             } else if store.filter == .all {
                 if #available(macOS 26.0, *) {
-                    Button("Refresh") {
+                    Button(String(localized: "Refresh", bundle: .module)) {
                         Task { await store.refreshAll() }
                     }
                     .buttonStyle(.glassProminent)
                 } else {
-                    Button("Refresh") {
+                    Button(String(localized: "Refresh", bundle: .module)) {
                         Task { await store.refreshAll() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -615,12 +615,12 @@ struct RSSReaderView: View {
         switch store.filter {
         case .all:
             return store.feeds.isEmpty
-                ? "No feeds added yet.\nAdd some feeds to get started."
-                : "No items to show.\nTry refreshing your feeds."
+                ? String(localized: "No feeds added yet.\nAdd some feeds to get started.", bundle: .module)
+                : String(localized: "No items to show.\nTry refreshing your feeds.", bundle: .module)
         case .unread:
-            return "All caught up!\nNo unread items."
+            return String(localized: "All caught up!\nNo unread items.", bundle: .module)
         case .starred:
-            return "No starred items.\nStar items to save them here."
+            return String(localized: "No starred items.\nStar items to save them here.", bundle: .module)
         }
     }
 
@@ -632,18 +632,18 @@ struct RSSReaderView: View {
             if #available(macOS 26.0, *) {
                 GlassEffectContainer {
                     HStack(spacing: 8) {
-                        FooterGlassButton(title: "Feeds", icon: "list.bullet", action: nil)
-                        FooterGlassButton(title: "Settings", icon: "gearshape") {
+                        FooterGlassButton(title: String(localized: "Feeds", bundle: .module), icon: "list.bullet", action: nil)
+                        FooterGlassButton(title: String(localized: "Settings", bundle: .module), icon: "gearshape") {
                             openPreferencesWindow(openWindow: openWindow)
                         }
-                        FooterGlassButton(title: "Help", icon: "questionmark.circle", action: nil)
+                        FooterGlassButton(title: String(localized: "Help", bundle: .module), icon: "questionmark.circle", action: nil)
                     }
                 }
             } else {
                 HStack(spacing: 6) {
                     Image(systemName: "clock")
                         .font(.system(size: 11))
-                    Text("All Unread")
+                    Text(String(localized: "All Unread", bundle: .module))
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(.secondary)
@@ -693,7 +693,7 @@ struct RSSReaderView: View {
         
         // Handle very recent times explicitly
         if seconds < 2 {
-            return "just now"
+            return String(localized: "just now", bundle: .module)
         } else if seconds < 60 {
             return "\(seconds)s ago"
         }
@@ -809,7 +809,7 @@ struct FeedItemRow: View {
         if calendar.isDateInToday(date) {
             return Self.timeFormatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
+            return String(localized: "Yesterday", bundle: .module)
         } else {
             return Self.dateFormatter.string(from: date)
         }
