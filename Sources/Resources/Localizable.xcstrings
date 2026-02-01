@@ -353,12 +353,12 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加选中项" } }
       }
     },
-    "Enable filters" : {
+    "Enable rules" : {
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter aktivieren" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activar filtros" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activer les filtres" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用筛选器" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Regeln aktivieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activar reglas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Activer les règles" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用规则" } }
       }
     },
     "No filter rules yet" : {
@@ -679,6 +679,14 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Tamaño de fuente" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Taille de police" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "字体大小" } }
+      }
+    },
+    "Title Max Lines" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Max. Titelzeilen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Líneas máx. del título" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lignes max. du titre" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标题最大行数" } }
       }
     },
     "Small" : {

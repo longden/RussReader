@@ -19,6 +19,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
     @AppStorage("rssFontSize") var fontSize: Double = 13
+    @AppStorage("rssTitleMaxLines") var titleMaxLines: Int = 2
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
     @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true

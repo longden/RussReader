@@ -555,6 +555,7 @@ struct RSSReaderView: View {
                         feedTitle: store.feedTitle(for: item),
                         isHovered: hoveredItemId == item.id,
                         fontSize: store.fontSize,
+                        titleMaxLines: store.titleMaxLines,
                         highlightColor: store.highlightColor(for: item),
                         iconEmoji: store.iconEmoji(for: item),
                         showSummary: store.shouldShowSummary(for: item)
@@ -741,6 +742,7 @@ struct FeedItemRow: View {
     let feedTitle: String
     let isHovered: Bool
     let fontSize: Double
+    let titleMaxLines: Int
     let highlightColor: Color?
     let iconEmoji: String?
     let showSummary: Bool
@@ -766,7 +768,7 @@ struct FeedItemRow: View {
                 Text(item.title)
                     .font(.system(size: fontSize, weight: item.isRead ? .regular : .semibold))
                     .foregroundStyle(.primary.opacity(item.isRead ? 0.7 : 1.0))
-                    .lineLimit(2)
+                    .lineLimit(titleMaxLines)
                     .multilineTextAlignment(.leading)
 
                 if showSummary && !item.description.isEmpty {
