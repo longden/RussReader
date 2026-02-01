@@ -14,3 +14,9 @@ DerivedData/
 # Editors
 .vscode/
 .idea/
+
+# Release artifacts
+*.dmg
+*.pkg
+*.zip
+*.app

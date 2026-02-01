@@ -14,26 +14,30 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 - **Customizable** - Adjust font size, colors, and refresh interval
 - **Keyboard Shortcuts** - Quick access with ⌘R (refresh), ⌘, (preferences), ⌘Q (quit)
 
-## Building & Running
+## Installation
 
-### Quick Start (Swift Package Manager)
+### Option 1: Download Release (Recommended)
 
+1. Download the latest `RSSReader-X.X.X.dmg` from [Releases](https://github.com/yourusername/rssreader/releases)
+2. Open the DMG file
+3. Drag "RSS Reader" to your Applications folder
+4. Launch from Applications or Spotlight
+
+### Option 2: Build from Source
+
+#### Development Build (Fast)
 ```bash
-# Build and run
-swift build && .build/debug/RSSReader
-
-# Or just build
-swift build
-
-# Build for release
-swift build -c release
+./scripts/build-debug.sh
+open ".build/debug/RSS Reader.app"
 ```
 
-### Using Xcode
+#### Production Build (One Command)
+```bash
+./scripts/build-release.sh
+# Creates: .build/release/RSSReader-1.0.0.dmg
+```
 
-1. Open the project folder in Xcode
-2. Select "My Mac" as the run destination
-3. Press ⌘R to build and run
+This single command builds, strips symbols, and creates a distributable DMG.
 
 ## Usage
 
@@ -63,8 +67,30 @@ Feeds and read states are stored in UserDefaults, persisting across launches.
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
-- Xcode 15+ (for building)
+- Xcode 15+ / Swift 5.9+ (for building from source)
+
+## Distribution
+
+### Local Sharing
+Share the `.app` bundle or `.dmg` file directly with others.
+
+**Protection**: Release builds include:
+- Compiled native code (not easily reverse-engineered)
+- Stripped debug symbols (58% size reduction, better obfuscation)
+- Release optimizations and code signing
+
+See [SECURITY.md](SECURITY.md) for details on code protection.
+
+### Future Distribution Channels
+- **App Store**: Planned for future release
+- **Homebrew**: Planned via `brew install rssreader`
+
+## Version
+
+Current version: **1.0.0**
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details
