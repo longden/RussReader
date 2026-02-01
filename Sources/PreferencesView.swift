@@ -559,7 +559,7 @@ struct FiltersTabView: View {
                 Toggle("", isOn: $store.smartFiltersEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.small)
-                Text(String(localized: "Enable filters", bundle: .module))
+                Text(String(localized: "Enable rules", bundle: .module))
                     .font(.system(size: 13, weight: .medium))
                 Spacer()
             }
@@ -1678,6 +1678,17 @@ struct SettingsTabView: View {
                     Text("\(Int(store.fontSize))pt")
                         .frame(width: 40, alignment: .trailing)
                         .foregroundStyle(.secondary)
+                }
+                
+                HStack {
+                    Text(String(localized: "Title Max Lines", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.titleMaxLines) {
+                        Text("1").tag(1)
+                        Text("2").tag(2)
+                        Text("3").tag(3)
+                    }
+                    .frame(width: 100)
                 }
                 
                 Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)

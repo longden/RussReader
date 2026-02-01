@@ -268,8 +268,9 @@ struct FeedItem: Codable, Identifiable, Hashable {
     var categories: [String]
     var isRead: Bool
     var isStarred: Bool
+    var enclosures: [Enclosure]
     
-    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, categories: [String] = [], isRead: Bool = false, isStarred: Bool = false) {
+    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, categories: [String] = [], isRead: Bool = false, isStarred: Bool = false, enclosures: [Enclosure] = []) {
         self.id = id
         self.feedId = feedId
         self.title = title
@@ -281,6 +282,30 @@ struct FeedItem: Codable, Identifiable, Hashable {
         self.categories = categories
         self.isRead = isRead
         self.isStarred = isStarred
+        self.enclosures = enclosures
+    }
+}
+
+// MARK: - Enclosure (for images, audio, video)
+
+struct Enclosure: Codable, Hashable {
+    var url: String
+    var type: String?
+    var length: Int?
+    
+    var isImage: Bool {
+        guard let type = type?.lowercased() else { return false }
+        return type.hasPrefix("image/")
+    }
+    
+    var isAudio: Bool {
+        guard let type = type?.lowercased() else { return false }
+        return type.hasPrefix("audio/")
+    }
+    
+    var isVideo: Bool {
+        guard let type = type?.lowercased() else { return false }
+        return type.hasPrefix("video/")
     }
 }
 

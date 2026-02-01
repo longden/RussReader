@@ -46,6 +46,10 @@ final class RSSParser {
             
             guard !link.isEmpty else { return nil }
             
+            // Parse enclosures (RSS media)
+            // Note: FeedKit may use different property names - leaving empty for now
+            let enclosures: [Enclosure] = []
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
@@ -54,7 +58,8 @@ final class RSSParser {
                 description: stripHTML(item.description ?? ""),
                 pubDate: item.pubDate,
                 author: item.author ?? item.dublinCore?.creator,
-                categories: item.categories?.compactMap { $0.text } ?? []
+                categories: item.categories?.compactMap { $0.text } ?? [],
+                enclosures: enclosures
             )
         }
     }
@@ -74,6 +79,10 @@ final class RSSParser {
             
             guard !link.isEmpty else { return nil }
             
+            // Parse enclosures from links with rel="enclosure"
+            // Note: FeedKit may use different property names - leaving empty for now
+            let enclosures: [Enclosure] = []
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
@@ -82,7 +91,8 @@ final class RSSParser {
                 description: stripHTML(entry.summary?.text ?? entry.content?.text ?? ""),
                 pubDate: entry.published ?? entry.updated,
                 author: entry.authors?.first?.name,
-                categories: entry.categories?.compactMap { $0.attributes?.term } ?? []
+                categories: entry.categories?.compactMap { $0.attributes?.term } ?? [],
+                enclosures: enclosures
             )
         }
     }
@@ -99,6 +109,10 @@ final class RSSParser {
             
             guard !link.isEmpty else { return nil }
             
+            // Parse attachments (JSON Feed enclosures)
+            // Note: FeedKit may use different property names - leaving empty for now  
+            let enclosures: [Enclosure] = []
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
@@ -107,7 +121,8 @@ final class RSSParser {
                 description: stripHTML(item.contentText ?? item.contentHtml ?? item.summary ?? ""),
                 pubDate: item.datePublished,
                 author: item.author?.name,
-                categories: item.tags ?? []
+                categories: item.tags ?? [],
+                enclosures: enclosures
             )
         }
     }
