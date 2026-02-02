@@ -20,6 +20,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
     @AppStorage("rssFontSize") var fontSize: Double = 13
     @AppStorage("rssTitleMaxLines") var titleMaxLines: Int = 2
+    @AppStorage("rssTimeFormat") var timeFormat: String = "12h"
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
     @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true
@@ -216,8 +217,9 @@ final class FeedStore: ObservableObject {
         
         feeds.append(feed)
         
-        // Add the fetched items
-        for item in fetchedItems {
+        // Add the fetched items (limited by maxItemsPerFeed)
+        let itemsToAdd = Array(fetchedItems.prefix(maxItemsPerFeed))
+        for item in itemsToAdd {
             let key = itemKey(item)
             if !items.contains(where: { itemKey($0) == key }) {
                 items.append(item)
@@ -309,11 +311,29 @@ final class FeedStore: ObservableObject {
     
     func openItem(_ item: FeedItem) {
         markAsRead(item)
-        if let url = URL(string: item.link) {
-            if selectedBrowser == "default" {
-                NSWorkspace.shared.open(url)
-            } else {
-                NSWorkspace.shared.open([url], withApplicationAt: URL(fileURLWithPath: selectedBrowser), configuration: NSWorkspace.OpenConfiguration())
+        
+        // Clean and validate URL
+        let cleanLink = item.link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: cleanLink), 
+              (url.scheme == "http" || url.scheme == "https") else { 
+            logger.error("Invalid URL: \(item.link)")
+            return 
+        }
+        
+        if selectedBrowser == "default" {
+            NSWorkspace.shared.open(url)
+        } else {
+            // Try to open with selected browser, fall back to default if it fails
+            let browserURL = URL(fileURLWithPath: selectedBrowser)
+            let config = NSWorkspace.OpenConfiguration()
+            
+            NSWorkspace.shared.open([url], withApplicationAt: browserURL, configuration: config) { _, error in
+                if error != nil {
+                    // Fall back to default browser if selected browser fails
+                    DispatchQueue.main.async {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             }
         }
     }
@@ -322,7 +342,11 @@ final class FeedStore: ObservableObject {
     
     func startRefreshTimer() {
         refreshTimer?.cancel()
-        let interval = DispatchTimeInterval.seconds(max(1, refreshIntervalMinutes) * 60)
+        
+        // If refresh interval is 0 (manual), don't start a timer
+        guard refreshIntervalMinutes > 0 else { return }
+        
+        let interval = DispatchTimeInterval.seconds(refreshIntervalMinutes * 60)
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.main)
         timer.schedule(deadline: .now() + interval, repeating: interval)
         timer.setEventHandler { [weak self] in

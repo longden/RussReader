@@ -689,6 +689,38 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标题最大行数" } }
       }
     },
+    "Manual" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Manuell" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Manual" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Manuel" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "手动" } }
+      }
+    },
+    "Time Format" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zeitformat" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Formato de hora" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Format de l'heure" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时间格式" } }
+      }
+    },
+    "12-hour" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "12-Stunden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "12 horas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "12 heures" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "12小时制" } }
+      }
+    },
+    "24-hour" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "24-Stunden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "24 horas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "24 heures" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "24小时制" } }
+      }
+    },
     "Small" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Klein" } },
