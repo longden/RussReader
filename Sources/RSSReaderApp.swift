@@ -99,6 +99,7 @@ struct RSSReaderApp: App {
         Window("Add Feed", id: "addFeed") {
             AddFeedWindow()
                 .environmentObject(store)
+                .frame(minWidth: 350, maxWidth: 350)
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)

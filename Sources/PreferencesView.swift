@@ -1333,21 +1333,45 @@ final class FeedDiscovery {
 
 struct AddFeedWindow: View {
     @EnvironmentObject private var store: FeedStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var shouldClose = false
+    @State private var isSheetPresented = true
     
     var body: some View {
-        AddFeedSheet(isPresented: $shouldClose)
+        AddFeedSheet(isPresented: $isSheetPresented)
             .environmentObject(store)
-            .onChange(of: shouldClose) { _, newValue in
-                if newValue {
-                    // Close the window when the sheet wants to dismiss
-                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
-                        window.close()
+            .onChange(of: isSheetPresented) { _, newValue in
+                if !newValue {
+                    // Sheet was dismissed, close the window
+                    DispatchQueue.main.async {
+                        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
+                            window.close()
+                        }
                     }
                 }
             }
-            .background(PanelAccessor())
+            .frame(width: 350)
+            .onAppear {
+                // Configure window for proper input handling
+                DispatchQueue.main.async {
+                    configureAddFeedWindow()
+                }
+            }
+    }
+    
+    private func configureAddFeedWindow() {
+        guard let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" || $0.title == "Add Feed" }) else { return }
+        
+        // Set identifier if not set
+        if window.identifier == nil {
+            window.identifier = NSUserInterfaceItemIdentifier("addFeed")
+        }
+        
+        // Make it a floating panel
+        window.level = .floating
+        window.isMovableByWindowBackground = true
+        
+        // Ensure it can become key and accept input
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -1530,6 +1554,8 @@ struct AddFeedSheet: View {
 
 // Custom NSTextField that handles tab properly in sheets
 class SheetTextField: NSTextField {
+    override var acceptsFirstResponder: Bool { true }
+    
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         // Handle tab key within the sheet context
         if event.keyCode == 48 { // Tab key
@@ -1713,16 +1739,27 @@ struct SettingsTabView: View {
                     Text(String(localized: "Refresh Interval", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.refreshIntervalMinutes) {
+                        Text(String(localized: "Manual", bundle: .module)).tag(0)
                         Text(String(localized: "5 min", bundle: .module)).tag(5)
                         Text(String(localized: "15 min", bundle: .module)).tag(15)
                         Text(String(localized: "30 min", bundle: .module)).tag(30)
                         Text(String(localized: "1 hour", bundle: .module)).tag(60)
                         Text(String(localized: "2 hours", bundle: .module)).tag(120)
                     }
-                    .frame(width: 100)
+                    .frame(width: 120)
                     .onChange(of: store.refreshIntervalMinutes) { _, _ in
                         store.startRefreshTimer()
                     }
+                }
+                
+                HStack {
+                    Text(String(localized: "Time Format", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.timeFormat) {
+                        Text(String(localized: "12-hour", bundle: .module)).tag("12h")
+                        Text(String(localized: "24-hour", bundle: .module)).tag("24h")
+                    }
+                    .frame(width: 120)
                 }
             }
             

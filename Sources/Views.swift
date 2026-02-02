@@ -372,19 +372,24 @@ func openPreferencesWindow(openWindow: OpenWindowAction) {
 }
 
 func openAddFeedWindow(openWindow: OpenWindowAction) {
-    // First, try to bring existing window to front
+    // Close any existing window first
     if let existingWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
-        existingWindow.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    } else {
-        // If window doesn't exist, open it
+        existingWindow.close()
+    }
+    
+    // Small delay to ensure old window is closed
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        // Open new window
         openWindow(id: "addFeed")
-        // Give it a moment to create, then bring to front
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let newWindow = NSApp.windows.first(where: { $0.title == "Add Feed" }) {
-                newWindow.identifier = NSUserInterfaceItemIdentifier("addFeed")
-                newWindow.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
+        
+        // Bring it to front aggressively
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            NSApp.activate(ignoringOtherApps: true)
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" || $0.title == "Add Feed" }) {
+                window.identifier = NSUserInterfaceItemIdentifier("addFeed")
+                window.level = .floating
+                window.makeKeyAndOrderFront(nil)
+                window.orderFrontRegardless()
             }
         }
     }
@@ -556,6 +561,7 @@ struct RSSReaderView: View {
                         isHovered: hoveredItemId == item.id,
                         fontSize: store.fontSize,
                         titleMaxLines: store.titleMaxLines,
+                        timeFormat: store.timeFormat,
                         highlightColor: store.highlightColor(for: item),
                         iconEmoji: store.iconEmoji(for: item),
                         showSummary: store.shouldShowSummary(for: item)
@@ -743,6 +749,7 @@ struct FeedItemRow: View {
     let isHovered: Bool
     let fontSize: Double
     let titleMaxLines: Int
+    let timeFormat: String
     let highlightColor: Color?
     let iconEmoji: String?
     let showSummary: Bool
@@ -823,12 +830,6 @@ struct FeedItemRow: View {
         }
     }
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter
-    }()
-
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
@@ -838,11 +839,17 @@ struct FeedItemRow: View {
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return Self.timeFormatter.string(from: date)
+            return formatTime(date, timeFormat: timeFormat)
         } else if calendar.isDateInYesterday(date) {
             return String(localized: "Yesterday", bundle: .module)
         } else {
             return Self.dateFormatter.string(from: date)
         }
+    }
+    
+    private func formatTime(_ date: Date, timeFormat: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = timeFormat == "24h" ? "HH:mm" : "h:mm a"
+        return formatter.string(from: date)
     }
 }
