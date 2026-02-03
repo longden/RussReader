@@ -78,6 +78,27 @@ struct MenuBarWindowConfigurator: NSViewRepresentable {
     }
 }
 
+@available(macOS 26.0, *)
+struct GlassEffectContainer<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.regularMaterial)
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+            )
+            .clipShape(Capsule())
+    }
+}
+
 struct VisualEffectBackground: NSViewRepresentable {
     var material: NSVisualEffectView.Material
     var blendingMode: NSVisualEffectView.BlendingMode
@@ -165,10 +186,8 @@ struct HeaderButtonHoverModifier: ViewModifier {
         if #available(macOS 26.0, *) {
             content
                 .foregroundStyle(.primary)
-                .glassEffect(
-                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
-                    in: .circle
-                )
+                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
+                .clipShape(Circle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.15)) {
                         isHovered = hovering
@@ -194,6 +213,18 @@ struct FeedItemContextMenu: ViewModifier {
                     store.toggleStarred(item)
                 }
                 Divider()
+                Button(String(localized: "Mark all above as read", bundle: .module)) {
+                    store.markItemsAboveAsRead(item)
+                }
+                .disabled(store.filteredItems.first?.id == item.id)
+                Button(String(localized: "Mark all below as read", bundle: .module)) {
+                    store.markItemsBelowAsRead(item)
+                }
+                .disabled(store.filteredItems.last?.id == item.id)
+                Divider()
+                Button(String(localized: "Share", bundle: .module)) {
+                    store.shareItem(item)
+                }
                 Button(String(localized: "Copy Link", bundle: .module)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.link, forType: .string)
@@ -254,12 +285,8 @@ struct FilterTabButton: View {
         }
         .buttonStyle(.plain)
         .contentShape(Capsule())
-        .glassEffect(
-            isSelected 
-                ? .regular.interactive() 
-                : (isHovered ? .clear.interactive().tint(.primary.opacity(0.12)) : .clear.interactive()),
-            in: .capsule
-        )
+        .background(isSelected ? Color.primary.opacity(0.15) : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
+        .clipShape(Capsule())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
@@ -295,6 +322,7 @@ struct RefreshButton: View {
             }
         }
         .help(String(localized: "Refresh feeds", bundle: .module))
+        .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
     }
 }
 
@@ -304,10 +332,8 @@ struct RefreshButtonGlassModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
             content
-                .glassEffect(
-                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
-                    in: .circle
-                )
+                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
+                .clipShape(Circle())
         } else {
             content
         }
@@ -337,10 +363,8 @@ struct FooterGlassButton: View {
         }
         .buttonStyle(.plain)
         .contentShape(Capsule())
-        .glassEffect(
-            isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
-            in: .capsule
-        )
+        .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
+        .clipShape(Capsule())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
@@ -360,9 +384,8 @@ func openPreferencesWindow(openWindow: OpenWindowAction) {
     } else {
         // If window doesn't exist, open it
         openWindow(id: "preferences")
-        // Give it a moment to create, then bring to front
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let newWindow = NSApp.windows.first(where: { $0.title == "Preferences" }) {
+        DispatchQueue.main.async {
+            if let newWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "preferences" || $0.title == "Preferences" }) {
                 newWindow.identifier = NSUserInterfaceItemIdentifier("preferences")
                 newWindow.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
@@ -372,25 +395,22 @@ func openPreferencesWindow(openWindow: OpenWindowAction) {
 }
 
 func openAddFeedWindow(openWindow: OpenWindowAction) {
-    // Close any existing window first
     if let existingWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
-        existingWindow.close()
+        existingWindow.makeKeyAndOrderFront(nil)
+        existingWindow.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        return
     }
     
-    // Small delay to ensure old window is closed
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-        // Open new window
-        openWindow(id: "addFeed")
-        
-        // Bring it to front aggressively
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+    openWindow(id: "addFeed")
+    
+    DispatchQueue.main.async {
+        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" || $0.title == "Add Feed" }) {
+            window.identifier = NSUserInterfaceItemIdentifier("addFeed")
+            window.level = .floating
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
             NSApp.activate(ignoringOtherApps: true)
-            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" || $0.title == "Add Feed" }) {
-                window.identifier = NSUserInterfaceItemIdentifier("addFeed")
-                window.level = .floating
-                window.makeKeyAndOrderFront(nil)
-                window.orderFrontRegardless()
-            }
         }
     }
 }
@@ -401,6 +421,7 @@ struct RSSReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredItemId: UUID?
+    @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
 
     @ViewBuilder
     var body: some View {
@@ -456,50 +477,64 @@ struct RSSReaderView: View {
             Spacer()
 
             if #available(macOS 26.0, *) {
-                GlassEffectContainer {
-                    HStack(spacing: 8) {
-                        RefreshButton(isRefreshing: store.isRefreshing) {
-                            Task { await store.refreshAll() }
-                        }
-                        .keyboardShortcut("r")
-
-                        headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
-                            openPreferencesWindow(openWindow: openWindow)
-                        }
-                        .keyboardShortcut(",")
-
-                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checkmark.circle.fill") {
-                            store.markAllAsRead()
-                        }
-                        .disabled(store.unreadCount == 0)
-
-                        headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
-                            NSApplication.shared.terminate(nil)
-                        }
-                        .keyboardShortcut("q")
-                    }
-                }
-            } else {
                 HStack(spacing: 12) {
-                    RefreshButton(isRefreshing: store.isRefreshing) {
-                        Task { await store.refreshAll() }
-                    }
-                    .keyboardShortcut("r")
+                    GlassEffectContainer {
+                        HStack(spacing: 8) {
+                            RefreshButton(isRefreshing: store.isRefreshing) {
+                                Task { await store.refreshAll() }
+                            }
+                            .keyboardShortcut("r")
+                            .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
 
-                    headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
-                        openPreferencesWindow(openWindow: openWindow)
-                    }
-                    .keyboardShortcut(",")
+                            headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
+                                preferencesTab = "feeds"
+                                openPreferencesWindow(openWindow: openWindow)
+                            }
+                            .keyboardShortcut(",")
+                            .accessibilityLabel(String(localized: "Preferences", bundle: .module))
 
-                    headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checkmark.circle.fill") {
-                        store.markAllAsRead()
+                            headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checklist") {
+                                store.markAllAsRead()
+                            }
+                            .disabled(store.unreadCount == 0)
+                            .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+                        }
                     }
-                    .disabled(store.unreadCount == 0)
 
                     headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
                         NSApplication.shared.terminate(nil)
                     }
                     .keyboardShortcut("q")
+                    .accessibilityLabel(String(localized: "Quit", bundle: .module))
+                }
+            } else {
+                HStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        RefreshButton(isRefreshing: store.isRefreshing) {
+                            Task { await store.refreshAll() }
+                        }
+                        .keyboardShortcut("r")
+                        .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
+
+                        headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
+                            preferencesTab = "feeds"
+                            openPreferencesWindow(openWindow: openWindow)
+                        }
+                        .keyboardShortcut(",")
+                        .accessibilityLabel(String(localized: "Preferences", bundle: .module))
+
+                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checklist") {
+                            store.markAllAsRead()
+                        }
+                        .disabled(store.unreadCount == 0)
+                        .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+                    }
+
+                    headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .keyboardShortcut("q")
+                    .accessibilityLabel(String(localized: "Quit", bundle: .module))
                 }
             }
         }
@@ -528,8 +563,10 @@ struct RSSReaderView: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(String(localized: "Filter", bundle: .module))
         } else {
             Picker(String(localized: "Filter", bundle: .module), selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
                 ForEach(FeedFilter.allCases, id: \.self) { filter in
@@ -544,7 +581,7 @@ struct RSSReaderView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
         }
     }
@@ -558,13 +595,16 @@ struct RSSReaderView: View {
                     FeedItemRow(
                         item: item,
                         feedTitle: store.feedTitle(for: item),
+                        feedIconURL: store.feedIconURL(for: item),
+                        feedURL: store.feedURL(for: item),
                         isHovered: hoveredItemId == item.id,
                         fontSize: store.fontSize,
                         titleMaxLines: store.titleMaxLines,
                         timeFormat: store.timeFormat,
                         highlightColor: store.highlightColor(for: item),
                         iconEmoji: store.iconEmoji(for: item),
-                        showSummary: store.shouldShowSummary(for: item)
+                        showSummary: store.shouldShowSummary(for: item),
+                        showFeedIcon: store.showFeedIcons
                     )
                     .onTapGesture {
                         store.openItem(item)
@@ -580,7 +620,7 @@ struct RSSReaderView: View {
                     HStack {
                         Image(systemName: "eye.slash")
                             .font(.system(size: 11))
-                        Text(String(localized: "\(store.hiddenItemCount) items hidden by filters", bundle: .module))
+                        Text(String(format: String(localized: "%lld items hidden by filters", bundle: .module), store.hiddenItemCount))
                             .font(.system(size: 11))
                     }
                     .foregroundStyle(.secondary)
@@ -609,11 +649,13 @@ struct RSSReaderView: View {
             if store.feeds.isEmpty {
                 if #available(macOS 26.0, *) {
                     Button(String(localized: "Add Feeds", bundle: .module)) {
+                        preferencesTab = "feeds"
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.glassProminent)
                 } else {
                     Button(String(localized: "Add Feeds", bundle: .module)) {
+                        preferencesTab = "feeds"
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.borderedProminent)
@@ -658,21 +700,32 @@ struct RSSReaderView: View {
             if #available(macOS 26.0, *) {
                 GlassEffectContainer {
                     HStack(spacing: 8) {
-                        FooterGlassButton(title: String(localized: "Filter", bundle: .module), icon: "line.3.horizontal.decrease.circle", action: nil)
+                        FooterGlassButton(title: String(localized: "Filter", bundle: .module), icon: "line.3.horizontal.decrease.circle") {
+                            preferencesTab = "filters"
+                            openPreferencesWindow(openWindow: openWindow)
+                        }
+                        .keyboardShortcut("f", modifiers: [.command])
+                        .accessibilityLabel(String(localized: "Filter", bundle: .module))
                         FooterGlassButton(title: String(localized: "Add Feed", bundle: .module), icon: "plus") {
                             openAddFeedWindow(openWindow: openWindow)
                         }
+                        .keyboardShortcut("n", modifiers: [.command])
+                        .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
                     }
                 }
             } else {
                 HStack(spacing: 8) {
                     Button {
-                        // Filter action - not implemented
+                        preferencesTab = "filters"
+                        openPreferencesWindow(openWindow: openWindow)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.plain)
+                    .help(String(localized: "Filter", bundle: .module))
+                    .accessibilityLabel(String(localized: "Filter", bundle: .module))
+                    .keyboardShortcut("f", modifiers: [.command])
                     
                     Button {
                         openAddFeedWindow(openWindow: openWindow)
@@ -681,6 +734,9 @@ struct RSSReaderView: View {
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.plain)
+                    .help(String(localized: "Add Feed", bundle: .module))
+                    .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
+                    .keyboardShortcut("n", modifiers: [.command])
                 }
                 .foregroundStyle(.secondary)
             }
@@ -731,7 +787,7 @@ struct RSSReaderView: View {
         if seconds < 2 {
             return String(localized: "just now", bundle: .module)
         } else if seconds < 60 {
-            return "\(seconds)s ago"
+            return String(format: String(localized: "%llds ago", bundle: .module), seconds)
         }
         
         // Use system formatter for longer durations
@@ -746,6 +802,8 @@ struct RSSReaderView: View {
 struct FeedItemRow: View {
     let item: FeedItem
     let feedTitle: String
+    let feedIconURL: String?
+    let feedURL: String?
     let isHovered: Bool
     let fontSize: Double
     let titleMaxLines: Int
@@ -753,6 +811,7 @@ struct FeedItemRow: View {
     let highlightColor: Color?
     let iconEmoji: String?
     let showSummary: Bool
+    let showFeedIcon: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -785,7 +844,10 @@ struct FeedItemRow: View {
                         .lineLimit(1)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    if showFeedIcon {
+                        FeedIconView(iconURL: feedIconURL, feedURL: feedURL, size: 11)
+                    }
                     Text(feedTitle)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
@@ -847,9 +909,20 @@ struct FeedItemRow: View {
         }
     }
     
-    private func formatTime(_ date: Date, timeFormat: String) -> String {
+    private static let timeFormatter12h: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = timeFormat == "24h" ? "HH:mm" : "h:mm a"
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+
+    private static let timeFormatter24h: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private func formatTime(_ date: Date, timeFormat: String) -> String {
+        let formatter = timeFormat == "24h" ? Self.timeFormatter24h : Self.timeFormatter12h
         return formatter.string(from: date)
     }
 }

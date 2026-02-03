@@ -243,14 +243,18 @@ struct Feed: Codable, Identifiable, Hashable {
     var title: String
     var url: String
     var lastFetched: Date?
+    var eTag: String?
+    var lastModified: String?
     var iconURL: String?
     var customTitle: Bool
     
-    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, iconURL: String? = nil, customTitle: Bool = false) {
+    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, eTag: String? = nil, lastModified: String? = nil, iconURL: String? = nil, customTitle: Bool = false) {
         self.id = id
         self.title = title
         self.url = url
         self.lastFetched = lastFetched
+        self.eTag = eTag
+        self.lastModified = lastModified
         self.iconURL = iconURL
         self.customTitle = customTitle
     }
