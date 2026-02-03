@@ -1,6 +1,8 @@
 import SwiftUI
 import AppKit
 import OSLog
+@preconcurrency import UserNotifications
+import CoreFoundation
 
 // MARK: - Feed Store
 
@@ -27,6 +29,9 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssSelectedBrowser") var selectedBrowser: String = "default"
     @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = false
     @AppStorage("rssLanguage") var selectedLanguage: String = "system"
+    @AppStorage("rssStickyWindow") var stickyWindow: Bool = true
+    @AppStorage("rssNewItemNotifications") var newItemNotificationsEnabled: Bool = false
+    @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = false
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
@@ -36,6 +41,7 @@ final class FeedStore: ObservableObject {
     private var saveWorkItem: DispatchWorkItem?
     private let maxTotalItems = 200
     private let itemRetentionDays = 30
+    private let requestTimeout: TimeInterval = 15
     
     // Cache for filter results (per-item metadata like highlight color)
     private var filterResultsCache: [UUID: FilteredItemResult] = [:]
@@ -151,6 +157,7 @@ final class FeedStore: ObservableObject {
                 feeds = decoded
             } else {
                 logger.error("Failed to decode feeds from UserDefaults")
+                showError(String(localized: "Failed to load feeds. Your saved data may be corrupted.", bundle: .module))
             }
         }
         
@@ -159,6 +166,7 @@ final class FeedStore: ObservableObject {
                 items = decoded
             } else {
                 logger.error("Failed to decode items from UserDefaults")
+                showError(String(localized: "Failed to load items. Your saved data may be corrupted.", bundle: .module))
             }
         }
     }
@@ -174,11 +182,15 @@ final class FeedStore: ObservableObject {
     private func saveImmediately() {
         if let feedsData = try? JSONEncoder().encode(self.feeds) {
             UserDefaults.standard.set(feedsData, forKey: self.feedsKey)
+        } else {
+            logger.error("Failed to encode feeds for save")
+            showError(String(localized: "Failed to save feeds. Please check available disk space.", bundle: .module))
         }
         if let itemsData = try? JSONEncoder().encode(self.items) {
             UserDefaults.standard.set(itemsData, forKey: self.itemsKey)
         } else {
             logger.error("Failed to encode items for save")
+            showError(String(localized: "Failed to save items. Please check available disk space.", bundle: .module))
         }
     }
     
@@ -198,7 +210,7 @@ final class FeedStore: ObservableObject {
             return (false, String(localized: "Unable to fetch feed. Please check the URL and try again.", bundle: .module))
         }
         
-        let (_, fetchedItems, parsedTitle, parsedIconURL) = result
+        let (_, fetchedItems, parsedTitle, parsedIconURL, eTag, lastModified) = result
         
         // Ensure we got at least some items
         guard !fetchedItems.isEmpty else {
@@ -214,6 +226,12 @@ final class FeedStore: ObservableObject {
             feed.iconURL = parsedIconURL
         }
         feed.lastFetched = Date()
+        if let eTag = eTag, !eTag.isEmpty {
+            feed.eTag = eTag
+        }
+        if let lastModified = lastModified, !lastModified.isEmpty {
+            feed.lastModified = lastModified
+        }
         
         feeds.append(feed)
         
@@ -254,11 +272,20 @@ final class FeedStore: ObservableObject {
     func removeFeed(_ feed: Feed) {
         feeds.removeAll { $0.id == feed.id }
         items.removeAll { $0.feedId == feed.id }
+        cleanupFilterCache()
         save()
     }
     
     func feedTitle(for item: FeedItem) -> String {
         feeds.first { $0.id == item.feedId }?.title ?? String(localized: "Unknown", bundle: .module)
+    }
+
+    func feedIconURL(for item: FeedItem) -> String? {
+        feeds.first { $0.id == item.feedId }?.iconURL
+    }
+
+    func feedURL(for item: FeedItem) -> String? {
+        feeds.first { $0.id == item.feedId }?.url
     }
     
     // MARK: - Item Management
@@ -306,7 +333,47 @@ final class FeedStore: ObservableObject {
             return updated
         }
         objectWillChange.send()
+        cleanupFilterCache()
         saveImmediately()
+    }
+
+    func markItemsAboveAsRead(_ item: FeedItem) {
+        let orderedItems = filteredItems
+        guard let index = orderedItems.firstIndex(where: { $0.id == item.id }) else { return }
+        let idsToMark = Set(orderedItems.prefix(index).map { $0.id })
+        guard !idsToMark.isEmpty else { return }
+        items = items.map { current in
+            guard idsToMark.contains(current.id) else { return current }
+            var updated = current
+            updated.isRead = true
+            return updated
+        }
+        objectWillChange.send()
+        cleanupFilterCache()
+        saveImmediately()
+    }
+
+    func markItemsBelowAsRead(_ item: FeedItem) {
+        let orderedItems = filteredItems
+        guard let index = orderedItems.firstIndex(where: { $0.id == item.id }) else { return }
+        let idsToMark = Set(orderedItems.suffix(from: index + 1).map { $0.id })
+        guard !idsToMark.isEmpty else { return }
+        items = items.map { current in
+            guard idsToMark.contains(current.id) else { return current }
+            var updated = current
+            updated.isRead = true
+            return updated
+        }
+        objectWillChange.send()
+        cleanupFilterCache()
+        saveImmediately()
+    }
+
+    func clearItems() {
+        items.removeAll()
+        filterResultsCache.removeAll()
+        lastRefreshTime = nil
+        save()
     }
     
     func openItem(_ item: FeedItem) {
@@ -329,6 +396,7 @@ final class FeedStore: ObservableObject {
             
             NSWorkspace.shared.open([url], withApplicationAt: browserURL, configuration: config) { _, error in
                 if error != nil {
+                    self.logger.error("Failed to open in selected browser: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
                     // Fall back to default browser if selected browser fails
                     DispatchQueue.main.async {
                         NSWorkspace.shared.open(url)
@@ -336,6 +404,25 @@ final class FeedStore: ObservableObject {
                 }
             }
         }
+    }
+
+    func shareItem(_ item: FeedItem) {
+        let cleanLink = item.link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: cleanLink),
+              (url.scheme == "http" || url.scheme == "https") else {
+            logger.error("Invalid URL: \(item.link)")
+            showError(String(localized: "Cannot share this item because its link is invalid.", bundle: .module))
+            return
+        }
+
+        let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let itemsToShare: [Any] = title.isEmpty ? [url] : [title, url]
+        let picker = NSSharingServicePicker(items: itemsToShare)
+        guard let targetView = (NSApp.keyWindow ?? NSApp.windows.first)?.contentView else {
+            showError(String(localized: "Unable to open the share menu right now.", bundle: .module))
+            return
+        }
+        picker.show(relativeTo: targetView.bounds, of: targetView, preferredEdge: .minY)
     }
     
     // MARK: - Refresh
@@ -350,9 +437,7 @@ final class FeedStore: ObservableObject {
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.main)
         timer.schedule(deadline: .now() + interval, repeating: interval)
         timer.setEventHandler { [weak self] in
-            Task { @MainActor in
-                await self?.refreshAll()
-            }
+            Task { await self?.refreshAll() }
         }
         timer.resume()
         refreshTimer = timer
@@ -362,47 +447,81 @@ final class FeedStore: ObservableObject {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
+
+        let previousUnreadCount = unreadCount
         
         // Fetch feeds concurrently - network I/O happens off MainActor
-        await withTaskGroup(of: (Feed, [FeedItem], String?, String?)?.self) { group in
-            for feed in feeds {
+        let maxConcurrentFetches = 6
+        await withTaskGroup(of: (Feed, [FeedItem], String?, String?, String?, String?)?.self) { group in
+            var feedIterator = feeds.makeIterator()
+            var activeTasks = 0
+
+            func enqueueNext() {
+                guard let feed = feedIterator.next() else { return }
+                activeTasks += 1
                 group.addTask { [weak self] in
                     await self?.fetchFeedData(feed)
                 }
             }
+
+            for _ in 0..<min(maxConcurrentFetches, feeds.count) {
+                enqueueNext()
+            }
             
             for await result in group {
-                if let (feed, newItems, parsedTitle, parsedIconURL) = result {
-                    processFetchedFeed(feed, items: newItems, parsedTitle: parsedTitle, parsedIconURL: parsedIconURL)
+                activeTasks -= 1
+                if let (feed, newItems, parsedTitle, parsedIconURL, eTag, lastModified) = result {
+                    processFetchedFeed(feed, items: newItems, parsedTitle: parsedTitle, parsedIconURL: parsedIconURL, eTag: eTag, lastModified: lastModified)
+                }
+                if activeTasks < maxConcurrentFetches {
+                    enqueueNext()
                 }
             }
         }
         
         lastRefreshTime = Date()
+        if newItemNotificationsEnabled {
+            let newUnreadCount = unreadCount
+            if newUnreadCount > previousUnreadCount {
+                let addedCount = newUnreadCount - previousUnreadCount
+                sendNewItemsNotification(addedCount: addedCount)
+            }
+        }
         save()
     }
     
     // Network fetching - runs off MainActor for true concurrency
-    nonisolated func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?, String?)? {
+    nonisolated func fetchFeedData(_ feed: Feed) async -> (Feed, [FeedItem], String?, String?, String?, String?)? {
         guard let url = URL(string: feed.url) else { return nil }
         
         do {
             var request = URLRequest(url: url)
             request.setValue("macbar-rssreader/1.0", forHTTPHeaderField: "User-Agent")
+            request.timeoutInterval = requestTimeout
+            if let eTag = feed.eTag, !eTag.isEmpty {
+                request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
+            }
+            if let lastModified = feed.lastModified, !lastModified.isEmpty {
+                request.setValue(lastModified, forHTTPHeaderField: "If-Modified-Since")
+            }
             let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
+            guard let httpResponse = response as? HTTPURLResponse else { return nil }
+            if httpResponse.statusCode == 304 {
+                return (feed, [], nil, nil, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+            }
+            if httpResponse.statusCode >= 400 {
                 throw URLError(.badServerResponse)
             }
             let parser = RSSParser(feedId: feed.id)
             let newItems = parser.parse(data: data)
-            return (feed, newItems, parser.feedTitle, parser.feedIconURL)
+            return (feed, newItems, parser.feedTitle, parser.feedIconURL, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
         } catch {
             return nil
         }
     }
     
     // Process results on MainActor
-    private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?, parsedIconURL: String?) {
+    private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?, parsedIconURL: String?, eTag: String?, lastModified: String?) {
         if let parsedTitle = parsedTitle, !parsedTitle.isEmpty {
             if let index = feeds.firstIndex(where: { $0.id == feed.id }), !feeds[index].customTitle {
                 feeds[index].title = parsedTitle
@@ -415,6 +534,12 @@ final class FeedStore: ObservableObject {
         }
         if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
             feeds[index].lastFetched = Date()
+            if let eTag = eTag, !eTag.isEmpty {
+                feeds[index].eTag = eTag
+            }
+            if let lastModified = lastModified, !lastModified.isEmpty {
+                feeds[index].lastModified = lastModified
+            }
         }
         
         // Build a lookup of existing items by key for efficient deduplication
@@ -480,10 +605,10 @@ final class FeedStore: ObservableObject {
     
     func fetchFeed(_ feed: Feed) async {
         if let result = await fetchFeedData(feed) {
-            processFetchedFeed(result.0, items: result.1, parsedTitle: result.2, parsedIconURL: result.3)
+            processFetchedFeed(result.0, items: result.1, parsedTitle: result.2, parsedIconURL: result.3, eTag: result.4, lastModified: result.5)
             save()
         } else {
-            showError(String(localized: "Failed to fetch \(feed.title)", bundle: .module))
+            showError(String(format: String(localized: "Failed to fetch %@", bundle: .module), feed.title))
         }
     }
     
@@ -541,8 +666,44 @@ final class FeedStore: ObservableObject {
     // MARK: - Error Handling
     
     func showError(_ message: String) {
+        logger.error("\(message, privacy: .public)")
         errorMessage = message
         showingError = true
+    }
+
+    private func sendNewItemsNotification(addedCount: Int) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .authorized:
+                Task { @MainActor in
+                    self.postNewItemsNotification(addedCount: addedCount)
+                }
+            case .notDetermined:
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                    guard granted else { return }
+                    Task { @MainActor in
+                        self.postNewItemsNotification(addedCount: addedCount)
+                    }
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    private func postNewItemsNotification(addedCount: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "New items available", bundle: .module)
+        content.body = String(format: String(localized: "%lld new items", bundle: .module), addedCount)
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "rssreader.newitems.\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func itemKey(_ item: FeedItem) -> String {

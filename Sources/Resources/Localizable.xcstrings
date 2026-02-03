@@ -41,6 +41,46 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复制链接" } }
       }
     },
+    "Share" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Teilen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compartir" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Partager" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分享" } }
+      }
+    },
+    "Mark all above as read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle oben als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar todo lo anterior como leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout marquer au-dessus comme lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将上方全部标记为已读" } }
+      }
+    },
+    "Mark all below as read" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle unten als gelesen markieren" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar todo lo siguiente como leído" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tout marquer en dessous comme lu" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将下方全部标记为已读" } }
+      }
+    },
+    "Cannot share this item because its link is invalid." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieses Element kann nicht geteilt werden, weil der Link ungültig ist." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se puede compartir este elemento porque el enlace no es válido." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de partager cet élément car le lien n'est pas valide." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法分享此条目，因为链接无效。" } }
+      }
+    },
+    "Unable to open the share menu right now." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Teilen-Menü kann derzeit nicht geöffnet werden." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se puede abrir el menú de compartir ahora mismo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d’ouvrir le menu de partage pour le moment." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "目前无法打开共享菜单。" } }
+      }
+    },
     "Refresh feeds" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds aktualisieren" } },
@@ -513,6 +553,14 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有订阅" } }
       }
     },
+    "1 feed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "1 Feed" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "1 feed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "1 flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "1 个订阅" } }
+      }
+    },
     "%lld feeds" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Feeds" } },
@@ -615,6 +663,30 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir condición" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ajouter une condition" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加条件" } }
+      }
+    },
+    "Remove condition" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bedingung entfernen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar condición" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Supprimer la condition" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除条件" } }
+      }
+    },
+    "1 condition" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "1 Bedingung" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "1 condición" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "1 condition" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "1 个条件" } }
+      }
+    },
+    "%lld conditions" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Bedingungen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld condiciones" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld conditions" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 个条件" } }
       }
     },
     "Search text" : {
@@ -889,6 +961,22 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加订阅" } }
       }
     },
+    "All feeds in %@ are already added." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Feeds in %@ sind bereits hinzugefügt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Todos los feeds en %@ ya están añadidos." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous les flux dans %@ sont déjà ajoutés." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@ 中的订阅已全部添加。" } }
+      }
+    },
+    "Added %lld feed(s) from %@." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Feed(s) aus %@ hinzugefügt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se añadieron %lld feed(s) de %@." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld flux ajouté(s) depuis %@." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已从 %@ 添加 %lld 个订阅。" } }
+      }
+    },
     "Feed URL" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed-URL" } },
@@ -999,6 +1087,14 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar resumen" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le résumé" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示摘要" } }
+      }
+    },
+    "Show Feed Icons" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed-Symbole anzeigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar iconos de feeds" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher les icônes de flux" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示订阅图标" } }
       }
     },
     "Auto-Star" : {
@@ -1207,6 +1303,110 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Mostrar insignia de no leídos" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher le badge non lu" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示未读标记" } }
+      }
+    },
+    "Notify on New Items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bei neuen Einträgen benachrichtigen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Notificar sobre nuevos elementos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Notifier les nouveaux éléments" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "有新内容时通知" } }
+      }
+    },
+    "Sticky Window" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Fenster anheften" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ventana fija" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fenêtre épinglée" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "固定窗口" } }
+      }
+    },
+    "Launch at Login" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beim Login starten" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar al iniciar sesión" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lancer à la connexion" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "登录时启动" } }
+      }
+    },
+    "New items available" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Elemente verfügbar" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hay nuevos elementos disponibles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nouveaux éléments disponibles" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "有新内容可用" } }
+      }
+    },
+    "%lld new items" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld neue Elemente" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld elementos nuevos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld nouveaux éléments" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%lld 个新内容" } }
+      }
+    },
+    "Failed to load feeds. Your saved data may be corrupted." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds konnten nicht geladen werden. Ihre gespeicherten Daten sind möglicherweise beschädigt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron cargar los feeds. Es posible que sus datos guardados estén dañados." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les flux. Vos données sauvegardées sont peut-être corrompues." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法加载订阅。已保存的数据可能已损坏。" } }
+      }
+    },
+    "Failed to load items. Your saved data may be corrupted." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elemente konnten nicht geladen werden. Ihre gespeicherten Daten sind möglicherweise beschädigt." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron cargar los elementos. Es posible que sus datos guardados estén dañados." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les éléments. Vos données sauvegardées sont peut-être corrompues." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法加载条目。已保存的数据可能已损坏。" } }
+      }
+    },
+    "Failed to save feeds. Please check available disk space." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feeds konnten nicht gespeichert werden. Bitte überprüfen Sie den verfügbaren Speicherplatz." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron guardar los feeds. Compruebe el espacio en disco disponible." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d'enregistrer les flux. Veuillez vérifier l'espace disque disponible." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法保存订阅。请检查可用磁盘空间。" } }
+      }
+    },
+    "Failed to save items. Please check available disk space." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Elemente konnten nicht gespeichert werden. Bitte überprüfen Sie den verfügbaren Speicherplatz." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron guardar los elementos. Compruebe el espacio en disco disponible." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d'enregistrer les éléments. Veuillez vérifier l'espace disque disponible." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法保存条目。请检查可用磁盘空间。" } }
+      }
+    },
+    "Found RSS feeds:" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gefundene RSS-Feeds:" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Feeds RSS encontrados:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux RSS trouvés :" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "找到的 RSS 订阅：" } }
+      }
+    },
+    "Title (optional)" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Titel (optional)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Título (opcional)" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Titre (optionnel)" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标题（可选）" } }
+      }
+    },
+    "Quit App" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App beenden" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir de la app" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter l'app" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出应用" } }
+      }
+    },
+    "Clear All Data" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Daten löschen" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Borrar todos los datos" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Effacer toutes les données" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清除所有数据" } }
       }
     }
   },

@@ -135,7 +135,8 @@ struct FeedIconView: View {
         
         // Fetch from network
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
+            let (data, _) = try await URLSession.shared.data(for: request)
             if let image = NSImage(data: data) {
                 FaviconCache.shared.store(image, for: url)
                 return image
@@ -147,12 +148,17 @@ struct FeedIconView: View {
     }
 }
 
+// MARK: - Network Helpers
+
+private let defaultRequestTimeout: TimeInterval = 15
+
 // MARK: - Preferences View
 
 struct PreferencesView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: PreferencesTab = .feeds
+    @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
     
     enum PreferencesTab: CaseIterable {
         case feeds
@@ -217,6 +223,18 @@ struct PreferencesView: View {
         .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 450, height: 500)
         .environmentObject(store)
+        .onAppear {
+            switch preferencesTab {
+            case "filters":
+                selectedTab = .filters
+            case "settings":
+                selectedTab = .settings
+            case "help":
+                selectedTab = .help
+            default:
+                selectedTab = .feeds
+            }
+        }
     }
 
     @ViewBuilder
@@ -227,12 +245,14 @@ struct PreferencesView: View {
             PreferencesTabButton(tab: tab, isSelected: isSelected) {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     selectedTab = tab
+                    preferencesTab = tabPreferenceKey(tab)
                 }
             }
         } else {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     selectedTab = tab
+                    preferencesTab = tabPreferenceKey(tab)
                 }
             } label: {
                 VStack(spacing: 4) {
@@ -256,6 +276,15 @@ struct PreferencesView: View {
                 }
             )
             .opacity(isSelected ? 1.0 : 0.7)
+        }
+    }
+
+    private func tabPreferenceKey(_ tab: PreferencesTab) -> String {
+        switch tab {
+        case .feeds: return "feeds"
+        case .filters: return "filters"
+        case .settings: return "settings"
+        case .help: return "help"
         }
     }
 }
@@ -340,6 +369,8 @@ struct FeedsTabView: View {
                     Image(systemName: "plus")
                 }
                 .help(String(localized: "Add feed", bundle: .module))
+                .accessibilityLabel(String(localized: "Add feed", bundle: .module))
+                .keyboardShortcut("n", modifiers: [.command])
                 
                 Button(String(localized: "Import", bundle: .module)) {
                     importOPML()
@@ -369,6 +400,8 @@ struct FeedsTabView: View {
                 }
                 .disabled(selectedFeed == nil)
                 .help(String(localized: "Remove selected feed", bundle: .module))
+                .accessibilityLabel(String(localized: "Remove selected feed", bundle: .module))
+                .keyboardShortcut(.delete, modifiers: [])
             }
             .padding(12)
         }
@@ -530,9 +563,9 @@ struct SuggestedFeedsSheet: View {
         let addedCount = store.addSuggestedFeeds(feeds)
         feedbackIsError = addedCount == 0
         if addedCount == 0 {
-            feedbackMessage = String(localized: "All feeds in \(packTitle) are already added.", bundle: .module)
+            feedbackMessage = String(format: String(localized: "All feeds in %@ are already added.", bundle: .module), packTitle)
         } else {
-            feedbackMessage = String(localized: "Added \(addedCount) feed(s) from \(packTitle).", bundle: .module)
+            feedbackMessage = String(format: String(localized: "Added %lld feed(s) from %@.", bundle: .module), addedCount, packTitle)
         }
         removeSelectedAlreadyAdded()
     }
@@ -586,6 +619,7 @@ struct FiltersTabView: View {
                     Image(systemName: "plus")
                 }
                 .help(String(localized: "Add filter rule", bundle: .module))
+                .accessibilityLabel(String(localized: "Add filter rule", bundle: .module))
                 
                 if let rule = selectedRule {
                     Button {
@@ -594,6 +628,7 @@ struct FiltersTabView: View {
                         Image(systemName: "pencil")
                     }
                     .help(String(localized: "Edit selected rule", bundle: .module))
+                    .accessibilityLabel(String(localized: "Edit selected rule", bundle: .module))
                     
                     Button {
                         store.deleteFilterRule(rule)
@@ -602,12 +637,13 @@ struct FiltersTabView: View {
                         Image(systemName: "trash")
                     }
                     .help(String(localized: "Delete selected rule", bundle: .module))
+                    .accessibilityLabel(String(localized: "Delete selected rule", bundle: .module))
                 }
                 
                 Spacer()
                 
                 if store.smartFiltersEnabled && !store.filterRules.isEmpty {
-                    Text(String(localized: "\(store.filterRules.filter { $0.isEnabled }.count) active", bundle: .module))
+                    Text(String(format: String(localized: "%lld active", bundle: .module), store.filterRules.filter { $0.isEnabled }.count))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -741,8 +777,8 @@ struct RuleRowView: View {
     
     private var ruleDescription: String {
         let conditionCount = rule.conditions.count
-        let conditionText = conditionCount == 1 ? String(localized: "1 condition", bundle: .module) : String(localized: "\(conditionCount) conditions", bundle: .module)
-        let feedText = rule.feedScope.isAllFeeds ? String(localized: "All feeds", bundle: .module) : String(localized: "\(rule.feedScope.selectedFeedIds.count) feeds", bundle: .module)
+        let conditionText = conditionCount == 1 ? String(localized: "1 condition", bundle: .module) : String(format: String(localized: "%lld conditions", bundle: .module), conditionCount)
+        let feedText = rule.feedScope.isAllFeeds ? String(localized: "All feeds", bundle: .module) : String(format: String(localized: "%lld feeds", bundle: .module), rule.feedScope.selectedFeedIds.count)
         return "\(rule.action.rawValue) • \(conditionText) • \(feedText)"
     }
 }
@@ -1089,14 +1125,14 @@ struct RuleEditorView: View {
     
     private var feedScopeLabel: String {
         if applyToAllFeeds {
-            return String(localized: "All Feeds", bundle: .module)
+            return String(localized: "All feeds", bundle: .module)
         } else if selectedFeedIds.isEmpty {
-            return String(localized: "Select feeds...", bundle: .module)
+            return String(localized: "Select feeds", bundle: .module)
         } else if selectedFeedIds.count == 1 {
             let feedId = selectedFeedIds.first!
             return store.feeds.first { $0.id == feedId }?.title ?? String(localized: "1 feed", bundle: .module)
         } else {
-            return String(localized: "\(selectedFeedIds.count) feeds", bundle: .module)
+            return String(format: String(localized: "%lld feeds", bundle: .module), selectedFeedIds.count)
         }
     }
     
@@ -1164,6 +1200,7 @@ struct ConditionRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "Remove condition", bundle: .module))
         }
         .padding(8)
         .background(Color.primary.opacity(0.03))
@@ -1204,7 +1241,7 @@ struct FeedSelectorSheet: View {
                         Image(systemName: "globe")
                             .font(.system(size: 14))
                             .foregroundStyle(.blue)
-                        Text(String(localized: "All Feeds", bundle: .module))
+                        Text(String(localized: "All feeds", bundle: .module))
                             .font(.system(size: 13, weight: .medium))
                     }
                 }
@@ -1265,7 +1302,8 @@ final class FeedDiscovery {
         guard let url = URL(string: urlString) else { return [] }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
+            let (data, _) = try await URLSession.shared.data(for: request)
             guard let html = String(data: data, encoding: .utf8) else { return [] }
 
             return parseHTMLForFeeds(html: html, baseURL: url)
@@ -1368,6 +1406,7 @@ struct AddFeedWindow: View {
         // Make it a floating panel
         window.level = .floating
         window.isMovableByWindowBackground = true
+        window.collectionBehavior.insert(.moveToActiveSpace)
         
         // Ensure it can become key and accept input
         window.makeKeyAndOrderFront(nil)
@@ -1460,9 +1499,9 @@ struct AddFeedSheet: View {
                     }
                 }
 
-                Text(String(localized: "Title (optional)", bundle: .module))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text(String(localized: "Title (optional)", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 FocusableTextField(text: $feedTitle, placeholder: String(localized: "My Feed", bundle: .module), shouldFocus: false)
                     .frame(height: 22)
 
@@ -1635,7 +1674,7 @@ struct FocusableTextField: NSViewRepresentable {
 struct SettingsTabView: View {
     @EnvironmentObject private var store: FeedStore
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
-    @AppStorage("rssStickyWindow") private var stickyWindow: Bool = false
+    @AppStorage("rssStickyWindow") private var stickyWindow: Bool = true
     @State private var installedBrowsers: [BrowserInfo] = []
     @State private var previousLanguage: String = ""
     @State private var showRestartAlert = false
@@ -1688,6 +1727,7 @@ struct SettingsTabView: View {
                 }
                 
                 Toggle(String(localized: "Show Unread Badge", bundle: .module), isOn: $store.showUnreadBadge)
+                Toggle(String(localized: "Notify on New Items", bundle: .module), isOn: $store.newItemNotificationsEnabled)
                 Toggle(String(localized: "Sticky Window", bundle: .module), isOn: $stickyWindow)
                 Toggle(String(localized: "Launch at Login", bundle: .module), isOn: $launchAtLogin)
             }
@@ -1718,6 +1758,7 @@ struct SettingsTabView: View {
                 }
                 
                 Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)
+                Toggle(String(localized: "Show Feed Icons", bundle: .module), isOn: $store.showFeedIcons)
                 Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
             }
             
@@ -1773,8 +1814,7 @@ struct SettingsTabView: View {
                     Spacer()
                     
                     Button(String(localized: "Clear All Data", bundle: .module)) {
-                        store.items.removeAll()
-                        store.save()
+                        store.clearItems()
                     }
                     .foregroundStyle(.red)
                 }
