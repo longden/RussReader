@@ -1403,6 +1403,10 @@ struct AddFeedWindow: View {
             window.identifier = NSUserInterfaceItemIdentifier("addFeed")
         }
         
+        // CRITICAL: Temporarily change activation policy to allow keyboard input
+        // LSUIElement apps can't receive keyboard events without this
+        NSApp.setActivationPolicy(.regular)
+        
         // Make it a floating panel
         window.level = .floating
         window.isMovableByWindowBackground = true
@@ -1411,6 +1415,11 @@ struct AddFeedWindow: View {
         // Ensure it can become key and accept input
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        
+        // Restore LSUIElement behavior when window closes
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 }
 
@@ -1594,7 +1603,18 @@ struct AddFeedSheet: View {
 // Custom NSTextField that handles tab properly in sheets
 class SheetTextField: NSTextField {
     override var acceptsFirstResponder: Bool { true }
+    override var canBecomeKeyView: Bool { true }
     
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            // Ensure text editing starts immediately
+            selectText(nil)
+        }
+        return result
+    }
+    
+    // CRITICAL: Override to prevent key events from being swallowed
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         // Handle tab key within the sheet context
         if event.keyCode == 48 { // Tab key

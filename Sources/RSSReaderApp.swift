@@ -69,5 +69,18 @@ struct RSSReaderApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .commands {
+            // Required for copy/paste to work in text fields (menu bar apps don't get Edit menu by default)
+            CommandGroup(after: .appSettings) {
+                Button("Cut") { NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("x", modifiers: .command)
+                Button("Copy") { NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("c", modifiers: .command)
+                Button("Paste") { NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("v", modifiers: .command)
+                Button("Select All") { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) }
+                    .keyboardShortcut("a", modifiers: .command)
+            }
+        }
     }
 }
