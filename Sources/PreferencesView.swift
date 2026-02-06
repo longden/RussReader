@@ -856,8 +856,8 @@ struct RuleEditorView: View {
                         Text(String(localized: "Name", bundle: .module))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
-                        TextField(String(localized: "e.g., Highlight Swift articles", bundle: .module), text: $name)
-                            .textFieldStyle(.roundedBorder)
+                        FocusableTextField(text: $name, placeholder: String(localized: "e.g., Highlight Swift articles", bundle: .module), shouldFocus: false)
+                            .frame(height: 22)
                     }
                     
                     // Feed scope - button to show multi-select sheet
@@ -979,9 +979,8 @@ struct RuleEditorView: View {
                                             HStack {
                                                 Text("#")
                                                     .foregroundStyle(.secondary)
-                                                TextField(String(localized: "e.g. FF5733", bundle: .module), text: $hexInput)
-                                                    .textFieldStyle(.roundedBorder)
-                                                    .frame(width: 100)
+                                                FocusableTextField(text: $hexInput, placeholder: String(localized: "e.g. FF5733", bundle: .module), shouldFocus: false)
+                                                    .frame(width: 100, height: 22)
                                                     .onChange(of: hexInput) { _, newValue in
                                                         if newValue.count == 6 {
                                                             customColor = Color(hex: newValue)
@@ -1031,9 +1030,8 @@ struct RuleEditorView: View {
                                 Text(String(localized: "Or type custom:", bundle: .module))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
-                                TextField("", text: $iconEmoji)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 50)
+                                FocusableTextField(text: $iconEmoji, placeholder: "", shouldFocus: false)
+                                    .frame(width: 50, height: 22)
                             }
                         }
                     }
@@ -1112,7 +1110,26 @@ struct RuleEditorView: View {
             .environmentObject(store)
         }
         .onAppear {
+            // CRITICAL: Change activation policy to allow keyboard input in sheets
+            // LSUIElement apps need this to receive keyboard events
+            NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
+        }
+        .onDisappear {
+            // Only restore LSUIElement behavior if no other regular windows are open
+            // (e.g., if Preferences window is still open, keep .regular)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let hasVisibleWindows = NSApp.windows.contains { window in
+                    window.isVisible && 
+                    window.level == .normal && 
+                    !window.className.contains("Sheet") &&
+                    window.identifier?.rawValue != "addFeed"
+                }
+                
+                if !hasVisibleWindows {
+                    NSApp.setActivationPolicy(.accessory)
+                }
+            }
         }
     }
     
@@ -1190,8 +1207,8 @@ struct ConditionRow: View {
             .labelsHidden()
             .frame(width: 120)
             
-            TextField(String(localized: "value", bundle: .module), text: $condition.value)
-                .textFieldStyle(.roundedBorder)
+            FocusableTextField(text: $condition.value, placeholder: String(localized: "value", bundle: .module), shouldFocus: false)
+                .frame(height: 22)
             
             Button {
                 onDelete()
@@ -1380,14 +1397,25 @@ struct AddFeedWindow: View {
                 if !newValue {
                     // Sheet was dismissed, close the window
                     DispatchQueue.main.async {
+                        // Try multiple ways to find and close the window
                         if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "addFeed" }) {
                             window.close()
+                        } else if let window = NSApp.windows.first(where: { $0.title == "Add Feed" }) {
+                            window.close()
+                        } else {
+                            // Fallback: close the key window if it looks like our add feed window
+                            if let keyWindow = NSApp.keyWindow, keyWindow.level == .floating {
+                                keyWindow.close()
+                            }
                         }
                     }
                 }
             }
             .frame(width: 350)
             .onAppear {
+                // Reset state when window opens
+                isSheetPresented = true
+                
                 // Configure window for proper input handling
                 DispatchQueue.main.async {
                     configureAddFeedWindow()
@@ -1417,6 +1445,8 @@ struct AddFeedWindow: View {
         NSApp.activate(ignoringOtherApps: true)
         
         // Restore LSUIElement behavior when window closes
+        // Using unique name to avoid duplicate observers
+        NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: window)
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             NSApp.setActivationPolicy(.accessory)
         }
@@ -1524,6 +1554,10 @@ struct AddFeedSheet: View {
 
             HStack {
                 Button(String(localized: "Cancel", bundle: .module)) {
+                    // Reset state and close
+                    errorMessage = nil
+                    isDiscovering = false
+                    discoveredFeeds = []
                     isPresented = false
                 }
                 .keyboardShortcut(.escape)
@@ -1549,8 +1583,26 @@ struct AddFeedSheet: View {
         .padding(20)
         .frame(width: 350)
         .onAppear {
-            // Activate the app to ensure keyboard focus works
+            // CRITICAL: Change activation policy to allow keyboard input in sheets
+            // LSUIElement apps need this to receive keyboard events
+            NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
+        }
+        .onDisappear {
+            // Only restore LSUIElement behavior if no other regular windows are open
+            // (e.g., if Preferences window is still open, keep .regular)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let hasVisibleWindows = NSApp.windows.contains { window in
+                    window.isVisible && 
+                    window.level == .normal && 
+                    !window.className.contains("Sheet") &&
+                    window.identifier?.rawValue != "addFeed"
+                }
+                
+                if !hasVisibleWindows {
+                    NSApp.setActivationPolicy(.accessory)
+                }
+            }
         }
     }
 

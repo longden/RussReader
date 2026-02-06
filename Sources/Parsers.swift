@@ -47,8 +47,16 @@ final class RSSParser {
             guard !link.isEmpty else { return nil }
             
             // Parse enclosures (RSS media)
-            // Note: FeedKit may use different property names - leaving empty for now
-            let enclosures: [Enclosure] = []
+            let enclosures: [Enclosure] = {
+                if let enc = item.enclosure?.attributes {
+                    return [Enclosure(
+                        url: enc.url ?? "",
+                        type: enc.type,
+                        length: enc.length.map { Int($0) }
+                    )]
+                }
+                return []
+            }()
             
             return FeedItem(
                 feedId: feedId,
@@ -80,8 +88,15 @@ final class RSSParser {
             guard !link.isEmpty else { return nil }
             
             // Parse enclosures from links with rel="enclosure"
-            // Note: FeedKit may use different property names - leaving empty for now
-            let enclosures: [Enclosure] = []
+            let enclosures: [Enclosure] = entry.links?.compactMap { link in
+                guard link.attributes?.rel == "enclosure",
+                      let href = link.attributes?.href else { return nil }
+                return Enclosure(
+                    url: href,
+                    type: link.attributes?.type,
+                    length: link.attributes?.length.flatMap { Int($0) }
+                )
+            } ?? []
             
             return FeedItem(
                 feedId: feedId,
@@ -110,8 +125,14 @@ final class RSSParser {
             guard !link.isEmpty else { return nil }
             
             // Parse attachments (JSON Feed enclosures)
-            // Note: FeedKit may use different property names - leaving empty for now  
-            let enclosures: [Enclosure] = []
+            let enclosures: [Enclosure] = item.attachments?.compactMap { attachment in
+                guard let url = attachment.url else { return nil }
+                return Enclosure(
+                    url: url,
+                    type: attachment.mimeType,
+                    length: attachment.sizeInBytes.flatMap { Int($0) }
+                )
+            } ?? []
             
             return FeedItem(
                 feedId: feedId,

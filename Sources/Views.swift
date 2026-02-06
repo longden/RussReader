@@ -852,6 +852,13 @@ struct FeedItemRow: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                     
+                    // Enclosure indicator
+                    if !item.enclosures.isEmpty {
+                        Image(systemName: enclosureIcon(for: item.enclosures.first))
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                    }
+                    
                     Spacer()
                     
                     // Date aligned to the right on same row as feed name
@@ -924,5 +931,13 @@ struct FeedItemRow: View {
     private func formatTime(_ date: Date, timeFormat: String) -> String {
         let formatter = timeFormat == "24h" ? Self.timeFormatter24h : Self.timeFormatter12h
         return formatter.string(from: date)
+    }
+    
+    private func enclosureIcon(for enclosure: Enclosure?) -> String {
+        guard let enclosure = enclosure else { return "paperclip" }
+        if enclosure.isAudio { return "headphones" }
+        if enclosure.isVideo { return "video" }
+        if enclosure.isImage { return "photo" }
+        return "paperclip"
     }
 }
