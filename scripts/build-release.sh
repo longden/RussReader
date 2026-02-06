@@ -4,6 +4,11 @@ set -e
 # RSS Reader Build Script
 # Builds a production-ready .app bundle for local distribution
 
+# Change to project root (parent of scripts directory)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 echo "🚀 Building RSS Reader for production..."
 
 # Configuration

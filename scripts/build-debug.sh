@@ -4,6 +4,11 @@ set -e
 # RSS Reader Debug Build Script
 # Builds for development/testing - NO stripping, NO DMG
 
+# Change to project root (parent of scripts directory)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 echo "🔧 Building RSS Reader (debug mode)..."
 
 # Configuration
