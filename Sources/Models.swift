@@ -241,6 +241,22 @@ struct FilteredItemResult {
     var matchedRuleIds: Set<UUID> = []
 }
 
+// MARK: - Authentication
+
+enum AuthType: String, Codable, CaseIterable {
+    case none = "none"
+    case basicAuth = "basicAuth"
+    case bearerToken = "bearerToken"
+    
+    var localizedName: String {
+        switch self {
+        case .none: return String(localized: "None", bundle: .module)
+        case .basicAuth: return String(localized: "Basic Auth", bundle: .module)
+        case .bearerToken: return String(localized: "API Key / Token", bundle: .module)
+        }
+    }
+}
+
 // MARK: - Data Models
 
 struct Feed: Codable, Identifiable, Hashable {
@@ -252,8 +268,9 @@ struct Feed: Codable, Identifiable, Hashable {
     var lastModified: String?
     var iconURL: String?
     var customTitle: Bool
+    var authType: AuthType
     
-    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, eTag: String? = nil, lastModified: String? = nil, iconURL: String? = nil, customTitle: Bool = false) {
+    init(id: UUID = UUID(), title: String, url: String, lastFetched: Date? = nil, eTag: String? = nil, lastModified: String? = nil, iconURL: String? = nil, customTitle: Bool = false, authType: AuthType = .none) {
         self.id = id
         self.title = title
         self.url = url
@@ -262,6 +279,20 @@ struct Feed: Codable, Identifiable, Hashable {
         self.lastModified = lastModified
         self.iconURL = iconURL
         self.customTitle = customTitle
+        self.authType = authType
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        url = try container.decode(String.self, forKey: .url)
+        lastFetched = try container.decodeIfPresent(Date.self, forKey: .lastFetched)
+        eTag = try container.decodeIfPresent(String.self, forKey: .eTag)
+        lastModified = try container.decodeIfPresent(String.self, forKey: .lastModified)
+        iconURL = try container.decodeIfPresent(String.self, forKey: .iconURL)
+        customTitle = try container.decodeIfPresent(Bool.self, forKey: .customTitle) ?? false
+        authType = try container.decodeIfPresent(AuthType.self, forKey: .authType) ?? .none
     }
 }
 

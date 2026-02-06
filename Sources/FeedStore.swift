@@ -9,21 +9,50 @@ import CoreFoundation
 /// Handles notification display when app is in foreground and notification click-through
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationDelegate()
+    weak var feedStore: FeedStore?
     
     /// Show notifications even when app is in the foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         return [.banner, .sound, .badge]
     }
     
-    /// Handle notification click - open the article link
+    /// Handle notification click and custom actions
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let userInfo = response.notification.request.content.userInfo
-        if let link = userInfo["itemLink"] as? String,
-           let url = URL(string: link),
-           (url.scheme == "http" || url.scheme == "https") {
-            await MainActor.run {
-                _ = NSWorkspace.shared.open(url)
+        
+        switch response.actionIdentifier {
+        case "OPEN_ARTICLE":
+            if let link = userInfo["itemLink"] as? String,
+               let url = URL(string: link),
+               (url.scheme == "http" || url.scheme == "https") {
+                await MainActor.run {
+                    _ = NSWorkspace.shared.open(url)
+                }
             }
+        case "MARK_READ":
+            if let itemIdString = userInfo["itemId"] as? String,
+               let itemId = UUID(uuidString: itemIdString) {
+                await MainActor.run {
+                    if let item = feedStore?.items.first(where: { $0.id == itemId }) {
+                        feedStore?.markAsRead(item)
+                    }
+                }
+            }
+        case "MARK_ALL_READ":
+            await MainActor.run {
+                feedStore?.markAllAsRead()
+            }
+        case UNNotificationDefaultActionIdentifier:
+            // Default tap — open the article
+            if let link = userInfo["itemLink"] as? String,
+               let url = URL(string: link),
+               (url.scheme == "http" || url.scheme == "https") {
+                await MainActor.run {
+                    _ = NSWorkspace.shared.open(url)
+                }
+            }
+        default:
+            break
         }
     }
 }
@@ -52,7 +81,7 @@ final class FeedStore: ObservableObject {
         didSet { _cachedFilteredItems = nil }
     }
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
-    @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
+    @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 25
     @AppStorage("rssFontSize") var fontSize: Double = 13
     @AppStorage("rssTitleMaxLines") var titleMaxLines: Int = 2
     @AppStorage("rssTimeFormat") var timeFormat: String = "12h"
@@ -227,8 +256,21 @@ final class FeedStore: ObservableObject {
             return
         }
         
-        // Set delegate so notifications display when app is in foreground
-        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+        // Set delegate and give it a reference to this store for handling actions
+        let delegate = NotificationDelegate.shared
+        delegate.feedStore = self
+        UNUserNotificationCenter.current().delegate = delegate
+        
+        // Register notification categories with actions
+        let openAction = UNNotificationAction(identifier: "OPEN_ARTICLE", title: String(localized: "Open", bundle: .module), options: [.foreground])
+        let markReadAction = UNNotificationAction(identifier: "MARK_READ", title: String(localized: "Mark as Read", bundle: .module), options: [])
+        let markAllReadAction = UNNotificationAction(identifier: "MARK_ALL_READ", title: String(localized: "Mark All as Read", bundle: .module), options: [])
+        
+        let singleItemCategory = UNNotificationCategory(identifier: "SINGLE_NEW_ITEM", actions: [openAction, markReadAction], intentIdentifiers: [])
+        let multiItemCategory = UNNotificationCategory(identifier: "MULTI_NEW_ITEMS", actions: [markAllReadAction], intentIdentifiers: [])
+        
+        UNUserNotificationCenter.current().setNotificationCategories([singleItemCategory, multiItemCategory])
+        
         Task {
             await requestNotificationPermissions()
         }
@@ -313,7 +355,7 @@ final class FeedStore: ObservableObject {
     
     // MARK: - Feed Management
     
-    func addFeed(url: String, title: String? = nil) async -> (success: Bool, errorMessage: String?) {
+    func addFeed(url: String, title: String? = nil, authType: AuthType = .none, username: String? = nil, password: String? = nil, token: String? = nil) async -> (success: Bool, errorMessage: String?) {
         let cleanURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanURL.isEmpty else { return (false, String(localized: "Feed URL cannot be empty.", bundle: .module)) }
         
@@ -322,8 +364,16 @@ final class FeedStore: ObservableObject {
         }
         
         // Validate the feed by attempting to fetch it first
-        let tempFeed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil)
+        let tempFeed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil, authType: authType)
+        
+        // Save credentials to Keychain before fetch so fetchFeedData can use them
+        if authType == .basicAuth, let username = username, let password = password {
+            KeychainHelper.saveBasicAuth(feedId: tempFeed.id, username: username, password: password)
+        } else if authType == .bearerToken, let token = token {
+            KeychainHelper.saveToken(feedId: tempFeed.id, token: token)
+        }
         guard let result = await fetchFeedData(tempFeed) else {
+            KeychainHelper.deleteCredentials(feedId: tempFeed.id)
             return (false, String(localized: "Unable to fetch feed. Please check the URL and try again.", bundle: .module))
         }
         
@@ -331,6 +381,7 @@ final class FeedStore: ObservableObject {
         
         // Ensure we got at least some items
         guard !fetchedItems.isEmpty else {
+            KeychainHelper.deleteCredentials(feedId: tempFeed.id)
             return (false, String(localized: "No items found in feed. The URL may not be a valid RSS/Atom feed.", bundle: .module))
         }
         
@@ -389,6 +440,7 @@ final class FeedStore: ObservableObject {
     func removeFeed(_ feed: Feed) {
         feeds.removeAll { $0.id == feed.id }
         items.removeAll { $0.feedId == feed.id }
+        KeychainHelper.deleteCredentials(feedId: feed.id)
         cleanupFilterCache()
         save()
     }
@@ -684,7 +736,9 @@ final class FeedStore: ObservableObject {
             let newUnreadCount = unreadCount
             if newUnreadCount > previousUnreadCount {
                 let addedCount = newUnreadCount - previousUnreadCount
-                await sendNewItemsNotification(addedCount: addedCount)
+                // Find the most recent unread item for single-item notifications
+                let latestNewItem = items.filter { !$0.isRead }.sorted { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }.first
+                await sendNewItemsNotification(addedCount: addedCount, latestItem: latestNewItem)
             }
         }
         save()
@@ -704,10 +758,31 @@ final class FeedStore: ObservableObject {
             if let lastModified = feed.lastModified, !lastModified.isEmpty {
                 request.setValue(lastModified, forHTTPHeaderField: "If-Modified-Since")
             }
+            
+            // Add authentication headers
+            switch feed.authType {
+            case .basicAuth:
+                if let creds = KeychainHelper.loadBasicAuth(feedId: feed.id) {
+                    let credString = "\(creds.username):\(creds.password)"
+                    if let credData = credString.data(using: .utf8) {
+                        request.setValue("Basic \(credData.base64EncodedString())", forHTTPHeaderField: "Authorization")
+                    }
+                }
+            case .bearerToken:
+                if let creds = KeychainHelper.loadToken(feedId: feed.id) {
+                    request.setValue("Bearer \(creds.token)", forHTTPHeaderField: "Authorization")
+                }
+            case .none:
+                break
+            }
+            
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else { return nil }
             if httpResponse.statusCode == 304 {
                 return (feed, [], nil, nil, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+            }
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                throw URLError(.userAuthenticationRequired)
             }
             if httpResponse.statusCode >= 400 {
                 throw URLError(.badServerResponse)
@@ -715,6 +790,11 @@ final class FeedStore: ObservableObject {
             let parser = RSSParser(feedId: feed.id)
             let newItems = parser.parse(data: data)
             return (feed, newItems, parser.feedTitle, parser.feedIconURL, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+        } catch let error as URLError where error.code == .userAuthenticationRequired {
+            await MainActor.run {
+                showError(String(format: String(localized: "Authentication failed for %@. Check your credentials.", bundle: .module), feed.title))
+            }
+            return nil
         } catch {
             return nil
         }
@@ -883,18 +963,18 @@ final class FeedStore: ObservableObject {
         showingError = true
     }
 
-    private func sendNewItemsNotification(addedCount: Int) async {
+    private func sendNewItemsNotification(addedCount: Int, latestItem: FeedItem?) async {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         
         switch settings.authorizationStatus {
         case .authorized:
-            postNewItemsNotification(addedCount: addedCount)
+            postNewItemsNotification(addedCount: addedCount, latestItem: latestItem)
         case .notDetermined:
             do {
                 let granted = try await center.requestAuthorization(options: [.alert, .sound])
                 if granted {
-                    postNewItemsNotification(addedCount: addedCount)
+                    postNewItemsNotification(addedCount: addedCount, latestItem: latestItem)
                 }
             } catch {}
         default:
@@ -902,11 +982,25 @@ final class FeedStore: ObservableObject {
         }
     }
 
-    private func postNewItemsNotification(addedCount: Int) {
+    private func postNewItemsNotification(addedCount: Int, latestItem: FeedItem?) {
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "New items available", bundle: .module)
-        content.body = String(format: String(localized: "%lld new items", bundle: .module), addedCount)
         content.sound = .default
+        
+        if addedCount == 1, let item = latestItem {
+            // Single item: show item title with Open + Mark as Read actions
+            content.title = feedTitle(for: item)
+            content.body = item.title
+            content.userInfo = [
+                "itemLink": item.link,
+                "itemId": item.id.uuidString
+            ]
+            content.categoryIdentifier = "SINGLE_NEW_ITEM"
+        } else {
+            // Multiple items: show count with Mark All as Read action
+            content.title = String(localized: "New items available", bundle: .module)
+            content.body = String(format: String(localized: "%lld new items", bundle: .module), addedCount)
+            content.categoryIdentifier = "MULTI_NEW_ITEMS"
+        }
 
         let request = UNNotificationRequest(
             identifier: "rssreader.newitems.\(Date().timeIntervalSince1970)",
