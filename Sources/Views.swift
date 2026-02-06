@@ -377,9 +377,14 @@ struct FooterGlassButton: View {
 // MARK: - Window Helper
 
 func openPreferencesWindow(openWindow: OpenWindowAction) {
+    // LSUIElement apps must switch to .regular to receive keyboard input and appear in front
+    NSApp.setActivationPolicy(.regular)
+    
     // First, try to bring existing window to front
     if let existingWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "preferences" }) {
+        existingWindow.level = .floating
         existingWindow.makeKeyAndOrderFront(nil)
+        existingWindow.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
     } else {
         // If window doesn't exist, open it
@@ -387,7 +392,9 @@ func openPreferencesWindow(openWindow: OpenWindowAction) {
         DispatchQueue.main.async {
             if let newWindow = NSApp.windows.first(where: { $0.identifier?.rawValue == "preferences" || $0.title == "Preferences" }) {
                 newWindow.identifier = NSUserInterfaceItemIdentifier("preferences")
+                newWindow.level = .floating
                 newWindow.makeKeyAndOrderFront(nil)
+                newWindow.orderFrontRegardless()
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
@@ -421,6 +428,10 @@ struct RSSReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredItemId: UUID?
+    @State private var selectedItemId: UUID?
+    @State private var showingFeedPicker: Bool = false
+    @State private var hoveredPickerFeedId: UUID?
+    @State private var feedPickerHovered: Bool = false
     @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
 
     @ViewBuilder
@@ -439,6 +450,13 @@ struct RSSReaderView: View {
             Divider()
             footerView
         }
+        .onKeyPress(.upArrow) { moveSelection(by: -1); return .handled }
+        .onKeyPress(.downArrow) { moveSelection(by: 1); return .handled }
+        .onKeyPress(.return) { openSelectedItem(); return .handled }
+        .onKeyPress(.space) { toggleSelectedRead(); return .handled }
+        .onKeyPress(characters: CharacterSet(charactersIn: "s")) { _ in toggleSelectedStar(); return .handled }
+        .focusable()
+        .focusEffectDisabled()
 
         if #available(macOS 26.0, *) {
             content
@@ -486,18 +504,24 @@ struct RSSReaderView: View {
                             .keyboardShortcut("r")
                             .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
 
+                            headerButton(String(localized: "Mark all as read", bundle: .module), icon: "text.badge.checkmark") {
+                                store.markAllAsRead()
+                            }
+                            .disabled(store.unreadCount == 0)
+                            .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+
+                            headerButton(String(localized: "Add Feed", bundle: .module), icon: "plus") {
+                                openAddFeedWindow(openWindow: openWindow)
+                            }
+                            .keyboardShortcut("n", modifiers: [.command])
+                            .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
+
                             headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
                                 preferencesTab = "feeds"
                                 openPreferencesWindow(openWindow: openWindow)
                             }
                             .keyboardShortcut(",")
                             .accessibilityLabel(String(localized: "Preferences", bundle: .module))
-
-                            headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checklist") {
-                                store.markAllAsRead()
-                            }
-                            .disabled(store.unreadCount == 0)
-                            .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
                         }
                     }
 
@@ -516,18 +540,24 @@ struct RSSReaderView: View {
                         .keyboardShortcut("r")
                         .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
 
+                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "text.badge.checkmark") {
+                            store.markAllAsRead()
+                        }
+                        .disabled(store.unreadCount == 0)
+                        .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+
+                        headerButton(String(localized: "Add Feed", bundle: .module), icon: "plus") {
+                            openAddFeedWindow(openWindow: openWindow)
+                        }
+                        .keyboardShortcut("n", modifiers: [.command])
+                        .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
+
                         headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
                             preferencesTab = "feeds"
                             openPreferencesWindow(openWindow: openWindow)
                         }
                         .keyboardShortcut(",")
                         .accessibilityLabel(String(localized: "Preferences", bundle: .module))
-
-                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "checklist") {
-                            store.markAllAsRead()
-                        }
-                        .disabled(store.unreadCount == 0)
-                        .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
                     }
 
                     headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
@@ -606,7 +636,9 @@ struct RSSReaderView: View {
                         showSummary: store.shouldShowSummary(for: item),
                         showFeedIcon: store.showFeedIcons
                     )
+                    .background(selectedItemId == item.id ? Color.accentColor.opacity(0.15) : Color.clear)
                     .onTapGesture {
+                        selectedItemId = item.id
                         store.openItem(item)
                     }
                     .feedItemContextMenu(item: item, store: store)
@@ -692,53 +724,117 @@ struct RSSReaderView: View {
         }
     }
 
+    // MARK: - Feed Picker Popover
+    
+    private var feedPickerPopover: some View {
+        let allItemsId = UUID() // sentinel for "All Feeds" hover
+        return VStack(spacing: 0) {
+            Button {
+                store.selectedFeedId = nil
+                showingFeedPicker = false
+            } label: {
+                HStack {
+                    Text(String(localized: "All Feeds", bundle: .module))
+                        .font(.system(size: 12))
+                    Spacer()
+                    Text("\(store.items.count)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    if store.selectedFeedId == nil {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.accentColor)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(hoveredPickerFeedId == allItemsId ? Color.primary.opacity(0.08) : Color.clear)
+                .cornerRadius(4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .onHover { isHovered in
+                hoveredPickerFeedId = isHovered ? allItemsId : nil
+            }
+            
+            Divider()
+            
+            ForEach(store.feeds) { feed in
+                let itemCount = store.items.filter { $0.feedId == feed.id }.count
+                Button {
+                    store.selectedFeedId = feed.id
+                    showingFeedPicker = false
+                } label: {
+                    HStack {
+                        Text(feed.title)
+                            .font(.system(size: 12))
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(itemCount)")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        if store.selectedFeedId == feed.id {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(hoveredPickerFeedId == feed.id ? Color.primary.opacity(0.08) : Color.clear)
+                    .cornerRadius(4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { isHovered in
+                    hoveredPickerFeedId = isHovered ? feed.id : nil
+                }
+            }
+        }
+        .frame(width: 220)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 2)
+    }
+
     // MARK: - Footer View
 
     @ViewBuilder
     private var footerView: some View {
+        let feedLabel: String = {
+            if let id = store.selectedFeedId,
+               let feed = store.feeds.first(where: { $0.id == id }) {
+                return String(feed.title.prefix(25))
+            }
+            return String(localized: "All Feeds", bundle: .module)
+        }()
+        
         HStack {
-            if #available(macOS 26.0, *) {
-                GlassEffectContainer {
-                    HStack(spacing: 8) {
-                        FooterGlassButton(title: String(localized: "Filter", bundle: .module), icon: "line.3.horizontal.decrease.circle") {
-                            preferencesTab = "filters"
-                            openPreferencesWindow(openWindow: openWindow)
-                        }
-                        .keyboardShortcut("f", modifiers: [.command])
-                        .accessibilityLabel(String(localized: "Filter", bundle: .module))
-                        FooterGlassButton(title: String(localized: "Add Feed", bundle: .module), icon: "plus") {
-                            openAddFeedWindow(openWindow: openWindow)
-                        }
-                        .keyboardShortcut("n", modifiers: [.command])
-                        .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
-                    }
+            Button {
+                showingFeedPicker.toggle()
+            } label: {
+                Label {
+                    Text(feedLabel)
+                } icon: {
+                    Image(systemName: "chevron.up.chevron.down")
                 }
-            } else {
-                HStack(spacing: 8) {
-                    Button {
-                        preferencesTab = "filters"
-                        openPreferencesWindow(openWindow: openWindow)
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "Filter", bundle: .module))
-                    .accessibilityLabel(String(localized: "Filter", bundle: .module))
-                    .keyboardShortcut("f", modifiers: [.command])
-                    
-                    Button {
-                        openAddFeedWindow(openWindow: openWindow)
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "Add Feed", bundle: .module))
-                    .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
-                    .keyboardShortcut("n", modifiers: [.command])
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(store.selectedFeedId != nil ? .primary : .secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(store.selectedFeedId != nil ? Color.primary.opacity(0.15) : (feedPickerHovered ? Color.primary.opacity(0.08) : Color.clear))
+            .clipShape(Capsule())
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    feedPickerHovered = hovering
                 }
-                .foregroundStyle(.secondary)
+            }
+            .help(String(localized: "Select Feed", bundle: .module))
+            .accessibilityLabel(String(localized: "Select Feed", bundle: .module))
+            .popover(isPresented: $showingFeedPicker) {
+                feedPickerPopover
             }
 
             Spacer()
@@ -795,6 +891,40 @@ struct RSSReaderView: View {
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
     }
+    
+    // MARK: - Keyboard Navigation
+    
+    private func moveSelection(by offset: Int) {
+        let items = store.filteredItems
+        guard !items.isEmpty else { return }
+        
+        if let currentId = selectedItemId,
+           let currentIndex = items.firstIndex(where: { $0.id == currentId }) {
+            let newIndex = max(0, min(items.count - 1, currentIndex + offset))
+            selectedItemId = items[newIndex].id
+        } else {
+            selectedItemId = offset > 0 ? items.first?.id : items.last?.id
+        }
+    }
+    
+    private func openSelectedItem() {
+        guard let id = selectedItemId,
+              let item = store.filteredItems.first(where: { $0.id == id }) else { return }
+        store.openItem(item)
+    }
+    
+    private func toggleSelectedRead() {
+        guard let id = selectedItemId,
+              let item = store.filteredItems.first(where: { $0.id == id }) else { return }
+        store.toggleRead(item)
+    }
+    
+    private func toggleSelectedStar() {
+        guard let id = selectedItemId,
+              let item = store.filteredItems.first(where: { $0.id == id }) else { return }
+        store.toggleStarred(item)
+    }
+    
 }
 
 // MARK: - Feed Item Row

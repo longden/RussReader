@@ -4,20 +4,53 @@ import OSLog
 @preconcurrency import UserNotifications
 import CoreFoundation
 
+// MARK: - Notification Delegate
+
+/// Handles notification display when app is in foreground and notification click-through
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegate()
+    
+    /// Show notifications even when app is in the foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        return [.banner, .sound, .badge]
+    }
+    
+    /// Handle notification click - open the article link
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let userInfo = response.notification.request.content.userInfo
+        if let link = userInfo["itemLink"] as? String,
+           let url = URL(string: link),
+           (url.scheme == "http" || url.scheme == "https") {
+            await MainActor.run {
+                _ = NSWorkspace.shared.open(url)
+            }
+        }
+    }
+}
+
 // MARK: - Feed Store
 
 @MainActor
 final class FeedStore: ObservableObject {
     @Published var feeds: [Feed] = []
-    @Published var items: [FeedItem] = []
-    @Published var filter: FeedFilter = .all
+    @Published var items: [FeedItem] = [] {
+        didSet { invalidateDerivedState() }
+    }
+    @Published var filter: FeedFilter = .all {
+        didSet { _cachedFilteredItems = nil }
+    }
     @Published var isRefreshing: Bool = false
     @Published var lastRefreshTime: Date?
     @Published var errorMessage: String?
     @Published var showingError: Bool = false
     @Published var filterRules: [FilterRule] = []
+    @Published var selectedFeedId: UUID? {
+        didSet { _cachedFilteredItems = nil }
+    }
     
-    @AppStorage("rssHideReadItems") var hideReadItems: Bool = false
+    @AppStorage("rssHideReadItems") var hideReadItems: Bool = false {
+        didSet { _cachedFilteredItems = nil }
+    }
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 50
     @AppStorage("rssFontSize") var fontSize: Double = 13
@@ -25,7 +58,9 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssTimeFormat") var timeFormat: String = "12h"
     @AppStorage("rssAppearanceMode") var appearanceMode: String = "system"
     @AppStorage("rssShowUnreadBadge") var showUnreadBadge: Bool = true
-    @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true
+    @AppStorage("rssSmartFiltersEnabled") var smartFiltersEnabled: Bool = true {
+        didSet { _cachedFilteredItems = nil }
+    }
     @AppStorage("rssSelectedBrowser") var selectedBrowser: String = "default"
     @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = false
     @AppStorage("rssLanguage") var selectedLanguage: String = "system"
@@ -36,6 +71,7 @@ final class FeedStore: ObservableObject {
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
     private let filterRulesKey = "rssFilterRules"
+    private let readKeysKey = "rssReadItemKeys"
     private var refreshTimer: DispatchSourceTimer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSReader")
     private var saveWorkItem: DispatchWorkItem?
@@ -46,13 +82,52 @@ final class FeedStore: ObservableObject {
     // Cache for filter results (per-item metadata like highlight color)
     private var filterResultsCache: [UUID: FilteredItemResult] = [:]
     
+    // Persistent set of item keys that have been read, survives item trimming
+    private var readItemKeys: Set<String> = []
+    
+    // Cached derived state - invalidated when items change
+    private var _cachedFilteredItems: [FeedItem]?
+    private var _cachedHiddenCount: Int?
+    private var _cachedUnreadCount: Int?
+    private var _cachedStarredCount: Int?
+    private var _itemIndex: [UUID: Int]?
+    
+    /// O(1) item lookup by ID
+    private func itemIndexMap() -> [UUID: Int] {
+        if let cached = _itemIndex { return cached }
+        var index = [UUID: Int](minimumCapacity: items.count)
+        for (i, item) in items.enumerated() {
+            index[item.id] = i
+        }
+        _itemIndex = index
+        return index
+    }
+    
+    private func invalidateDerivedState() {
+        _cachedFilteredItems = nil
+        _cachedHiddenCount = nil
+        _cachedUnreadCount = nil
+        _cachedStarredCount = nil
+        _itemIndex = nil
+    }
+    
     var filteredItems: [FeedItem] {
+        if let cached = _cachedFilteredItems { return cached }
+        
         var result = items
+        var hiddenCount = 0
+        
+        // Filter by selected feed
+        if let feedId = selectedFeedId {
+            result = result.filter { $0.feedId == feedId }
+        }
         
         // Apply smart filters first (without side effects)
         if smartFiltersEnabled && !filterRules.isEmpty {
             let filterResults = computeFilterResults(for: result)
-            result = filterResults.filter { $0.isVisible }.map { $0.item }
+            let visible = filterResults.filter { $0.isVisible }
+            hiddenCount = filterResults.count - visible.count
+            result = visible.map { $0.item }
         }
         
         // Then apply view filter (all/unread/starred)
@@ -71,13 +146,16 @@ final class FeedStore: ObservableObject {
         
         result.sort { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
         
+        _cachedFilteredItems = result
+        _cachedHiddenCount = hiddenCount
         return result
     }
     
     var hiddenItemCount: Int {
-        guard smartFiltersEnabled && !filterRules.isEmpty else { return 0 }
-        let results = computeFilterResults(for: items)
-        return results.filter { !$0.isVisible }.count
+        if let cached = _cachedHiddenCount { return cached }
+        // Force filteredItems computation which also caches hiddenCount
+        _ = filteredItems
+        return _cachedHiddenCount ?? 0
     }
     
     func highlightColor(for item: FeedItem) -> Color? {
@@ -112,11 +190,17 @@ final class FeedStore: ObservableObject {
     }
     
     var unreadCount: Int {
-        items.filter { !$0.isRead }.count
+        if let cached = _cachedUnreadCount { return cached }
+        let count = items.reduce(0) { $0 + ($1.isRead ? 0 : 1) }
+        _cachedUnreadCount = count
+        return count
     }
     
     var starredCount: Int {
-        items.filter { $0.isStarred }.count
+        if let cached = _cachedStarredCount { return cached }
+        let count = items.reduce(0) { $0 + ($1.isStarred ? 1 : 0) }
+        _cachedStarredCount = count
+        return count
     }
     
     init() {
@@ -128,6 +212,7 @@ final class FeedStore: ObservableObject {
         purgeOldItems()
         
         startRefreshTimer()
+        setupNotifications()
         
         if feeds.isEmpty {
             addDefaultFeeds()
@@ -136,6 +221,14 @@ final class FeedStore: ObservableObject {
     
     /// Call this after app is fully initialized to request notification permissions
     func setupNotifications() {
+        // Guard against environments without proper app bundle (e.g., swift run)
+        guard Bundle.main.bundleIdentifier != nil else {
+            logger.info("Skipping notification setup - no bundle identifier (likely swift run)")
+            return
+        }
+        
+        // Set delegate so notifications display when app is in foreground
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
         Task {
             await requestNotificationPermissions()
         }
@@ -169,12 +262,24 @@ final class FeedStore: ObservableObject {
         }
         
         if let itemsData = UserDefaults.standard.data(forKey: itemsKey) {
-            if let decoded = try? JSONDecoder().decode([FeedItem].self, from: itemsData) {
+            if var decoded = try? JSONDecoder().decode([FeedItem].self, from: itemsData) {
+                // Trim oversized descriptions from previously stored items
+                for i in decoded.indices where decoded[i].description.count > 500 {
+                    decoded[i].description = String(decoded[i].description.prefix(500))
+                }
                 items = decoded
             } else {
                 logger.error("Failed to decode items from UserDefaults")
                 showError(String(localized: "Failed to load items. Your saved data may be corrupted.", bundle: .module))
             }
+        }
+        
+        // Load persistent read keys and rebuild from current read items
+        if let saved = UserDefaults.standard.array(forKey: readKeysKey) as? [String] {
+            readItemKeys = Set(saved)
+        }
+        for item in items where item.isRead {
+            readItemKeys.insert(itemKey(item))
         }
     }
     
@@ -199,6 +304,11 @@ final class FeedStore: ObservableObject {
             logger.error("Failed to encode items for save")
             showError(String(localized: "Failed to save items. Please check available disk space.", bundle: .module))
         }
+        // Cap read keys to prevent unbounded growth (keep most recent 2000)
+        if readItemKeys.count > 2000 {
+            readItemKeys = Set(readItemKeys.prefix(2000))
+        }
+        UserDefaults.standard.set(Array(readItemKeys), forKey: readKeysKey)
     }
     
     // MARK: - Feed Management
@@ -298,37 +408,48 @@ final class FeedStore: ObservableObject {
     // MARK: - Item Management
     
     func markAsRead(_ item: FeedItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        var updatedItem = items[index]
+        let index = itemIndexMap()
+        guard let idx = index[item.id] else { return }
+        var updatedItem = items[idx]
         updatedItem.isRead = true
-        items[index] = updatedItem
+        items[idx] = updatedItem
+        readItemKeys.insert(itemKey(updatedItem))
         objectWillChange.send()
         saveImmediately()
     }
     
     func markAsUnread(_ item: FeedItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        var updatedItem = items[index]
+        let index = itemIndexMap()
+        guard let idx = index[item.id] else { return }
+        var updatedItem = items[idx]
         updatedItem.isRead = false
-        items[index] = updatedItem
+        items[idx] = updatedItem
+        readItemKeys.remove(itemKey(updatedItem))
         objectWillChange.send()
         saveImmediately()
     }
     
     func toggleStarred(_ item: FeedItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        var updatedItem = items[index]
+        let index = itemIndexMap()
+        guard let idx = index[item.id] else { return }
+        var updatedItem = items[idx]
         updatedItem.isStarred.toggle()
-        items[index] = updatedItem
+        items[idx] = updatedItem
         objectWillChange.send()
         saveImmediately()
     }
     
     func toggleRead(_ item: FeedItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        var updatedItem = items[index]
+        let index = itemIndexMap()
+        guard let idx = index[item.id] else { return }
+        var updatedItem = items[idx]
         updatedItem.isRead.toggle()
-        items[index] = updatedItem
+        items[idx] = updatedItem
+        if updatedItem.isRead {
+            readItemKeys.insert(itemKey(updatedItem))
+        } else {
+            readItemKeys.remove(itemKey(updatedItem))
+        }
         objectWillChange.send()
         saveImmediately()
     }
@@ -337,6 +458,7 @@ final class FeedStore: ObservableObject {
         items = items.map { item in
             var updated = item
             updated.isRead = true
+            readItemKeys.insert(itemKey(updated))
             return updated
         }
         objectWillChange.send()
@@ -353,6 +475,7 @@ final class FeedStore: ObservableObject {
             guard idsToMark.contains(current.id) else { return current }
             var updated = current
             updated.isRead = true
+            readItemKeys.insert(itemKey(updated))
             return updated
         }
         objectWillChange.send()
@@ -369,6 +492,7 @@ final class FeedStore: ObservableObject {
             guard idsToMark.contains(current.id) else { return current }
             var updated = current
             updated.isRead = true
+            readItemKeys.insert(itemKey(updated))
             return updated
         }
         objectWillChange.send()
@@ -560,7 +684,7 @@ final class FeedStore: ObservableObject {
             let newUnreadCount = unreadCount
             if newUnreadCount > previousUnreadCount {
                 let addedCount = newUnreadCount - previousUnreadCount
-                sendNewItemsNotification(addedCount: addedCount)
+                await sendNewItemsNotification(addedCount: addedCount)
             }
         }
         save()
@@ -629,9 +753,15 @@ final class FeedStore: ObservableObject {
         for newItem in newItems {
             let key = itemKey(newItem)
             if existingItemsByKey[key] == nil {
-                // Item doesn't exist, add it
-                items.append(newItem)
-                actuallyNewItems.append(newItem)
+                var itemToAdd = newItem
+                // If this item was previously read (but trimmed), mark it as read
+                if readItemKeys.contains(key) {
+                    itemToAdd.isRead = true
+                }
+                items.append(itemToAdd)
+                if !itemToAdd.isRead {
+                    actuallyNewItems.append(itemToAdd)
+                }
                 existingItemsByKey[key] = items.count - 1
             }
         }
@@ -747,24 +877,22 @@ final class FeedStore: ObservableObject {
         showingError = true
     }
 
-    private func sendNewItemsNotification(addedCount: Int) {
+    private func sendNewItemsNotification(addedCount: Int) async {
         let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            switch settings.authorizationStatus {
-            case .authorized:
-                Task { @MainActor in
-                    self.postNewItemsNotification(addedCount: addedCount)
+        let settings = await center.notificationSettings()
+        
+        switch settings.authorizationStatus {
+        case .authorized:
+            postNewItemsNotification(addedCount: addedCount)
+        case .notDetermined:
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound])
+                if granted {
+                    postNewItemsNotification(addedCount: addedCount)
                 }
-            case .notDetermined:
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                    guard granted else { return }
-                    Task { @MainActor in
-                        self.postNewItemsNotification(addedCount: addedCount)
-                    }
-                }
-            default:
-                break
-            }
+            } catch {}
+        default:
+            break
         }
     }
 
@@ -861,6 +989,8 @@ final class FeedStore: ObservableObject {
     
     private func invalidateFilterCache() {
         filterResultsCache.removeAll()
+        _cachedFilteredItems = nil
+        _cachedHiddenCount = nil
     }
     
     // Clean stale cache entries for items that no longer exist
@@ -935,6 +1065,7 @@ final class FeedStore: ObservableObject {
         let enabledRules = filterRules.filter { $0.isEnabled }
         guard !enabledRules.isEmpty else { return }
         
+        let index = itemIndexMap()
         var needsSave = false
         
         for item in newItems {
@@ -943,18 +1074,18 @@ final class FeedStore: ObservableObject {
                 guard evaluateRule(rule, for: item) else { continue }
                 
                 if rule.action == .autoStar && !item.isStarred {
-                    if let index = items.firstIndex(where: { $0.id == item.id }) {
-                        var updatedItem = items[index]
+                    if let idx = index[item.id] {
+                        var updatedItem = items[idx]
                         updatedItem.isStarred = true
-                        items[index] = updatedItem
+                        items[idx] = updatedItem
                         needsSave = true
                     }
                 }
                 if rule.action == .markRead && !item.isRead {
-                    if let index = items.firstIndex(where: { $0.id == item.id }) {
-                        var updatedItem = items[index]
+                    if let idx = index[item.id] {
+                        var updatedItem = items[idx]
                         updatedItem.isRead = true
-                        items[index] = updatedItem
+                        items[idx] = updatedItem
                         needsSave = true
                     }
                 }
@@ -1024,67 +1155,5 @@ final class FeedStore: ObservableObject {
         case .endsWith:
             return text.hasSuffix(value)
         }
-    }
-}
-
-// MARK: - Browser Detection
-
-struct BrowserInfo: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let path: String
-    
-    static func getInstalledBrowsers() -> [BrowserInfo] {
-        var browsers: [BrowserInfo] = []
-        var seenPaths = Set<String>()
-        
-        // Get default browser
-        if let defaultBrowserURL = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://")!) {
-            let defaultName = defaultBrowserURL.deletingPathExtension().lastPathComponent
-            browsers.append(BrowserInfo(
-                id: "default",
-                name: "System Default (\(defaultName))",
-                path: "default"
-            ))
-            seenPaths.insert("default")
-        } else {
-            browsers.append(BrowserInfo(
-                id: "default",
-                name: "System Default",
-                path: "default"
-            ))
-            seenPaths.insert("default")
-        }
-        
-        // Get ALL applications that can open HTTP URLs
-        if let httpURL = URL(string: "https://www.example.com"),
-           let browserURLs = LSCopyApplicationURLsForURL(httpURL as CFURL, .all)?.takeRetainedValue() as? [URL] {
-            
-            for appURL in browserURLs {
-                let appPath = appURL.path
-                
-                // Skip if already added
-                guard !seenPaths.contains(appPath) else { continue }
-                
-                // Get app name from bundle or filename
-                var appName = appURL.deletingPathExtension().lastPathComponent
-                
-                // Try to get better name from Info.plist
-                if let bundle = Bundle(url: appURL),
-                   let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? 
-                                     bundle.object(forInfoDictionaryKey: "CFBundleName") as? String {
-                    appName = displayName
-                }
-                
-                browsers.append(BrowserInfo(
-                    id: appPath,
-                    name: appName,
-                    path: appPath
-                ))
-                seenPaths.insert(appPath)
-            }
-        }
-        
-        return browsers
     }
 }

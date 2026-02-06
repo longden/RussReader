@@ -150,15 +150,27 @@ final class RSSParser {
     
     private func stripHTML(_ string: String) -> String {
         guard !string.isEmpty else { return string }
-        guard let data = string.data(using: .utf8) else { return string }
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue
-        ]
-        if let attributed = try? NSAttributedString(data: data, options: options, documentAttributes: nil) {
-            return attributed.string
+        // Truncate input before expensive regex operations to save CPU and memory
+        let input = string.count > 2000 ? String(string.prefix(2000)) : string
+        // Fast regex-based HTML stripping (avoids expensive NSAttributedString HTML parser)
+        let stripped = input
+            .replacingOccurrences(of: "<style[^>]*>.*?</style>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&apos;", with: "'")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Cap output at 500 chars — only 1 line is displayed and filter matching doesn't need more
+        if stripped.count > 500 {
+            return String(stripped.prefix(500))
         }
-        return string.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        return stripped
     }
 }
 
