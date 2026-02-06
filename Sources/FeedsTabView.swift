@@ -12,6 +12,7 @@ struct FeedsTabView: View {
     @State private var showingAddSheet: Bool = false
     @State private var showingSuggestedFeeds: Bool = false
     @State private var showingNewFolder: Bool = false
+    @State private var editingCredentialsFeed: Feed?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -76,6 +77,10 @@ struct FeedsTabView: View {
             SuggestedFeedsSheet(isPresented: $showingSuggestedFeeds)
                 .environmentObject(store)
         }
+        .sheet(item: $editingCredentialsFeed) { feed in
+            EditCredentialsSheet(feed: feed)
+                .environmentObject(store)
+        }
     }
     
     private func feedRow(_ feed: Feed) -> some View {
@@ -83,10 +88,24 @@ struct FeedsTabView: View {
             FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 16)
             Text(feed.title)
                 .lineLimit(1)
+            if feed.authType != .none {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .contentShape(Rectangle())
         .tag(feed)
+        .contextMenu {
+            Button(String(localized: "Edit Credentials…", bundle: .module)) {
+                editingCredentialsFeed = feed
+            }
+            Button(String(localized: "Remove Feed", bundle: .module)) {
+                store.removeFeed(feed)
+                if selectedFeed?.id == feed.id { selectedFeed = nil }
+            }
+        }
     }
     
     private func importOPML() {
@@ -112,6 +131,108 @@ struct FeedsTabView: View {
             let opml = store.exportOPML()
             try? opml.write(to: url, atomically: true, encoding: .utf8)
         }
+    }
+}
+
+// MARK: - Edit Credentials Sheet
+
+struct EditCredentialsSheet: View {
+    @EnvironmentObject private var store: FeedStore
+    @Environment(\.dismiss) private var dismiss
+    let feed: Feed
+    @State private var authType: AuthType
+    @State private var username: String = ""
+    @State private var password: String = ""
+    @State private var token: String = ""
+    
+    init(feed: Feed) {
+        self.feed = feed
+        _authType = State(initialValue: feed.authType)
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(String(localized: "Credentials", bundle: .module))
+                .font(.headline)
+            
+            Text(feed.title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            
+            Picker(String(localized: "Authentication", bundle: .module), selection: $authType) {
+                ForEach(AuthType.allCases, id: \.self) { type in
+                    Text(type.localizedName).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
+            
+            if authType == .basicAuth {
+                TextField(String(localized: "Username", bundle: .module), text: $username)
+                    .textFieldStyle(.roundedBorder)
+                SecureField(String(localized: "Password", bundle: .module), text: $password)
+                    .textFieldStyle(.roundedBorder)
+            } else if authType == .bearerToken {
+                SecureField(String(localized: "API Key or Token", bundle: .module), text: $token)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            if authType != .none {
+                HStack(spacing: 4) {
+                    Image(systemName: "lock.shield")
+                        .font(.system(size: 9))
+                    Text(String(localized: "Stored securely in Keychain. Only sent with feed requests.", bundle: .module))
+                        .font(.system(size: 10))
+                }
+                .foregroundStyle(.secondary)
+            }
+            
+            HStack {
+                Button(String(localized: "Cancel", bundle: .module)) {
+                    dismiss()
+                }
+                .keyboardShortcut(.escape)
+                
+                Spacer()
+                
+                Button(String(localized: "Save", bundle: .module)) {
+                    saveCredentials()
+                    dismiss()
+                }
+                .keyboardShortcut(.return)
+            }
+        }
+        .padding(20)
+        .frame(width: 300)
+        .onAppear {
+            // Load existing credentials
+            if feed.authType == .basicAuth {
+                if let creds = KeychainHelper.loadBasicAuth(feedId: feed.id) {
+                    username = creds.username
+                    password = creds.password
+                }
+            } else if feed.authType == .bearerToken {
+                if let creds = KeychainHelper.loadToken(feedId: feed.id) {
+                    token = creds.token
+                }
+            }
+        }
+    }
+    
+    private func saveCredentials() {
+        // Update feed auth type
+        if let idx = store.feeds.firstIndex(where: { $0.id == feed.id }) {
+            store.feeds[idx].authType = authType
+        }
+        
+        // Update keychain
+        KeychainHelper.deleteCredentials(feedId: feed.id)
+        if authType == .basicAuth && !username.isEmpty {
+            KeychainHelper.saveBasicAuth(feedId: feed.id, username: username, password: password)
+        } else if authType == .bearerToken && !token.isEmpty {
+            KeychainHelper.saveToken(feedId: feed.id, token: token)
+        }
+        
+        store.save()
     }
 }
 
