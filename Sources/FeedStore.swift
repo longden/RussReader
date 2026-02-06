@@ -831,8 +831,14 @@ final class FeedStore: ObservableObject {
         """
         
         for feed in feeds {
-            let escapedTitle = feed.title.replacingOccurrences(of: "\"", with: "&quot;")
-            let escapedURL = feed.url.replacingOccurrences(of: "&", with: "&amp;")
+            let escapedTitle = feed.title
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "\"", with: "&quot;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            let escapedURL = feed.url
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "\"", with: "&quot;")
             opml += """
             
                 <outline type="rss" text="\(escapedTitle)" title="\(escapedTitle)" xmlUrl="\(escapedURL)" />
