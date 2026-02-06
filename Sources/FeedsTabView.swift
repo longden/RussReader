@@ -34,11 +34,11 @@ struct FeedsTabView: View {
                 .accessibilityLabel(String(localized: "Add feed", bundle: .module))
                 .keyboardShortcut("n", modifiers: [.command])
                 
-                Button(String(localized: "Import", bundle: .module)) {
+                Button(String(localized: "Import OPML", bundle: .module)) {
                     importOPML()
                 }
                 
-                Button(String(localized: "Export", bundle: .module)) {
+                Button(String(localized: "Export OPML", bundle: .module)) {
                     exportOPML()
                 }
 
