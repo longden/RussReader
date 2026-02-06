@@ -134,6 +134,13 @@ final class FeedStore: ObservableObject {
         }
     }
     
+    /// Call this after app is fully initialized to request notification permissions
+    func setupNotifications() {
+        Task {
+            await requestNotificationPermissions()
+        }
+    }
+    
     deinit {
         refreshTimer?.cancel()
         saveWorkItem?.cancel()
@@ -379,11 +386,19 @@ final class FeedStore: ObservableObject {
     func openItem(_ item: FeedItem) {
         markAsRead(item)
         
+        // Prefer enclosure URL (podcast audio, video) over article link
+        let targetLink: String
+        if let firstEnclosure = item.enclosures.first, !firstEnclosure.url.isEmpty {
+            targetLink = firstEnclosure.url
+        } else {
+            targetLink = item.link
+        }
+        
         // Clean and validate URL
-        let cleanLink = item.link.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanLink = targetLink.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: cleanLink), 
               (url.scheme == "http" || url.scheme == "https") else { 
-            logger.error("Invalid URL: \(item.link)")
+            logger.error("Invalid URL: \(targetLink)")
             return 
         }
         
@@ -423,6 +438,67 @@ final class FeedStore: ObservableObject {
             return
         }
         picker.show(relativeTo: targetView.bounds, of: targetView, preferredEdge: .minY)
+    }
+    
+    // MARK: - Notifications
+    
+    nonisolated func requestNotificationPermissions() async {
+        // Guard against environments where notifications aren't available (e.g., swift run)
+        guard Bundle.main.bundleIdentifier != nil else {
+            await MainActor.run {
+                logger.info("Skipping notification setup - no bundle identifier (likely swift run)")
+            }
+            return
+        }
+        
+        let center = UNUserNotificationCenter.current()
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            if !granted {
+                await MainActor.run {
+                    logger.warning("Notification permissions denied by user")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                logger.error("Failed to request notification permissions: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func sendNotification(for item: FeedItem, ruleName: String) {
+        guard newItemNotificationsEnabled else { return }
+        
+        // Guard against environments where notifications aren't available
+        guard Bundle.main.bundleIdentifier != nil else {
+            logger.debug("Skipping notification - no bundle identifier")
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = ruleName
+        content.body = item.title
+        content.sound = .default
+        
+        // Add feed name as subtitle if available
+        if let feed = feeds.first(where: { $0.id == item.feedId }) {
+            content.subtitle = feed.title
+        }
+        
+        // Store item link in userInfo for click handling
+        content.userInfo = ["itemLink": item.link, "itemId": item.id.uuidString]
+        
+        let request = UNNotificationRequest(
+            identifier: item.id.uuidString,
+            content: content,
+            trigger: nil // Deliver immediately
+        )
+        
+        UNUserNotificationCenter.current().add(request) { [weak self] error in
+            if let error = error {
+                self?.logger.error("Failed to send notification: \(error.localizedDescription)")
+            }
+        }
     }
     
     // MARK: - Refresh
@@ -835,6 +911,8 @@ final class FeedStore: ObservableObject {
                         result.shouldAutoStar = true
                     case .markRead:
                         result.shouldMarkRead = true
+                    case .notify:
+                        result.shouldNotify = true
                     }
                 }
             }
@@ -852,7 +930,7 @@ final class FeedStore: ObservableObject {
         return results
     }
     
-    /// Apply auto-actions (star, mark read) for new items - call explicitly after fetch
+    /// Apply auto-actions (star, mark read, notify) for new items - call explicitly after fetch
     func applyAutoActions(for newItems: [FeedItem]) {
         let enabledRules = filterRules.filter { $0.isEnabled }
         guard !enabledRules.isEmpty else { return }
@@ -879,6 +957,9 @@ final class FeedStore: ObservableObject {
                         items[index] = updatedItem
                         needsSave = true
                     }
+                }
+                if rule.action == .notify {
+                    sendNotification(for: item, ruleName: rule.name)
                 }
             }
         }

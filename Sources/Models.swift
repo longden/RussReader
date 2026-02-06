@@ -83,6 +83,7 @@ enum FilterAction: String, Codable, CaseIterable {
     case addSummary = "Show Summary"
     case autoStar = "Auto-Star"
     case markRead = "Mark Read"
+    case notify = "Send Notification"
     
     var localizedName: String {
         switch self {
@@ -93,6 +94,7 @@ enum FilterAction: String, Codable, CaseIterable {
         case .addSummary: return String(localized: "Show Summary", bundle: .module)
         case .autoStar: return String(localized: "Auto-Star", bundle: .module)
         case .markRead: return String(localized: "Mark Read", bundle: .module)
+        case .notify: return String(localized: "Send Notification", bundle: .module)
         }
     }
     
@@ -105,6 +107,7 @@ enum FilterAction: String, Codable, CaseIterable {
         case .addSummary: return "text.alignleft"
         case .autoStar: return "star.fill"
         case .markRead: return "checkmark.circle"
+        case .notify: return "bell.badge"
         }
     }
     
@@ -117,6 +120,7 @@ enum FilterAction: String, Codable, CaseIterable {
         case .addSummary: return String(localized: "Show 1-line article summary preview", bundle: .module)
         case .autoStar: return String(localized: "Automatically star matching items", bundle: .module)
         case .markRead: return String(localized: "Automatically mark matching items as read", bundle: .module)
+        case .notify: return String(localized: "Send notification when new items match this rule", bundle: .module)
         }
     }
 }
@@ -233,6 +237,7 @@ struct FilteredItemResult {
     var shouldAutoStar: Bool = false
     var shouldMarkRead: Bool = false
     var shouldShowSummary: Bool = false
+    var shouldNotify: Bool = false
     var matchedRuleIds: Set<UUID> = []
 }
 

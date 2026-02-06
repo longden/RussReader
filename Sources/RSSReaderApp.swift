@@ -20,6 +20,10 @@ struct RSSReaderApp: App {
         MenuBarExtra(isInserted: $stickyWindow) {
             RSSReaderView()
                 .environmentObject(store)
+                .onAppear {
+                    // Request notification permissions after app is initialized
+                    store.setupNotifications()
+                }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: store.unreadCount > 0 ? "newspaper.fill" : "newspaper")
