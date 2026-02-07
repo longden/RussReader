@@ -64,6 +64,7 @@ final class RSSParser {
                 link: link,
                 sourceId: item.guid?.text,
                 description: stripHTML(item.description ?? ""),
+                contentHTML: capHTML(item.description),
                 pubDate: item.pubDate,
                 author: item.author ?? item.dublinCore?.creator,
                 categories: item.categories?.compactMap { $0.text } ?? [],
@@ -98,12 +99,15 @@ final class RSSParser {
                 )
             } ?? []
             
+            let rawHTML = entry.content?.text ?? entry.summary?.text
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
                 link: link,
                 sourceId: entry.id,
-                description: stripHTML(entry.summary?.text ?? entry.content?.text ?? ""),
+                description: stripHTML(rawHTML ?? ""),
+                contentHTML: capHTML(rawHTML),
                 pubDate: entry.published ?? entry.updated,
                 author: entry.authors?.first?.name,
                 categories: entry.categories?.compactMap { $0.attributes?.term } ?? [],
@@ -134,12 +138,15 @@ final class RSSParser {
                 )
             } ?? []
             
+            let rawHTML = item.contentHtml ?? item.summary
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
                 link: link,
                 sourceId: item.id,
-                description: stripHTML(item.contentText ?? item.contentHtml ?? item.summary ?? ""),
+                description: stripHTML(item.contentText ?? rawHTML ?? ""),
+                contentHTML: capHTML(rawHTML),
                 pubDate: item.datePublished,
                 author: item.author?.name,
                 categories: item.tags ?? [],
@@ -148,21 +155,33 @@ final class RSSParser {
         }
     }
     
+    /// Cap HTML content to prevent excessive memory usage (100KB limit)
+    private func capHTML(_ html: String?) -> String? {
+        guard let html = html, !html.isEmpty else { return nil }
+        if html.count > 100_000 { return String(html.prefix(100_000)) }
+        return html
+    }
+    
     private func stripHTML(_ string: String) -> String {
         guard !string.isEmpty else { return string }
         // Truncate input before expensive regex operations to save CPU and memory
-        let input = string.count > 2000 ? String(string.prefix(2000)) : string
+        let input = string.count > 10000 ? String(string.prefix(10000)) : string
         // Fast regex-based HTML stripping (avoids expensive NSAttributedString HTML parser)
         let stripped = input
             .replacingOccurrences(of: "<style[^>]*>.*?</style>", with: "", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<wbr\\s*/?>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<wbr>", with: "", options: .caseInsensitive)
+            .replacingOccurrences(of: "</p>", with: "\n\n", options: .caseInsensitive)
+            .replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
         let decoded = decodeHTMLEntities(stripped)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        // Cap output at 500 chars — only 1 line is displayed and filter matching doesn't need more
-        if decoded.count > 500 {
-            return String(decoded.prefix(500))
+        // Cap output — preserve full content for preview pane, list view handles its own truncation
+        if decoded.count > 5000 {
+            return String(decoded.prefix(5000))
         }
         return decoded
     }

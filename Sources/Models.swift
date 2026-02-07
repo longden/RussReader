@@ -303,6 +303,8 @@ struct FeedItem: Codable, Identifiable, Hashable {
     var link: String
     var sourceId: String?
     var description: String
+    /// Raw HTML content — not persisted to UserDefaults, repopulated on feed refresh
+    var contentHTML: String?
     var pubDate: Date?
     var author: String?
     var categories: [String]
@@ -310,13 +312,38 @@ struct FeedItem: Codable, Identifiable, Hashable {
     var isStarred: Bool
     var enclosures: [Enclosure]
     
-    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", pubDate: Date? = nil, author: String? = nil, categories: [String] = [], isRead: Bool = false, isStarred: Bool = false, enclosures: [Enclosure] = []) {
+    private enum CodingKeys: String, CodingKey {
+        case id, feedId, title, link, sourceId, description, pubDate, author, categories, isRead, isStarred, enclosures, contentHTML
+    }
+    
+    // Only persist contentHTML for starred items to save memory/disk
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(feedId, forKey: .feedId)
+        try container.encode(title, forKey: .title)
+        try container.encode(link, forKey: .link)
+        try container.encodeIfPresent(sourceId, forKey: .sourceId)
+        try container.encode(description, forKey: .description)
+        try container.encodeIfPresent(pubDate, forKey: .pubDate)
+        try container.encodeIfPresent(author, forKey: .author)
+        try container.encode(categories, forKey: .categories)
+        try container.encode(isRead, forKey: .isRead)
+        try container.encode(isStarred, forKey: .isStarred)
+        try container.encode(enclosures, forKey: .enclosures)
+        if isStarred {
+            try container.encodeIfPresent(contentHTML, forKey: .contentHTML)
+        }
+    }
+    
+    init(id: UUID = UUID(), feedId: UUID, title: String, link: String, sourceId: String? = nil, description: String = "", contentHTML: String? = nil, pubDate: Date? = nil, author: String? = nil, categories: [String] = [], isRead: Bool = false, isStarred: Bool = false, enclosures: [Enclosure] = []) {
         self.id = id
         self.feedId = feedId
         self.title = title
         self.link = link
         self.sourceId = sourceId
         self.description = description
+        self.contentHTML = contentHTML
         self.pubDate = pubDate
         self.author = author
         self.categories = categories
