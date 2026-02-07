@@ -58,13 +58,15 @@ final class RSSParser {
                 return []
             }()
             
+            let rawHTML = item.content?.encoded ?? item.description
+            
             return FeedItem(
                 feedId: feedId,
                 title: title,
                 link: link,
                 sourceId: item.guid?.text,
                 description: stripHTML(item.description ?? ""),
-                contentHTML: capHTML(item.description),
+                contentHTML: capHTML(rawHTML),
                 pubDate: item.pubDate,
                 author: item.author ?? item.dublinCore?.creator,
                 categories: item.categories?.compactMap { $0.text } ?? [],
