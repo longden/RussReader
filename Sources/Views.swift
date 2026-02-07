@@ -1177,8 +1177,9 @@ struct ArticlePreviewPane: View {
         .task {
             // Parse feed HTML content blocks off main thread
             if let html = item.contentHTML, !html.isEmpty {
+                let title = item.title
                 let blocks = await Task.detached(priority: .userInitiated) {
-                    self.parseContentBlocks(from: html)
+                    self.parseContentBlocks(from: html, articleTitle: title)
                 }.value
                 if !blocks.isEmpty {
                     contentBlocks = blocks
@@ -1269,197 +1270,342 @@ struct ArticlePreviewPane: View {
     private var previewContent: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
-                // Article header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(item.title)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    HStack(spacing: 8) {
-                        Text(feedTitle)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        
-                        if let author = item.author, !author.isEmpty {
-                            Text("·")
-                                .foregroundStyle(.quaternary)
-                            Text(author)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                        }
-                        
-                        if let pubDate = item.pubDate {
-                            Text("·")
-                                .foregroundStyle(.quaternary)
-                            Text(previewDateString(pubDate))
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(.bottom, 4)
-                
+                previewHeader
                 Divider()
-                
-                // Article body — rendered as cached content blocks
-                let blocks = contentBlocks ?? []
-                
-                if loadFailed {
-                    // Error state — couldn't load article
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.secondary)
-                        Text(String(localized: "Couldn't load article", bundle: .module))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        Button(String(localized: "Open in Browser", bundle: .module)) {
-                            store.openItem(item)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                } else if blocks.isEmpty && !isLoadingContent {
-                    // Fallback to plain text description
-                    let content = fullContent ?? item.description
-                    if content.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "doc.text")
-                                .font(.system(size: 32))
-                                .foregroundStyle(.quaternary)
-                            Text(String(localized: "No preview available", bundle: .module))
-                                .font(.system(size: 14))
-                                .foregroundStyle(.secondary)
-                            Button(String(localized: "Open in Browser", bundle: .module)) {
-                                store.openItem(item)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                    } else {
-                        Text(content)
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(.primary.opacity(0.85))
-                            .lineSpacing(6)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                } else {
-                    ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                        switch block {
-                        case .text(let text):
-                            if !text.isEmpty {
-                                Text(text)
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundStyle(.primary.opacity(0.85))
-                                    .lineSpacing(6)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        case .heading(let text, let level):
-                            Text(text)
-                                .font(.system(size: headingSize(level), weight: level <= 2 ? .bold : .semibold))
-                                .foregroundStyle(.primary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, level <= 2 ? 8 : 4)
-                        case .blockquote(let text):
-                            HStack(spacing: 0) {
-                                RoundedRectangle(cornerRadius: 1.5)
-                                    .fill(Color.accentColor.opacity(0.5))
-                                    .frame(width: 3)
-                                Text(text)
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(.secondary)
-                                    .italic()
-                                    .lineSpacing(5)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding(.leading, 12)
-                            }
-                            .padding(.vertical, 4)
-                        case .image(let url, let caption):
-                            VStack(spacing: 4) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                                    case .failure:
-                                        EmptyView()
-                                    case .empty:
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(Color.primary.opacity(0.04))
-                                            .frame(height: 120)
-                                            .overlay {
-                                                ProgressView()
-                                                    .controlSize(.small)
-                                            }
-                                    @unknown default:
-                                        EmptyView()
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                
-                                if let caption = caption, !caption.isEmpty {
-                                    Text(caption)
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .frame(maxWidth: .infinity)
-                                }
-                            }
-                        case .code(let code):
-                            ScrollView(.horizontal, showsIndicators: true) {
-                                Text(code)
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .foregroundStyle(.primary.opacity(0.8))
-                                    .lineSpacing(3)
-                                    .textSelection(.enabled)
-                                    .fixedSize(horizontal: true, vertical: false)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(Color.primary.opacity(0.04))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                    }
-                }
-                
-                if isLoadingContent {
-                    HStack(spacing: 6) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text(String(localized: "Loading full article…", bundle: .module))
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 8)
-                }
-                
-                // Categories/tags
-                if !item.categories.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(item.categories.prefix(5), id: \.self) { tag in
-                            Text(tag)
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.primary.opacity(0.06))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .padding(.top, 8)
-                }
-                
+                previewBody
+                previewLoadingIndicator
+                previewCategories
                 Spacer(minLength: 20)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
+        }
+    }
+    
+    @ViewBuilder
+    private var previewHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(item.title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            HStack(spacing: 8) {
+                Text(feedTitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                
+                if let author = item.author, !author.isEmpty {
+                    Text("·")
+                        .foregroundStyle(.quaternary)
+                    Text(author)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                
+                if let pubDate = item.pubDate {
+                    Text("·")
+                        .foregroundStyle(.quaternary)
+                    Text(previewDateString(pubDate))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.bottom, 4)
+    }
+    
+    @ViewBuilder
+    private var previewBody: some View {
+        let blocks = contentBlocks ?? []
+        
+        if loadFailed {
+            previewErrorState
+        } else if blocks.isEmpty && !isLoadingContent {
+            previewEmptyState
+        } else {
+            previewContentBlocks(blocks)
+        }
+    }
+    
+    @ViewBuilder
+    private var previewErrorState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+            Text(String(localized: "Couldn't load article", bundle: .module))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+            Button(String(localized: "Open in Browser", bundle: .module)) {
+                store.openItem(item)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+    
+    @ViewBuilder
+    private var previewEmptyState: some View {
+        let content = fullContent ?? item.description
+        if content.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.quaternary)
+                Text(String(localized: "No preview available", bundle: .module))
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                Button(String(localized: "Open in Browser", bundle: .module)) {
+                    store.openItem(item)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+        } else {
+            Text(content)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(.primary.opacity(0.85))
+                .lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    @ViewBuilder
+    private func previewContentBlocks(_ blocks: [ContentBlock]) -> some View {
+        ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+            previewContentBlock(block)
+        }
+    }
+    
+    @ViewBuilder
+    private func previewContentBlock(_ block: ContentBlock) -> some View {
+        switch block {
+        case .text(let attrText):
+            if !attrText.characters.isEmpty {
+                Text(attrText)
+                    .font(.system(size: 14, weight: .regular))
+                    .lineSpacing(6)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .environment(\.openURL, OpenURLAction { url in
+                        NSWorkspace.shared.open(url)
+                        return .handled
+                    })
+            }
+        case .heading(let attrText, let level):
+            Text(attrText)
+                .font(.system(size: headingSize(level), weight: level <= 2 ? .bold : .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, level <= 2 ? 8 : 4)
+        case .blockquote(let attrText):
+            previewBlockquote(attrText)
+        case .image(let url, let caption):
+            previewImage(url: url, caption: caption)
+        case .code(let code):
+            previewCodeBlock(code)
+        case .divider:
+            Divider()
+                .padding(.vertical, 4)
+        case .list(let items, let ordered):
+            previewList(items: items, ordered: ordered)
+        case .table(let rows):
+            previewTable(rows: rows)
+        case .definitionList(let pairs):
+            previewDefinitionList(pairs: pairs)
+        case .details(let summary, let content):
+            previewDetails(summary: summary, content: content)
+        }
+    }
+    
+    @ViewBuilder
+    private func previewBlockquote(_ attrText: AttributedString) -> some View {
+        HStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color.accentColor.opacity(0.5))
+                .frame(width: 3)
+            Text(attrText)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+                .italic()
+                .lineSpacing(5)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 12)
+        }
+        .padding(.vertical, 4)
+    }
+    
+    @ViewBuilder
+    private func previewImage(url: URL, caption: String?) -> some View {
+        VStack(spacing: 4) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                case .failure:
+                    EmptyView()
+                case .empty:
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.primary.opacity(0.04))
+                        .frame(height: 120)
+                        .overlay {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .frame(maxWidth: .infinity)
+            
+            if let caption = caption, !caption.isEmpty {
+                Text(caption)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func previewCodeBlock(_ code: String) -> some View {
+        ScrollView(.horizontal, showsIndicators: true) {
+            Text(code)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.primary.opacity(0.8))
+                .lineSpacing(3)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    @ViewBuilder
+    private func previewList(items: [AttributedString], ordered: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, text in
+                HStack(alignment: .top, spacing: 8) {
+                    Text(ordered ? "\(index + 1)." : "•")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .frame(width: ordered ? 20 : 10, alignment: .trailing)
+                    Text(text)
+                        .font(.system(size: 14))
+                        .lineSpacing(5)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func previewTable(rows: [[AttributedString]]) -> some View {
+        ScrollView(.horizontal, showsIndicators: true) {
+            previewTableGrid(rows: rows)
+        }
+        .background(Color.primary.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    @ViewBuilder
+    private func previewTableGrid(rows: [[AttributedString]]) -> some View {
+        Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 8) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { rowIdx, row in
+                previewTableRow(row: row, index: rowIdx)
+                if rowIdx == 0 { Divider() }
+            }
+        }
+        .padding(12)
+    }
+    
+    @ViewBuilder
+    private func previewTableRow(row: [AttributedString], index: Int) -> some View {
+        GridRow {
+            ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
+                let weight: Font.Weight = index == 0 ? .semibold : .regular
+                let color: Color = index == 0 ? .primary : Color.primary.opacity(0.85)
+                Text(cell)
+                    .font(.system(size: 13, weight: weight))
+                    .foregroundStyle(color)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func previewDefinitionList(pairs: [(term: AttributedString, definition: AttributedString)]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pair.term)
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(pair.definition)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 16)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func previewDetails(summary: String, content: [ContentBlock]) -> some View {
+        DisclosureGroup(summary) {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(content.enumerated()), id: \.offset) { _, innerBlock in
+                    switch innerBlock {
+                    case .text(let t): 
+                        Text(t).font(.system(size: 14)).lineSpacing(5)
+                    case .code(let c): 
+                        Text(c).font(.system(size: 12, design: .monospaced)).foregroundStyle(.primary.opacity(0.8))
+                    default: 
+                        EmptyView()
+                    }
+                }
+            }
+            .padding(.top, 8)
+        }
+        .font(.system(size: 14, weight: .medium))
+    }
+    
+    @ViewBuilder
+    private var previewLoadingIndicator: some View {
+        if isLoadingContent {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(String(localized: "Loading full article…", bundle: .module))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private var previewCategories: some View {
+        if !item.categories.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(item.categories.prefix(5), id: \.self) { tag in
+                    Text(tag)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(.top, 8)
         }
     }
     
@@ -1497,11 +1643,16 @@ struct ArticlePreviewPane: View {
     // MARK: - Content Block Parsing (SwiftSoup)
     
     private enum ContentBlock {
-        case text(String)
-        case heading(String, level: Int)
-        case blockquote(String)
+        case text(AttributedString)
+        case heading(AttributedString, level: Int)
+        case blockquote(AttributedString)
         case image(URL, caption: String?)
         case code(String)
+        case divider
+        case list([AttributedString], ordered: Bool)
+        case table([[AttributedString]])
+        case definitionList([(term: AttributedString, definition: AttributedString)])
+        case details(summary: String, content: [ContentBlock])
     }
     
     /// Strip HTML tags from preformatted content while preserving whitespace and line breaks
@@ -1540,9 +1691,55 @@ struct ArticlePreviewPane: View {
         return stripped
     }
     
+    /// Builds an AttributedString from a SwiftSoup Element, applying inline formatting
+    nonisolated private func buildAttributedString(from element: Element) -> AttributedString {
+        var result = AttributedString()
+        let nodes = element.getChildNodes()
+        // Cap node processing to prevent huge articles from hanging
+        let cappedNodes = nodes.count > 500 ? Array(nodes.prefix(500)) : Array(nodes)
+        for node in cappedNodes {
+            if let textNode = node as? TextNode {
+                result.append(AttributedString(textNode.text()))
+            } else if let child = node as? Element {
+                let tag = child.tagName().lowercased()
+                if tag == "br" {
+                    result.append(AttributedString("\n"))
+                    continue
+                }
+                var childAttr = buildAttributedString(from: child)
+                switch tag {
+                case "strong", "b":
+                    childAttr.inlinePresentationIntent = .stronglyEmphasized
+                case "em", "i":
+                    childAttr.inlinePresentationIntent = .emphasized
+                case "a":
+                    if let href = try? child.attr("href"), let url = URL(string: href) {
+                        childAttr.link = url
+                        childAttr.foregroundColor = .accentColor
+                    }
+                case "code":
+                    childAttr.font = Font.system(size: 13, design: .monospaced)
+                    childAttr.backgroundColor = Color.primary.opacity(0.06)
+                case "del", "s":
+                    childAttr.strikethroughStyle = Text.LineStyle(pattern: .solid, color: nil)
+                case "mark":
+                    childAttr.backgroundColor = Color.yellow.opacity(0.3)
+                case "abbr":
+                    childAttr.underlineStyle = Text.LineStyle(pattern: .solid, color: nil)
+                default:
+                    break
+                }
+                result.append(childAttr)
+            }
+        }
+        return result
+    }
+
     /// Parses HTML into alternating text and image blocks using SwiftSoup DOM parser
-    nonisolated private func parseContentBlocks(from html: String?) -> [ContentBlock] {
+    nonisolated private func parseContentBlocks(from html: String?, articleTitle: String = "") -> [ContentBlock] {
         guard let html = html, !html.isEmpty else { return [] }
+        
+        let normalizedTitle = articleTitle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
         return autoreleasepool {
             // Cap input to prevent parsing extremely large HTML
@@ -1566,9 +1763,20 @@ struct ArticlePreviewPane: View {
         
         // If no children were block elements, process the body as a whole
         if blocks.isEmpty, let text = try? body.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            blocks.append(.text(text))
+            blocks.append(.text(AttributedString(text)))
         }
         
+            // Remove first heading if it duplicates the article title
+            if !normalizedTitle.isEmpty, let firstIdx = blocks.firstIndex(where: {
+                if case .heading(_, _) = $0 { return true }
+                return false
+            }) {
+                if case .heading(let attrText, _) = blocks[firstIdx],
+                   String(attrText.characters).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedTitle {
+                    blocks.remove(at: firstIdx)
+                }
+            }
+            
             // Cap total blocks to prevent rendering issues
             if blocks.count > 100 {
                 return Array(blocks.prefix(100))
@@ -1620,17 +1828,75 @@ struct ArticlePreviewPane: View {
         
         // Handle headings
         if tag.count == 2 && tag.hasPrefix("h"), let level = Int(String(tag.last!)), (1...6).contains(level) {
-            if let text = try? element.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                blocks.append(.heading(text.trimmingCharacters(in: .whitespacesAndNewlines), level: level))
+            let richText = buildAttributedString(from: element)
+            if !richText.characters.isEmpty {
+                blocks.append(.heading(richText, level: level))
             }
             return
         }
         
         // Handle blockquotes
         if tag == "blockquote" {
-            if let text = try? element.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                blocks.append(.blockquote(text.trimmingCharacters(in: .whitespacesAndNewlines)))
+            let richText = buildAttributedString(from: element)
+            if !richText.characters.isEmpty {
+                blocks.append(.blockquote(richText))
             }
+            return
+        }
+        
+        // Handle horizontal rules
+        if tag == "hr" {
+            blocks.append(.divider)
+            return
+        }
+        
+        // Handle lists
+        if tag == "ul" || tag == "ol" {
+            let items = (try? element.select("> li"))?.array().map { buildAttributedString(from: $0) }
+                .filter { !$0.characters.isEmpty } ?? []
+            if !items.isEmpty {
+                blocks.append(.list(items, ordered: tag == "ol"))
+            }
+            return
+        }
+        
+        // Handle tables
+        if tag == "table" {
+            var rows: [[AttributedString]] = []
+            for row in (try? element.select("tr")) ?? Elements() {
+                let cells = (try? row.select("th, td")) ?? Elements()
+                let cellTexts = cells.array().map { buildAttributedString(from: $0) }
+                if !cellTexts.isEmpty { rows.append(cellTexts) }
+            }
+            if !rows.isEmpty { blocks.append(.table(rows)) }
+            return
+        }
+        
+        // Handle definition lists
+        if tag == "dl" {
+            var pairs: [(term: AttributedString, definition: AttributedString)] = []
+            var currentTerm: AttributedString?
+            for child in element.children() {
+                let childTag = child.tagName().lowercased()
+                if childTag == "dt" {
+                    currentTerm = buildAttributedString(from: child)
+                } else if childTag == "dd", let term = currentTerm {
+                    pairs.append((term: term, definition: buildAttributedString(from: child)))
+                    currentTerm = nil
+                }
+            }
+            if !pairs.isEmpty { blocks.append(.definitionList(pairs)) }
+            return
+        }
+        
+        // Handle details/summary
+        if tag == "details" {
+            let summary = (try? element.select("summary").first()?.text()) ?? "Details"
+            var innerBlocks: [ContentBlock] = []
+            for child in element.children() where child.tagName().lowercased() != "summary" {
+                extractBlocks(from: child, into: &innerBlocks, depth: depth + 1)
+            }
+            if !innerBlocks.isEmpty { blocks.append(.details(summary: summary, content: innerBlocks)) }
             return
         }
         
@@ -1645,18 +1911,19 @@ struct ArticlePreviewPane: View {
             // Also get any direct text content not in child elements
             let ownText = element.ownText()
             if !ownText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                blocks.append(.text(ownText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                blocks.append(.text(AttributedString(ownText.trimmingCharacters(in: .whitespacesAndNewlines))))
             }
         } else {
-            // Pure text element — use SwiftSoup's .text() for clean whitespace handling
-            if let text = try? element.text(),
-               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Pure text element — build rich AttributedString with inline formatting
+            let richText = buildAttributedString(from: element)
+            if !richText.characters.isEmpty {
                 // Merge with previous text block if consecutive
-                if case .text(let prev) = blocks.last {
-                    blocks[blocks.count - 1] = .text(prev + "\n\n" + trimmed)
+                if case .text(var prev) = blocks.last {
+                    prev.append(AttributedString("\n\n"))
+                    prev.append(richText)
+                    blocks[blocks.count - 1] = .text(prev)
                 } else {
-                    blocks.append(.text(trimmed))
+                    blocks.append(.text(richText))
                 }
             }
         }
@@ -1718,10 +1985,11 @@ struct ArticlePreviewPane: View {
             
             // Parse on background thread to avoid blocking the main thread
             let itemDesc = item.description
+            let itemTitle = item.title
             let result: (html: String, text: String, blocks: [ContentBlock])? = await Task.detached(priority: .userInitiated) {
                 let (extractedHTML, extractedText) = self.extractArticleContent(from: html)
                 guard extractedText.count > itemDesc.count else { return nil }
-                let blocks = self.parseContentBlocks(from: extractedHTML)
+                let blocks = self.parseContentBlocks(from: extractedHTML, articleTitle: itemTitle)
                 return (extractedHTML, extractedText, blocks)
             }.value
             
