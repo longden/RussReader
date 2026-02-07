@@ -13,7 +13,7 @@ struct SettingsTabView: View {
     
     var body: some View {
         Form {
-            // General Settings
+            // General
             Section(header: Text(String(localized: "General", bundle: .module))) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -47,6 +47,13 @@ struct SettingsTabView: View {
                     .frame(width: 120)
                 }
                 
+                Toggle(String(localized: "Launch at Login", bundle: .module), isOn: $launchAtLogin)
+            }
+            
+            // Reading
+            Section(header: Text(String(localized: "Behavior", bundle: .module))) {
+                Toggle(String(localized: "Open Articles in Preview", bundle: .module), isOn: $store.openInPreview)
+                
                 HStack {
                     Text(String(localized: "Browser", bundle: .module))
                     Spacer()
@@ -58,14 +65,49 @@ struct SettingsTabView: View {
                     .frame(width: 200)
                 }
                 
+                Toggle(String(localized: "Sticky Window", bundle: .module), isOn: $stickyWindow)
                 Toggle(String(localized: "Show Unread Badge", bundle: .module), isOn: $store.showUnreadBadge)
                 Toggle(String(localized: "Notify on New Items", bundle: .module), isOn: $store.newItemNotificationsEnabled)
-                Toggle(String(localized: "Sticky Window", bundle: .module), isOn: $stickyWindow)
-                Toggle(String(localized: "Launch at Login", bundle: .module), isOn: $launchAtLogin)
+                    .disabled(!store.notificationsAvailable)
+                
+                if !store.notificationsAvailable {
+                    Text(String(localized: "Notifications require the .app bundle (use build script instead of swift run)", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                
+                HStack {
+                    Text(String(localized: "Refresh Interval", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.refreshIntervalMinutes) {
+                        Text(String(localized: "Manual", bundle: .module)).tag(0)
+                        Text(String(localized: "5 min", bundle: .module)).tag(5)
+                        Text(String(localized: "15 min", bundle: .module)).tag(15)
+                        Text(String(localized: "30 min", bundle: .module)).tag(30)
+                        Text(String(localized: "1 hour", bundle: .module)).tag(60)
+                        Text(String(localized: "2 hours", bundle: .module)).tag(120)
+                    }
+                    .frame(width: 120)
+                    .onChange(of: store.refreshIntervalMinutes) { _, _ in
+                        store.startRefreshTimer()
+                    }
+                }
+                
+                HStack {
+                    Text(String(localized: "Max Items per Feed", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.maxItemsPerFeed) {
+                        Text("25").tag(25)
+                        Text("50").tag(50)
+                        Text("100").tag(100)
+                        Text("200").tag(200)
+                    }
+                    .frame(width: 100)
+                }
             }
             
-            // RSS Appearance Settings
-            Section(header: Text(String(localized: "RSS Appearance", bundle: .module))) {
+            // Appearance
+            Section(header: Text(String(localized: "Appearance", bundle: .module))) {
                 HStack {
                     Text(String(localized: "Window Width", bundle: .module))
                     Spacer()
@@ -113,42 +155,6 @@ struct SettingsTabView: View {
                     .frame(width: 100)
                 }
                 
-                Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)
-                Toggle(String(localized: "Show Feed Icons", bundle: .module), isOn: $store.showFeedIcons)
-                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
-            }
-            
-            // Feed Settings
-            Section(header: Text(String(localized: "Feed Settings", bundle: .module))) {
-                HStack {
-                    Text(String(localized: "Max Items per Feed", bundle: .module))
-                    Spacer()
-                    Picker("", selection: $store.maxItemsPerFeed) {
-                        Text("25").tag(25)
-                        Text("50").tag(50)
-                        Text("100").tag(100)
-                        Text("200").tag(200)
-                    }
-                    .frame(width: 100)
-                }
-                
-                HStack {
-                    Text(String(localized: "Refresh Interval", bundle: .module))
-                    Spacer()
-                    Picker("", selection: $store.refreshIntervalMinutes) {
-                        Text(String(localized: "Manual", bundle: .module)).tag(0)
-                        Text(String(localized: "5 min", bundle: .module)).tag(5)
-                        Text(String(localized: "15 min", bundle: .module)).tag(15)
-                        Text(String(localized: "30 min", bundle: .module)).tag(30)
-                        Text(String(localized: "1 hour", bundle: .module)).tag(60)
-                        Text(String(localized: "2 hours", bundle: .module)).tag(120)
-                    }
-                    .frame(width: 120)
-                    .onChange(of: store.refreshIntervalMinutes) { _, _ in
-                        store.startRefreshTimer()
-                    }
-                }
-                
                 HStack {
                     Text(String(localized: "Time Format", bundle: .module))
                     Spacer()
@@ -158,10 +164,14 @@ struct SettingsTabView: View {
                     }
                     .frame(width: 120)
                 }
+                
+                Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)
+                Toggle(String(localized: "Show Feed Icons", bundle: .module), isOn: $store.showFeedIcons)
+                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
             }
             
-            // Danger Zone
-            Section {
+            // Actions
+            Section(header: Text(String(localized: "Actions", bundle: .module))) {
                 HStack {
                     Button(String(localized: "Quit App", bundle: .module)) {
                         NSApplication.shared.terminate(nil)

@@ -95,9 +95,11 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssLanguage") var selectedLanguage: String = "system"
     @AppStorage("rssStickyWindow") var stickyWindow: Bool = true
     @AppStorage("rssNewItemNotifications") var newItemNotificationsEnabled: Bool = false
+    var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
     @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = false
     @AppStorage("rssWindowWidthSize") var windowWidthSize: String = "medium"
     @AppStorage("rssWindowHeightSize") var windowHeightSize: String = "medium"
+    @AppStorage("rssOpenInPreview") var openInPreview: Bool = false
     
     /// Computed window width based on size preset
     var windowWidth: CGFloat {
@@ -272,9 +274,9 @@ final class FeedStore: ObservableObject {
     
     /// Call this after app is fully initialized to request notification permissions
     func setupNotifications() {
-        // Guard against environments without proper app bundle (e.g., swift run)
+        // UNUserNotificationCenter requires a bundle identifier — crashes without one
         guard Bundle.main.bundleIdentifier != nil else {
-            logger.info("Skipping notification setup - no bundle identifier (likely swift run)")
+            logger.info("Notifications unavailable - no bundle identifier (use .app bundle instead of swift run)")
             return
         }
         
@@ -641,13 +643,7 @@ final class FeedStore: ObservableObject {
     // MARK: - Notifications
     
     nonisolated func requestNotificationPermissions() async {
-        // Guard against environments where notifications aren't available (e.g., swift run)
-        guard Bundle.main.bundleIdentifier != nil else {
-            await MainActor.run {
-                logger.info("Skipping notification setup - no bundle identifier (likely swift run)")
-            }
-            return
-        }
+        guard Bundle.main.bundleIdentifier != nil else { return }
         
         let center = UNUserNotificationCenter.current()
         do {
@@ -666,12 +662,7 @@ final class FeedStore: ObservableObject {
     
     func sendNotification(for item: FeedItem, ruleName: String) {
         guard newItemNotificationsEnabled else { return }
-        
-        // Guard against environments where notifications aren't available
-        guard Bundle.main.bundleIdentifier != nil else {
-            logger.debug("Skipping notification - no bundle identifier")
-            return
-        }
+        guard Bundle.main.bundleIdentifier != nil else { return }
         
         let content = UNMutableNotificationContent()
         content.title = ruleName
@@ -993,6 +984,7 @@ final class FeedStore: ObservableObject {
     }
 
     private func sendNewItemsNotification(addedCount: Int, latestItem: FeedItem?) async {
+        guard Bundle.main.bundleIdentifier != nil else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         

@@ -220,38 +220,45 @@ struct RSSReaderView: View {
     // MARK: - Item List View
 
     private var itemListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(store.filteredItems) { item in
-                    FeedItemRow(
-                        item: item,
-                        feedTitle: store.feedTitle(for: item),
-                        feedIconURL: store.feedIconURL(for: item),
-                        feedURL: store.feedURL(for: item),
-                        isHovered: hoveredItemId == item.id,
-                        fontSize: store.fontSize,
-                        titleMaxLines: store.titleMaxLines,
-                        timeFormat: store.timeFormat,
-                        highlightColor: store.highlightColor(for: item),
-                        iconEmoji: store.iconEmoji(for: item),
-                        showSummary: store.shouldShowSummary(for: item),
-                        showFeedIcon: store.showFeedIcons,
-                        onPreview: {
-                            store.markAsRead(item)
-                            withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(store.filteredItems) { item in
+                        FeedItemRow(
+                            item: item,
+                            feedTitle: store.feedTitle(for: item),
+                            feedIconURL: store.feedIconURL(for: item),
+                            feedURL: store.feedURL(for: item),
+                            isHovered: hoveredItemId == item.id,
+                            fontSize: store.fontSize,
+                            titleMaxLines: store.titleMaxLines,
+                            timeFormat: store.timeFormat,
+                            highlightColor: store.highlightColor(for: item),
+                            iconEmoji: store.iconEmoji(for: item),
+                            showSummary: store.shouldShowSummary(for: item),
+                            showFeedIcon: store.showFeedIcons,
+                            onPreview: {
+                                store.markAsRead(item)
+                                withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+                            }
+                        )
+                        .id(item.id)
+                        .background(selectedItemId == item.id ? Color.accentColor.opacity(0.15) : Color.clear)
+                        .onTapGesture {
+                            selectedItemId = item.id
+                            if store.openInPreview {
+                                store.markAsRead(item)
+                                withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+                            } else {
+                                store.openItem(item)
+                            }
                         }
-                    )
-                    .background(selectedItemId == item.id ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .onTapGesture {
-                        selectedItemId = item.id
-                        store.openItem(item)
+                        .feedItemContextMenu(item: item, store: store)
+                        .pointerOnHover()
+                        .onHover { isHovered in
+                            hoveredItemId = isHovered ? item.id : nil
+                        }
                     }
-                    .feedItemContextMenu(item: item, store: store)
-                    .pointerOnHover()
-                    .onHover { isHovered in
-                        hoveredItemId = isHovered ? item.id : nil
-                    }
-                }
                 
                 // Hidden items indicator
                 if store.hiddenItemCount > 0 {
@@ -266,6 +273,15 @@ struct RSSReaderView: View {
                 }
             }
             .padding(.vertical, 0)
+            }
+            .onAppear {
+                if let id = selectedItemId {
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(id, anchor: .center)
+                        selectedItemId = nil
+                    }
+                }
+            }
         }
     }
 
@@ -520,7 +536,12 @@ struct RSSReaderView: View {
     private func openSelectedItem() {
         guard let id = selectedItemId,
               let item = store.filteredItems.first(where: { $0.id == id }) else { return }
-        store.openItem(item)
+        if store.openInPreview {
+            store.markAsRead(item)
+            withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+        } else {
+            store.openItem(item)
+        }
     }
     
     private func toggleSelectedRead() {

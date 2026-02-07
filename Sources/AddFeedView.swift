@@ -188,7 +188,7 @@ struct AddFeedWindow: View {
                     }
                 }
             }
-            .frame(width: 350)
+            .frame(width: 420)
             .onAppear {
                 // Reset state when window opens
                 isSheetPresented = true
@@ -405,13 +405,7 @@ struct AddFeedSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 350)
-        .onAppear {
-            // CRITICAL: Change activation policy to allow keyboard input in sheets
-            // LSUIElement apps need this to receive keyboard events
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        .frame(width: 420)
         .onDisappear {
             // Only restore LSUIElement behavior if no other regular windows are open
             // (e.g., if Preferences window is still open, keep .regular)
