@@ -1359,6 +1359,26 @@ struct ArticlePreviewPane: View {
                                     .lineSpacing(6)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
+                        case .heading(let text, let level):
+                            Text(text)
+                                .font(.system(size: headingSize(level), weight: level <= 2 ? .bold : .semibold))
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, level <= 2 ? 8 : 4)
+                        case .blockquote(let text):
+                            HStack(spacing: 0) {
+                                RoundedRectangle(cornerRadius: 1.5)
+                                    .fill(Color.accentColor.opacity(0.5))
+                                    .frame(width: 3)
+                                Text(text)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.secondary)
+                                    .italic()
+                                    .lineSpacing(5)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(.leading, 12)
+                            }
+                            .padding(.vertical, 4)
                         case .image(let url, let caption):
                             VStack(spacing: 4) {
                                 AsyncImage(url: url) { phase in
@@ -1445,6 +1465,16 @@ struct ArticlePreviewPane: View {
     
     // MARK: - Date Formatting
     
+    private func headingSize(_ level: Int) -> CGFloat {
+        switch level {
+        case 1: return 20
+        case 2: return 17
+        case 3: return 15
+        case 4: return 14
+        default: return 13
+        }
+    }
+    
     private static let previewDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
@@ -1468,6 +1498,8 @@ struct ArticlePreviewPane: View {
     
     private enum ContentBlock {
         case text(String)
+        case heading(String, level: Int)
+        case blockquote(String)
         case image(URL, caption: String?)
         case code(String)
     }
@@ -1586,15 +1618,26 @@ struct ArticlePreviewPane: View {
             return
         }
         
-        // Check for direct child images or code blocks (need to recurse to preserve block types)
-        let hasBlockChildren = element.children().array().contains {
-            let t = $0.tagName().lowercased()
-            return t == "img" || t == "figure" || t == "pre" || t == "code"
+        // Handle headings
+        if tag.count == 2 && tag.hasPrefix("h"), let level = Int(String(tag.last!)), (1...6).contains(level) {
+            if let text = try? element.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                blocks.append(.heading(text.trimmingCharacters(in: .whitespacesAndNewlines), level: level))
+            }
+            return
         }
-        // Also recurse into container elements (div, section, article, main) that likely wrap mixed content
-        let isContainer = ["div", "section", "article", "main", "aside", "blockquote"].contains(tag) && element.children().size() > 0
         
-        if hasBlockChildren || isContainer {
+        // Handle blockquotes
+        if tag == "blockquote" {
+            if let text = try? element.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                blocks.append(.blockquote(text.trimmingCharacters(in: .whitespacesAndNewlines)))
+            }
+            return
+        }
+        
+        // Container elements should be recursed into to find nested blocks
+        let isContainer = ["div", "section", "article", "main", "aside", "header"].contains(tag) && element.children().size() > 0
+        
+        if isContainer {
             // Element has mixed content — process children individually
             for child in element.children() {
                 extractBlocks(from: child, into: &blocks, depth: depth + 1)
