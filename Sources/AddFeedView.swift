@@ -11,81 +11,153 @@ struct DiscoveredFeed: Identifiable {
 }
 
 final class FeedDiscovery {
+    /// Feed content types that indicate a URL is a direct feed
+    private static let feedContentTypes = [
+        "application/rss+xml", "application/atom+xml", "application/feed+json",
+        "application/xml", "text/xml"
+    ]
+    
     static func discoverFeeds(from urlString: String) async -> [DiscoveredFeed] {
-        // First check if it's already an RSS/Atom feed URL
-        if urlString.contains("/feed") || urlString.contains("/rss") || urlString.contains(".xml") || urlString.contains(".atom") {
-            return []
-        }
-
         guard let url = URL(string: urlString) else { return [] }
 
         do {
-            let request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
-            let (data, _) = try await URLSession.shared.data(for: request)
+            var request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
+            request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Check Content-Type — if it's already a feed, return it directly
+            if let httpResponse = response as? HTTPURLResponse,
+               let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased(),
+               feedContentTypes.contains(where: { contentType.contains($0) }) {
+                let title = parseFeedTitle(from: data)
+                let type = contentType.contains("atom") ? "Atom" : (contentType.contains("json") ? "JSON Feed" : "RSS")
+                return [DiscoveredFeed(url: urlString, title: title, type: type)]
+            }
+            
+            // Try parsing as feed directly (some servers return text/html for XML feeds)
+            if let title = parseFeedTitle(from: data), looksLikeFeed(data: data) {
+                let dataStr = String(data: data.prefix(500), encoding: .utf8) ?? ""
+                let type = dataStr.contains("<feed") ? "Atom" : (dataStr.contains("\"version\"") ? "JSON Feed" : "RSS")
+                return [DiscoveredFeed(url: urlString, title: title, type: type)]
+            }
+            
             guard let html = String(data: data, encoding: .utf8) else { return [] }
-
-            return parseHTMLForFeeds(html: html, baseURL: url)
+            
+            var feeds = parseHTMLForFeeds(html: html, baseURL: url)
+            
+            // Fallback: try common feed paths
+            if feeds.isEmpty {
+                feeds = await probeCommonFeedPaths(baseURL: url)
+            }
+            
+            return feeds
         } catch {
             return []
         }
+    }
+    
+    /// Check if data looks like an RSS/Atom/JSON feed
+    private static func looksLikeFeed(data: Data) -> Bool {
+        guard let prefix = String(data: data.prefix(500), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
+        return prefix.contains("<rss") || prefix.contains("<feed") || prefix.contains("<RDF") || 
+               (prefix.hasPrefix("{") && prefix.contains("\"version\""))
+    }
+    
+    /// Extract feed title from raw feed data
+    private static func parseFeedTitle(from data: Data) -> String? {
+        guard let str = String(data: data.prefix(2000), encoding: .utf8) else { return nil }
+        // XML title
+        if let match = str.firstMatch(of: #/<title>([^<]+)<\/title>/#) {
+            let title = String(match.output.1).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty { return title }
+        }
+        // JSON Feed title
+        if let match = str.firstMatch(of: #/"title"\s*:\s*"([^"]+)"/#) {
+            return String(match.output.1)
+        }
+        return nil
     }
 
     private static func parseHTMLForFeeds(html: String, baseURL: URL) -> [DiscoveredFeed] {
         var feeds: [DiscoveredFeed] = []
 
-        // Look for <link> tags with RSS/Atom feeds (attribute order varies by site)
+        // Look for <link> tags with RSS/Atom/JSON feeds
         let allLinksPattern = #/<link[^>]+>/#
         let linkMatches = html.matches(of: allLinksPattern)
 
         for match in linkMatches {
             let linkTag = String(match.output)
             
-            // Must have rel="alternate" and an RSS/Atom type
+            // Must have rel="alternate" and a feed type
             guard linkTag.contains("alternate") else { continue }
-            guard linkTag.contains("application/rss+xml") || linkTag.contains("application/atom+xml") else { continue }
+            guard linkTag.contains("application/rss+xml") || linkTag.contains("application/atom+xml") || linkTag.contains("application/feed+json") else { continue }
 
-            // Extract href using regex
             let hrefPattern = #/href=["']([^"']+)["']/#
             if let hrefMatch = linkTag.firstMatch(of: hrefPattern) {
                 let hrefString = String(hrefMatch.output.1)
 
-                // Extract title if present
                 var title: String?
                 let titlePattern = #/title=["']([^"']+)["']/#
                 if let titleMatch = linkTag.firstMatch(of: titlePattern) {
                     title = String(titleMatch.output.1)
                 }
 
-                // Extract type
                 var feedType = "RSS"
                 if linkTag.contains("atom") {
                     feedType = "Atom"
+                } else if linkTag.contains("feed+json") {
+                    feedType = "JSON Feed"
                 }
 
-                // Make absolute URL if relative
-                let absoluteURL: String
-                if hrefString.hasPrefix("http") {
-                    absoluteURL = hrefString
-                } else if hrefString.hasPrefix("/") {
-                    absoluteURL = "\(baseURL.scheme ?? "https")://\(baseURL.host ?? "")\(hrefString)"
-                } else {
-                    absoluteURL = "\(baseURL.scheme ?? "https")://\(baseURL.host ?? "")/\(hrefString)"
-                }
-
+                let absoluteURL = makeAbsoluteURL(hrefString, base: baseURL)
                 feeds.append(DiscoveredFeed(url: absoluteURL, title: title, type: feedType))
             }
         }
 
-        // Also check common feed URLs as fallback
-        if feeds.isEmpty {
-            let commonPaths = ["/feed", "/rss", "/atom.xml", "/feed.xml", "/rss.xml", "/index.xml"]
+        return feeds
+    }
+    
+    /// Probe common feed URL paths and return ones that respond with feed content
+    private static func probeCommonFeedPaths(baseURL: URL) async -> [DiscoveredFeed] {
+        let commonPaths = [
+            "/feed", "/rss", "/atom.xml", "/feed.xml", "/rss.xml", "/index.xml",
+            "/feed.json", "/atom", "/blog/feed", "/blog/rss", "/posts.rss", "/feed/rss"
+        ]
+        
+        var feeds: [DiscoveredFeed] = []
+        
+        await withTaskGroup(of: DiscoveredFeed?.self) { group in
             for path in commonPaths {
                 let feedURL = "\(baseURL.scheme ?? "https")://\(baseURL.host ?? "")\(path)"
-                feeds.append(DiscoveredFeed(url: feedURL, title: nil, type: "RSS"))
+                group.addTask {
+                    guard let url = URL(string: feedURL) else { return nil }
+                    var request = URLRequest(url: url, timeoutInterval: 8)
+                    request.httpMethod = "HEAD"
+                    do {
+                        let (_, response) = try await URLSession.shared.data(for: request)
+                        if let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) {
+                            return DiscoveredFeed(url: feedURL, title: nil, type: "RSS")
+                        }
+                    } catch {}
+                    return nil
+                }
+            }
+            for await result in group {
+                if let feed = result { feeds.append(feed) }
             }
         }
-
+        
         return feeds
+    }
+    
+    private static func makeAbsoluteURL(_ href: String, base: URL) -> String {
+        if href.hasPrefix("http") {
+            return href
+        } else if href.hasPrefix("/") {
+            return "\(base.scheme ?? "https")://\(base.host ?? "")\(href)"
+        } else {
+            return "\(base.scheme ?? "https")://\(base.host ?? "")/\(href)"
+        }
     }
 }
 
@@ -360,8 +432,11 @@ struct AddFeedSheet: View {
 
     private func detectFeeds(from urlString: String) async {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         
-        // Auto-convert YouTube URLs to RSS feeds
+        // Platform-specific converters (instant, no network needed for most)
+        
+        // YouTube
         if trimmed.contains("youtube.com") || trimmed.contains("youtu.be") {
             isDiscovering = true
             discoveredFeeds = []
@@ -375,18 +450,104 @@ struct AddFeedSheet: View {
             await MainActor.run { isDiscovering = false }
         }
         
-        // Auto-convert Reddit URLs to RSS feeds
+        // Reddit
         if let redditRSS = convertRedditToRSS(trimmed) {
-            await MainActor.run {
-                discoveredFeeds = [redditRSS]
-            }
+            await MainActor.run { discoveredFeeds = [redditRSS] }
+            return
+        }
+        
+        // GitHub
+        if let githubFeeds = convertGitHubToRSS(trimmed), !githubFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = githubFeeds }
+            return
+        }
+        
+        // Mastodon / Fediverse
+        if let mastodonRSS = convertMastodonToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [mastodonRSS] }
+            return
+        }
+        
+        // Substack
+        if let substackRSS = convertSubstackToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [substackRSS] }
+            return
+        }
+        
+        // Medium
+        if let mediumRSS = convertMediumToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [mediumRSS] }
+            return
+        }
+        
+        // Tumblr
+        if let tumblrRSS = convertTumblrToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [tumblrRSS] }
+            return
+        }
+        
+        // Hacker News
+        if let hnFeeds = convertHackerNewsToRSS(trimmed), !hnFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = hnFeeds }
+            return
+        }
+        
+        // WordPress.com
+        if let wpRSS = convertWordPressToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [wpRSS] }
+            return
+        }
+        
+        // Blogger / Blogspot
+        if let bloggerRSS = convertBloggerToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [bloggerRSS] }
+            return
+        }
+        
+        // Dev.to
+        if let devtoRSS = convertDevToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [devtoRSS] }
+            return
+        }
+        
+        // Hashnode
+        if let hashnodeRSS = convertHashnodeToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [hashnodeRSS] }
+            return
+        }
+        
+        // Ghost blogs (detect via common pattern)
+        if let ghostRSS = convertGhostToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [ghostRSS] }
+            return
+        }
+        
+        // NPR
+        if let nprFeeds = convertNPRToRSS(trimmed), !nprFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = nprFeeds }
+            return
+        }
+        
+        // BBC News
+        if let bbcFeeds = convertBBCToRSS(trimmed), !bbcFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = bbcFeeds }
+            return
+        }
+        
+        // Stack Overflow
+        if let soFeeds = convertStackOverflowToRSS(trimmed), !soFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = soFeeds }
+            return
+        }
+        
+        // Bluesky
+        if let bskyRSS = convertBlueskyToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [bskyRSS] }
             return
         }
 
-        // Only try to discover if it looks like a website URL
-        guard trimmed.hasPrefix("http") && !trimmed.contains("/feed") && !trimmed.contains("/rss") && !trimmed.contains(".xml") && !trimmed.contains(".atom") else {
-            return
-        }
+        // Generic discovery — works for any URL
+        guard trimmed.hasPrefix("http") else { return }
 
         isDiscovering = true
         discoveredFeeds = []
@@ -496,6 +657,254 @@ struct AddFeedSheet: View {
             )
         }
         
+        return nil
+    }
+
+    // MARK: - GitHub Converter
+    
+    private func convertGitHubToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("github.com") else { return nil }
+        
+        // Match github.com/user/repo (with optional trailing path segments)
+        guard let match = url.range(of: #"github\.com/([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) else { return nil }
+        let pathPart = String(url[match]).replacingOccurrences(of: "github.com/", with: "")
+        let parts = pathPart.split(separator: "/")
+        guard parts.count >= 2 else { return nil }
+        let user = String(parts[0])
+        let repo = String(parts[1])
+        
+        return [
+            DiscoveredFeed(url: "https://github.com/\(user)/\(repo)/commits.atom", title: "\(user)/\(repo) — Commits", type: "Atom"),
+            DiscoveredFeed(url: "https://github.com/\(user)/\(repo)/releases.atom", title: "\(user)/\(repo) — Releases", type: "Atom"),
+            DiscoveredFeed(url: "https://github.com/\(user)/\(repo)/tags.atom", title: "\(user)/\(repo) — Tags", type: "Atom"),
+        ]
+    }
+    
+    // MARK: - Mastodon / Fediverse Converter
+    
+    private func convertMastodonToRSS(_ url: String) -> DiscoveredFeed? {
+        // Pattern: https://instance.social/@username
+        guard let urlObj = URL(string: url),
+              let host = urlObj.host,
+              let match = url.range(of: #"/@([a-zA-Z0-9_]+)$"#, options: .regularExpression) else { return nil }
+        // Exclude known non-Mastodon sites
+        let excluded = ["github.com", "twitter.com", "x.com", "medium.com"]
+        guard !excluded.contains(host) else { return nil }
+        
+        let username = String(url[match]).replacingOccurrences(of: "/@", with: "")
+        return DiscoveredFeed(
+            url: "https://\(host)/@\(username).rss",
+            title: "@\(username)@\(host)",
+            type: "RSS"
+        )
+    }
+    
+    // MARK: - Substack Converter
+    
+    private func convertSubstackToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        
+        // Pattern: *.substack.com or custom domain with /p/ (Substack post pattern)
+        if host.hasSuffix(".substack.com") {
+            let subdomain = host.replacingOccurrences(of: ".substack.com", with: "")
+            return DiscoveredFeed(
+                url: "https://\(host)/feed",
+                title: subdomain.capitalized,
+                type: "RSS"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Medium Converter
+    
+    private func convertMediumToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("medium.com") else { return nil }
+        
+        // Pattern: medium.com/@username
+        if let match = url.range(of: #"medium\.com/@([a-zA-Z0-9_.-]+)"#, options: .regularExpression) {
+            let userPart = String(url[match]).replacingOccurrences(of: "medium.com/", with: "")
+            return DiscoveredFeed(
+                url: "https://medium.com/feed/\(userPart)",
+                title: "Medium — \(userPart)",
+                type: "RSS"
+            )
+        }
+        
+        // Pattern: medium.com/publication-name
+        if let urlObj = URL(string: url), let host = urlObj.host, host == "medium.com" {
+            let path = urlObj.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            if !path.isEmpty && !path.contains("/") {
+                return DiscoveredFeed(
+                    url: "https://medium.com/feed/\(path)",
+                    title: "Medium — \(path)",
+                    type: "RSS"
+                )
+            }
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Tumblr Converter
+    
+    private func convertTumblrToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        
+        if host.hasSuffix(".tumblr.com") {
+            let blogName = host.replacingOccurrences(of: ".tumblr.com", with: "")
+            return DiscoveredFeed(
+                url: "https://\(host)/rss",
+                title: blogName.capitalized,
+                type: "RSS"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Hacker News Converter
+    
+    private func convertHackerNewsToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("news.ycombinator.com") || url.contains("hn.algolia.com") || url.contains("hacker-news") else { return nil }
+        
+        return [
+            DiscoveredFeed(url: "https://hnrss.org/frontpage", title: "Hacker News — Front Page", type: "RSS"),
+            DiscoveredFeed(url: "https://hnrss.org/newest", title: "Hacker News — New", type: "RSS"),
+            DiscoveredFeed(url: "https://hnrss.org/best", title: "Hacker News — Best", type: "RSS"),
+            DiscoveredFeed(url: "https://hnrss.org/show", title: "Hacker News — Show HN", type: "RSS"),
+            DiscoveredFeed(url: "https://hnrss.org/ask", title: "Hacker News — Ask HN", type: "RSS"),
+        ]
+    }
+
+    // MARK: - WordPress.com Converter
+    
+    private func convertWordPressToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        if host.hasSuffix(".wordpress.com") {
+            let blogName = host.replacingOccurrences(of: ".wordpress.com", with: "")
+            return DiscoveredFeed(url: "https://\(host)/feed", title: blogName.capitalized, type: "RSS")
+        }
+        return nil
+    }
+    
+    // MARK: - Blogger / Blogspot Converter
+    
+    private func convertBloggerToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        if host.hasSuffix(".blogspot.com") || host.hasSuffix(".blogger.com") {
+            let blogName = host.split(separator: ".").first.map(String.init) ?? host
+            return DiscoveredFeed(url: "https://\(host)/feeds/posts/default", title: blogName.capitalized, type: "Atom")
+        }
+        return nil
+    }
+    
+    // MARK: - Dev.to Converter
+    
+    private func convertDevToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("dev.to") else { return nil }
+        // Pattern: dev.to/username
+        if let match = url.range(of: #"dev\.to/([a-zA-Z0-9_]+)$"#, options: .regularExpression) {
+            let username = String(url[match]).replacingOccurrences(of: "dev.to/", with: "")
+            return DiscoveredFeed(url: "https://dev.to/feed/\(username)", title: "Dev.to — \(username)", type: "RSS")
+        }
+        // Just dev.to homepage
+        if url.hasSuffix("dev.to") || url.hasSuffix("dev.to/") {
+            return DiscoveredFeed(url: "https://dev.to/feed", title: "Dev.to — Latest", type: "RSS")
+        }
+        return nil
+    }
+    
+    // MARK: - Hashnode Converter
+    
+    private func convertHashnodeToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        if host.hasSuffix(".hashnode.dev") {
+            let blogName = host.replacingOccurrences(of: ".hashnode.dev", with: "")
+            return DiscoveredFeed(url: "https://\(host)/rss.xml", title: blogName.capitalized, type: "RSS")
+        }
+        return nil
+    }
+    
+    // MARK: - Ghost Converter
+    
+    private func convertGhostToRSS(_ url: String) -> DiscoveredFeed? {
+        // Ghost blogs use /rss/ — detect common Ghost hosting patterns
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        if host.hasSuffix(".ghost.io") {
+            let blogName = host.replacingOccurrences(of: ".ghost.io", with: "")
+            return DiscoveredFeed(url: "https://\(host)/rss/", title: blogName.capitalized, type: "RSS")
+        }
+        return nil
+    }
+    
+    // MARK: - NPR Converter
+    
+    private func convertNPRToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("npr.org") else { return nil }
+        return [
+            DiscoveredFeed(url: "https://feeds.npr.org/1001/rss.xml", title: "NPR — News", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.npr.org/1002/rss.xml", title: "NPR — World", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.npr.org/1014/rss.xml", title: "NPR — Politics", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.npr.org/1019/rss.xml", title: "NPR — Technology", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.npr.org/1007/rss.xml", title: "NPR — Science", type: "RSS"),
+        ]
+    }
+    
+    // MARK: - BBC News Converter
+    
+    private func convertBBCToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("bbc.com") || url.contains("bbc.co.uk") else { return nil }
+        return [
+            DiscoveredFeed(url: "https://feeds.bbci.co.uk/news/rss.xml", title: "BBC — Top Stories", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.bbci.co.uk/news/world/rss.xml", title: "BBC — World", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.bbci.co.uk/news/technology/rss.xml", title: "BBC — Technology", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", title: "BBC — Science", type: "RSS"),
+            DiscoveredFeed(url: "https://feeds.bbci.co.uk/news/business/rss.xml", title: "BBC — Business", type: "RSS"),
+        ]
+    }
+    
+    // MARK: - Stack Overflow Converter
+    
+    private func convertStackOverflowToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("stackoverflow.com") else { return nil }
+        
+        // Tag-specific feed: stackoverflow.com/questions/tagged/swift
+        if let match = url.range(of: #"tagged/([a-zA-Z0-9_.+-]+)"#, options: .regularExpression) {
+            let tag = String(url[match]).replacingOccurrences(of: "tagged/", with: "")
+            return [
+                DiscoveredFeed(url: "https://stackoverflow.com/feeds/tag/\(tag)", title: "Stack Overflow — [\(tag)]", type: "Atom"),
+            ]
+        }
+        
+        // Question-specific feed
+        if let match = url.range(of: #"questions/(\d+)"#, options: .regularExpression) {
+            let qid = String(url[match]).replacingOccurrences(of: "questions/", with: "")
+            return [
+                DiscoveredFeed(url: "https://stackoverflow.com/feeds/question/\(qid)", title: "Stack Overflow — Question #\(qid)", type: "Atom"),
+            ]
+        }
+        
+        // General SO feeds
+        return [
+            DiscoveredFeed(url: "https://stackoverflow.com/feeds", title: "Stack Overflow — Recent Questions", type: "Atom"),
+        ]
+    }
+    
+    // MARK: - Bluesky Converter
+    
+    private func convertBlueskyToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("bsky.app") else { return nil }
+        
+        // Pattern: bsky.app/profile/username.bsky.social or bsky.app/profile/custom.domain
+        if let match = url.range(of: #"profile/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) {
+            let handle = String(url[match]).replacingOccurrences(of: "profile/", with: "")
+            // Use public Bluesky RSS bridge
+            return DiscoveredFeed(
+                url: "https://bsky.app/profile/\(handle)/rss",
+                title: "Bluesky — @\(handle)",
+                type: "RSS"
+            )
+        }
         return nil
     }
 

@@ -35,14 +35,14 @@ final class RSSParser {
     }
     
     private func parseRSSFeed(_ rssFeed: FeedKit.RSSFeed) -> [FeedItem] {
-        feedTitle = rssFeed.channel?.title
+        feedTitle = rssFeed.channel?.title.map { decodeHTMLEntities($0) }
         feedIconURL = rssFeed.channel?.image?.url ?? rssFeed.channel?.iTunes?.image?.attributes?.href
         
         guard let items = rssFeed.channel?.items else { return [] }
         
         return items.compactMap { item -> FeedItem? in
-            let title = item.title ?? "Untitled"
-            let link = item.link ?? item.guid?.text ?? ""
+            let title = decodeHTMLEntities(item.title ?? "Untitled")
+            let link = decodeHTMLEntities(item.link ?? item.guid?.text ?? "")
             
             guard !link.isEmpty else { return nil }
             
@@ -73,13 +73,13 @@ final class RSSParser {
     }
     
     private func parseAtomFeed(_ atomFeed: FeedKit.AtomFeed) -> [FeedItem] {
-        feedTitle = atomFeed.title?.text
+        feedTitle = atomFeed.title?.text.map { decodeHTMLEntities($0) }
         feedIconURL = atomFeed.logo ?? atomFeed.icon
         
         guard let entries = atomFeed.entries else { return [] }
         
         return entries.compactMap { entry -> FeedItem? in
-            let title = entry.title ?? "Untitled"
+            let title = decodeHTMLEntities(entry.title ?? "Untitled")
             
             let link = entry.links?.first(where: { 
                 $0.attributes?.rel == "alternate" || $0.attributes?.type == "text/html" 
@@ -113,14 +113,14 @@ final class RSSParser {
     }
     
     private func parseJSONFeed(_ jsonFeed: FeedKit.JSONFeed) -> [FeedItem] {
-        feedTitle = jsonFeed.title
+        feedTitle = jsonFeed.title.map { decodeHTMLEntities($0) }
         feedIconURL = jsonFeed.icon ?? jsonFeed.favicon
         
         guard let items = jsonFeed.items else { return [] }
         
         return items.compactMap { item -> FeedItem? in
-            let title = item.title ?? "Untitled"
-            let link = item.url ?? item.externalURL ?? item.id ?? ""
+            let title = decodeHTMLEntities(item.title ?? "Untitled")
+            let link = decodeHTMLEntities(item.url ?? item.externalURL ?? item.id ?? "")
             
             guard !link.isEmpty else { return nil }
             
@@ -157,20 +157,51 @@ final class RSSParser {
             .replacingOccurrences(of: "<style[^>]*>.*?</style>", with: "", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&apos;", with: "'")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&nbsp;", with: " ")
+        let decoded = decodeHTMLEntities(stripped)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // Cap output at 500 chars — only 1 line is displayed and filter matching doesn't need more
-        if stripped.count > 500 {
-            return String(stripped.prefix(500))
+        if decoded.count > 500 {
+            return String(decoded.prefix(500))
         }
-        return stripped
+        return decoded
+    }
+    
+    /// Decode HTML named and numeric entities to their character equivalents
+    private func decodeHTMLEntities(_ string: String) -> String {
+        var result = string
+        // Named entities (most common ones found in RSS feeds)
+        let namedEntities: [String: String] = [
+            "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&apos;": "'",
+            "&nbsp;": " ", "&raquo;": "»", "&laquo;": "«",
+            "&mdash;": "—", "&ndash;": "–", "&hellip;": "…",
+            "&lsquo;": "\u{2018}", "&rsquo;": "\u{2019}", "&ldquo;": "\u{201C}", "&rdquo;": "\u{201D}",
+            "&bull;": "•", "&middot;": "·", "&copy;": "©", "&reg;": "®", "&trade;": "™",
+            "&eacute;": "é", "&egrave;": "è", "&uuml;": "ü", "&ouml;": "ö", "&auml;": "ä",
+            "&ntilde;": "ñ", "&ccedil;": "ç",
+        ]
+        for (entity, char) in namedEntities {
+            result = result.replacingOccurrences(of: entity, with: char)
+        }
+        // Numeric decimal entities: &#NNN;
+        while let match = result.range(of: #"&#(\d+);"#, options: .regularExpression) {
+            let numStr = result[match].dropFirst(2).dropLast()
+            if let code = UInt32(numStr), let scalar = Unicode.Scalar(code) {
+                result.replaceSubrange(match, with: String(Character(scalar)))
+            } else {
+                break
+            }
+        }
+        // Numeric hex entities: &#xHHH;
+        while let match = result.range(of: #"&#x([0-9a-fA-F]+);"#, options: .regularExpression) {
+            let hexStr = result[match].dropFirst(3).dropLast()
+            if let code = UInt32(hexStr, radix: 16), let scalar = Unicode.Scalar(code) {
+                result.replaceSubrange(match, with: String(Character(scalar)))
+            } else {
+                break
+            }
+        }
+        return result
     }
 }
 
