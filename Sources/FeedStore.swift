@@ -854,7 +854,12 @@ final class FeedStore: ObservableObject {
         var actuallyNewItems: [FeedItem] = []
         for newItem in newItems {
             let key = itemKey(newItem)
-            if existingItemsByKey[key] == nil {
+            if let existingIdx = existingItemsByKey[key] {
+                // Backfill contentHTML if missing (e.g. from older persistence format)
+                if items[existingIdx].contentHTML == nil, let html = newItem.contentHTML {
+                    items[existingIdx].contentHTML = html
+                }
+            } else {
                 var itemToAdd = newItem
                 // If this item was previously read (but trimmed), mark it as read
                 if readItemKeys.contains(key) {
