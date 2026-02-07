@@ -1,4 +1,5 @@
 import AppKit
+import SwiftSoup
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -471,29 +472,46 @@ struct RSSReaderView: View {
     @State private var showingFeedPicker: Bool = false
     @State private var hoveredPickerFeedId: UUID?
     @State private var feedPickerHovered: Bool = false
+    @State private var previewingItem: FeedItem? = nil
     @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
 
     @ViewBuilder
     var body: some View {
         let content = VStack(spacing: 0) {
-            headerView
-            filterTabsView
-            Divider()
-
-            if store.filteredItems.isEmpty {
-                emptyStateView
+            if let item = previewingItem {
+                ArticlePreviewPane(
+                    item: item,
+                    feedTitle: store.feedTitle(for: item),
+                    store: store,
+                    onClose: { withAnimation(.easeInOut(duration: 0.2)) { previewingItem = nil } }
+                )
             } else {
-                itemListView
-            }
+                headerView
+                filterTabsView
+                Divider()
 
-            Divider()
-            footerView
+                if store.filteredItems.isEmpty {
+                    emptyStateView
+                } else {
+                    itemListView
+                }
+
+                Divider()
+                footerView
+            }
         }
         .onKeyPress(.upArrow) { moveSelection(by: -1); return .handled }
         .onKeyPress(.downArrow) { moveSelection(by: 1); return .handled }
         .onKeyPress(.return) { openSelectedItem(); return .handled }
         .onKeyPress(.space) { toggleSelectedRead(); return .handled }
         .onKeyPress(characters: CharacterSet(charactersIn: "s")) { _ in toggleSelectedStar(); return .handled }
+        .onKeyPress(.escape) {
+            if previewingItem != nil {
+                withAnimation(.easeInOut(duration: 0.2)) { previewingItem = nil }
+                return .handled
+            }
+            return .ignored
+        }
         .focusable()
         .focusEffectDisabled()
 
@@ -502,7 +520,7 @@ struct RSSReaderView: View {
                 .background(.ultraThinMaterial)
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
-                .frame(width: 380, height: 520)
+                .frame(width: store.windowWidth, height: store.windowHeight)
                 .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
                     Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
                 } message: {
@@ -513,7 +531,7 @@ struct RSSReaderView: View {
                 .background(VisualEffectBackground(material: .hudWindow, blendingMode: .behindWindow))
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
-                .frame(width: 380, height: 520)
+                .frame(width: store.windowWidth, height: store.windowHeight)
                 .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
                     Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
                 } message: {
@@ -673,7 +691,11 @@ struct RSSReaderView: View {
                         highlightColor: store.highlightColor(for: item),
                         iconEmoji: store.iconEmoji(for: item),
                         showSummary: store.shouldShowSummary(for: item),
-                        showFeedIcon: store.showFeedIcons
+                        showFeedIcon: store.showFeedIcons,
+                        onPreview: {
+                            store.markAsRead(item)
+                            withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+                        }
                     )
                     .background(selectedItemId == item.id ? Color.accentColor.opacity(0.15) : Color.clear)
                     .onTapGesture {
@@ -986,6 +1008,7 @@ struct FeedItemRow: View {
     let iconEmoji: String?
     let showSummary: Bool
     let showFeedIcon: Bool
+    var onPreview: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -1045,7 +1068,17 @@ struct FeedItemRow: View {
             }
             
             ZStack {
-                if let emoji = iconEmoji {
+                if isHovered, onPreview != nil {
+                    Button {
+                        onPreview?()
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "Preview", bundle: .module))
+                } else if let emoji = iconEmoji {
                     Text(emoji)
                         .font(.system(size: 11))
                 }
@@ -1113,5 +1146,597 @@ struct FeedItemRow: View {
         if enclosure.isVideo { return "video" }
         if enclosure.isImage { return "photo" }
         return "paperclip"
+    }
+}
+
+// MARK: - Article Preview Pane
+
+struct ArticlePreviewPane: View {
+    let item: FeedItem
+    let feedTitle: String
+    @ObservedObject var store: FeedStore
+    let onClose: () -> Void
+    
+    @State private var fullContent: String?
+    @State private var fullContentHTML: String?
+    @State private var isLoadingContent = false
+    @State private var contentBlocks: [ContentBlock]?
+    @State private var loadFailed = false
+    
+    /// Live item from store (reflects star/read toggles)
+    private var liveItem: FeedItem {
+        store.items.first(where: { $0.id == item.id }) ?? item
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            previewToolbar
+            Divider()
+            previewContent
+        }
+        .task {
+            // Parse feed HTML content blocks off main thread
+            if let html = item.contentHTML, !html.isEmpty {
+                let blocks = await Task.detached(priority: .userInitiated) {
+                    self.parseContentBlocks(from: html)
+                }.value
+                if !blocks.isEmpty {
+                    contentBlocks = blocks
+                }
+            }
+            // Then try fetching full article if feed content is sparse
+            await loadFullContent()
+        }
+    }
+    
+    // MARK: - Toolbar
+    
+    @ViewBuilder
+    private var previewToolbar: some View {
+        let buttons = HStack(spacing: 8) {
+            toolbarButton(liveItem.isStarred ? "star.fill" : "star", tint: liveItem.isStarred ? .yellow : nil) {
+                store.toggleStarred(liveItem)
+            }
+            toolbarButton(liveItem.isRead ? "envelope.open" : "envelope.badge", tint: nil) {
+                store.toggleRead(liveItem)
+            }
+            toolbarButton("square.and.arrow.up", tint: nil) {
+                store.shareItem(liveItem)
+            }
+            toolbarButton("safari", tint: nil) {
+                store.openItem(liveItem)
+            }
+        }
+        
+        if #available(macOS 26.0, *) {
+            HStack(spacing: 12) {
+                Button { onClose() } label: {
+                    Label(String(localized: "Back", bundle: .module), systemImage: "chevron.left")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .pointerOnHover()
+                
+                Spacer()
+                
+                GlassEffectContainer { buttons }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .sectionDivider()
+        } else {
+            HStack(spacing: 12) {
+                Button { onClose() } label: {
+                    Label(String(localized: "Back", bundle: .module), systemImage: "chevron.left")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .pointerOnHover()
+                
+                Spacer()
+                
+                buttons
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .sectionDivider()
+        }
+    }
+    
+    private func toolbarButton(_ icon: String, tint: Color?, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(tint ?? .primary)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .modifier(HeaderButtonHoverModifier())
+        .pointerOnHover()
+    }
+    
+    // MARK: - Content
+    
+    @ViewBuilder
+    private var previewContent: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 16) {
+                // Article header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.title)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    HStack(spacing: 8) {
+                        Text(feedTitle)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        
+                        if let author = item.author, !author.isEmpty {
+                            Text("·")
+                                .foregroundStyle(.quaternary)
+                            Text(author)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        if let pubDate = item.pubDate {
+                            Text("·")
+                                .foregroundStyle(.quaternary)
+                            Text(previewDateString(pubDate))
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.bottom, 4)
+                
+                Divider()
+                
+                // Article body — rendered as cached content blocks
+                let blocks = contentBlocks ?? []
+                
+                if loadFailed {
+                    // Error state — couldn't load article
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.secondary)
+                        Text(String(localized: "Couldn't load article", bundle: .module))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Button(String(localized: "Open in Browser", bundle: .module)) {
+                            store.openItem(item)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                } else if blocks.isEmpty && !isLoadingContent {
+                    // Fallback to plain text description
+                    let content = fullContent ?? item.description
+                    if content.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 32))
+                                .foregroundStyle(.quaternary)
+                            Text(String(localized: "No preview available", bundle: .module))
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                            Button(String(localized: "Open in Browser", bundle: .module)) {
+                                store.openItem(item)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                    } else {
+                        Text(content)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundStyle(.primary.opacity(0.85))
+                            .lineSpacing(6)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                        switch block {
+                        case .text(let text):
+                            if !text.isEmpty {
+                                Text(text)
+                                    .font(.system(size: 14, weight: .regular))
+                                    .foregroundStyle(.primary.opacity(0.85))
+                                    .lineSpacing(6)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        case .image(let url, let caption):
+                            VStack(spacing: 4) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    case .failure:
+                                        EmptyView()
+                                    case .empty:
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(Color.primary.opacity(0.04))
+                                            .frame(height: 120)
+                                            .overlay {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                            }
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                
+                                if let caption = caption, !caption.isEmpty {
+                                    Text(caption)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                        case .code(let code):
+                            ScrollView(.horizontal, showsIndicators: true) {
+                                Text(code)
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundStyle(.primary.opacity(0.8))
+                                    .lineSpacing(3)
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color.primary.opacity(0.04))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+                
+                if isLoadingContent {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(String(localized: "Loading full article…", bundle: .module))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 8)
+                }
+                
+                // Categories/tags
+                if !item.categories.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(item.categories.prefix(5), id: \.self) { tag in
+                            Text(tag)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.primary.opacity(0.06))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                
+                Spacer(minLength: 20)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+        }
+    }
+    
+    // MARK: - Date Formatting
+    
+    private static let previewDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+    
+    private func previewDateString(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return String(localized: "Just now", bundle: .module) }
+        let minutes = seconds / 60
+        if minutes < 60 { return String(format: String(localized: "%lld min ago", bundle: .module), minutes) }
+        let hours = minutes / 60
+        if hours < 24 { return String(format: String(localized: "%lld hr ago", bundle: .module), hours) }
+        let days = hours / 24
+        if days < 7 { return String(format: String(localized: "%lld days ago", bundle: .module), days) }
+        return Self.previewDateFormatter.string(from: date)
+    }
+    
+    // MARK: - Content Block Parsing (SwiftSoup)
+    
+    private enum ContentBlock {
+        case text(String)
+        case image(URL, caption: String?)
+        case code(String)
+    }
+    
+    /// Strip HTML tags from preformatted content while preserving whitespace and line breaks
+    nonisolated private func stripHTMLPreservingWhitespace(_ html: String) -> String {
+        let stripped = html
+            .replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "</div>", with: "\n", options: .caseInsensitive)
+            .replacingOccurrences(of: "</p>", with: "\n", options: .caseInsensitive)
+            .replacingOccurrences(of: "<wbr\\s*/?>", with: "", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+        
+        // Dedent: remove common leading whitespace (from XML/feed indentation)
+        let lines = stripped.split(separator: "\n", omittingEmptySubsequences: false).map { String($0) }
+        let nonEmptyLines = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard nonEmptyLines.count > 1 else { return stripped }
+        
+        // Skip first line (often has no indent since it follows opening tag directly)
+        let indentCandidates = nonEmptyLines.dropFirst()
+        let minIndent = indentCandidates.map { line -> Int in
+            line.prefix(while: { $0 == " " || $0 == "\t" }).count
+        }.min() ?? 0
+        
+        if minIndent > 0 {
+            return lines.map { line in
+                let lineIndent = line.prefix(while: { $0 == " " || $0 == "\t" }).count
+                let toStrip = min(minIndent, lineIndent)
+                return toStrip > 0 ? String(line.dropFirst(toStrip)) : line
+            }.joined(separator: "\n")
+        }
+        return stripped
+    }
+    
+    /// Parses HTML into alternating text and image blocks using SwiftSoup DOM parser
+    nonisolated private func parseContentBlocks(from html: String?) -> [ContentBlock] {
+        guard let html = html, !html.isEmpty else { return [] }
+        
+        return autoreleasepool {
+            // Cap input to prevent parsing extremely large HTML
+            let cappedHTML = html.count > 500_000 ? String(html.prefix(500_000)) : html
+            
+            guard let doc = try? SwiftSoup.parseBodyFragment(cappedHTML) else {
+                return []
+            }
+            
+            // Remove non-content elements
+            _ = try? doc.select("script, style, nav, footer, .ad, .advertisement, .social-share, .related-posts, .newsletter-signup, .comments").remove()
+            
+            guard let body = doc.body() else { return [] }
+        
+        var blocks: [ContentBlock] = []
+        
+        // Walk top-level children, grouping into text/image blocks
+        for child in body.children() {
+            extractBlocks(from: child, into: &blocks)
+        }
+        
+        // If no children were block elements, process the body as a whole
+        if blocks.isEmpty, let text = try? body.text(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            blocks.append(.text(text))
+        }
+        
+            // Cap total blocks to prevent rendering issues
+            if blocks.count > 100 {
+                return Array(blocks.prefix(100))
+            }
+            
+            return blocks
+        } // autoreleasepool
+    }
+    
+    /// Recursively extracts content blocks from an element
+    nonisolated private func extractBlocks(from element: Element, into blocks: inout [ContentBlock], depth: Int = 0) {
+        // Guard against deeply nested HTML causing stack overflow
+        guard depth < 20 else { return }
+        // Cap total blocks to avoid runaway processing
+        guard blocks.count < 100 else { return }
+        
+        let tag = element.tagName().lowercased()
+        
+        // Handle images directly
+        if tag == "img" {
+            if let imageBlock = extractImage(from: element) {
+                blocks.append(imageBlock)
+            }
+            return
+        }
+        
+        // Handle figure — look for img + figcaption
+        if tag == "figure" {
+            if let img = try? element.select("img").first(),
+               let imageBlock = extractImage(from: img, figcaption: try? element.select("figcaption").text()) {
+                blocks.append(imageBlock)
+            }
+            return
+        }
+        
+        // Handle code blocks (<pre> or <pre><code>)
+        if tag == "pre" {
+            // Use html() and strip tags to preserve whitespace formatting
+            if let innerHTML = try? element.html() {
+                let codeText = stripHTMLPreservingWhitespace(innerHTML)
+                if !codeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let trimmed = codeText.trimmingCharacters(in: .newlines)
+                    let cappedCode = trimmed.count > 5000 ? String(trimmed.prefix(5000)) + "\n…" : trimmed
+                    blocks.append(.code(cappedCode))
+                }
+            }
+            return
+        }
+        
+        // Check for direct child images or code blocks (need to recurse to preserve block types)
+        let hasBlockChildren = element.children().array().contains {
+            let t = $0.tagName().lowercased()
+            return t == "img" || t == "figure" || t == "pre" || t == "code"
+        }
+        // Also recurse into container elements (div, section, article, main) that likely wrap mixed content
+        let isContainer = ["div", "section", "article", "main", "aside", "blockquote"].contains(tag) && element.children().size() > 0
+        
+        if hasBlockChildren || isContainer {
+            // Element has mixed content — process children individually
+            for child in element.children() {
+                extractBlocks(from: child, into: &blocks, depth: depth + 1)
+            }
+            // Also get any direct text content not in child elements
+            let ownText = element.ownText()
+            if !ownText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                blocks.append(.text(ownText.trimmingCharacters(in: .whitespacesAndNewlines)))
+            }
+        } else {
+            // Pure text element — use SwiftSoup's .text() for clean whitespace handling
+            if let text = try? element.text(),
+               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                // Merge with previous text block if consecutive
+                if case .text(let prev) = blocks.last {
+                    blocks[blocks.count - 1] = .text(prev + "\n\n" + trimmed)
+                } else {
+                    blocks.append(.text(trimmed))
+                }
+            }
+        }
+    }
+    
+    /// Extracts an image block from an img element, filtering out tracking pixels
+    nonisolated private func extractImage(from element: Element, figcaption: String? = nil) -> ContentBlock? {
+        guard var src = try? element.attr("src"), !src.isEmpty else { return nil }
+        
+        // Handle relative/protocol-relative URLs
+        if src.hasPrefix("//") {
+            src = "https:" + src
+        } else if src.hasPrefix("/"), let baseURL = URL(string: item.link),
+                  let resolved = URL(string: src, relativeTo: baseURL) {
+            src = resolved.absoluteString
+        }
+        
+        // Skip tracking pixels
+        let width = Int((try? element.attr("width")) ?? "") ?? 999
+        let height = Int((try? element.attr("height")) ?? "") ?? 999
+        let isTracker = (width <= 2 && height <= 2) || src.contains("1x1") || src.contains("pixel") || src.contains("tracking")
+        
+        guard !isTracker, let url = URL(string: src) else { return nil }
+        
+        // Caption: only use explicit figcaption, skip alt text (often too long/aria-like)
+        let caption = figcaption?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        return .image(url, caption: (caption?.isEmpty ?? true) ? nil : caption)
+    }
+    
+    // MARK: - Content Loading
+    
+    private func loadFullContent() async {
+        // Check if feed provides substantial HTML content
+        let feedHTML = item.contentHTML ?? ""
+        let isTruncated = feedHTML.hasSuffix("...") || feedHTML.hasSuffix("…") || feedHTML.hasSuffix("[…]") || feedHTML.hasSuffix("[...]")
+        let hasCodeBlocks = feedHTML.contains("<pre") || feedHTML.contains("<code")
+        // Always fetch full article if feed content has code blocks (better formatting from the web page)
+        // or if content is sparse/truncated
+        if feedHTML.count > 500 && !isTruncated && !hasCodeBlocks { return }
+        
+        // Try to fetch article content from the URL
+        let link = item.link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: link), (url.scheme == "http" || url.scheme == "https") else {
+            if item.description.isEmpty && (contentBlocks ?? []).isEmpty {
+                loadFailed = true
+            }
+            return
+        }
+        
+        isLoadingContent = true
+        defer { isLoadingContent = false }
+        
+        do {
+            var request = URLRequest(url: url, timeoutInterval: 10)
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)", forHTTPHeaderField: "User-Agent")
+            let (data, _) = try await URLSession.shared.data(for: request)
+            guard let html = String(data: data, encoding: .utf8) else { return }
+            
+            // Parse on background thread to avoid blocking the main thread
+            let itemDesc = item.description
+            let result: (html: String, text: String, blocks: [ContentBlock])? = await Task.detached(priority: .userInitiated) {
+                let (extractedHTML, extractedText) = self.extractArticleContent(from: html)
+                guard extractedText.count > itemDesc.count else { return nil }
+                let blocks = self.parseContentBlocks(from: extractedHTML)
+                return (extractedHTML, extractedText, blocks)
+            }.value
+            
+            if let result {
+                fullContentHTML = result.html
+                fullContent = result.text
+                if !result.blocks.isEmpty {
+                    contentBlocks = result.blocks
+                }
+            }
+        } catch {
+            if item.description.isEmpty && (contentBlocks ?? []).isEmpty {
+                loadFailed = true
+            }
+        }
+    }
+    
+    /// Extracts the main content area from a full HTML page using SwiftSoup. Returns (rawHTML, strippedText).
+    nonisolated private func extractArticleContent(from html: String) -> (String, String) {
+        return autoreleasepool {
+            // Cap input to prevent parsing extremely large pages
+            let cappedHTML = html.count > 1_000_000 ? String(html.prefix(1_000_000)) : html
+            guard let doc = try? SwiftSoup.parse(cappedHTML) else { return ("", "") }
+            
+            // Remove junk
+            _ = try? doc.select("script, style, nav, footer, header, aside, .sidebar, .ad, .advertisement, .social-share, .related-posts, .newsletter-signup, .comments").remove()
+        
+        // Try to find the main content container
+        let selectors = [
+            "article",
+            "main",
+            "[class*=post-content]",
+            "[class*=entry-content]",
+            "[class*=article-body]",
+            "[class*=article-content]",
+            "[class*=story-body]",
+            "[class*=post-body]",
+            "[role=main]",
+        ]
+        
+        for selector in selectors {
+            if let element = try? doc.select(selector).first(),
+               let contentHTML = try? element.html(),
+               let contentText = try? element.text(),
+               contentText.count > 100 {
+                return (contentHTML, contentText)
+            }
+        }
+        
+            // Fallback: use body content
+            if let body = doc.body(),
+               let bodyHTML = try? body.html(),
+               let bodyText = try? body.text(),
+               bodyText.count > 100 {
+                return (bodyHTML, bodyText)
+            }
+            
+            return ("", "")
+        } // autoreleasepool
     }
 }

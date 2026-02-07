@@ -67,6 +67,30 @@ struct SettingsTabView: View {
             // RSS Appearance Settings
             Section(header: Text(String(localized: "RSS Appearance", bundle: .module))) {
                 HStack {
+                    Text(String(localized: "Window Width", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.windowWidthSize) {
+                        Text(String(localized: "Small", bundle: .module)).tag("small")
+                        Text(String(localized: "Medium", bundle: .module)).tag("medium")
+                        Text(String(localized: "Large", bundle: .module)).tag("large")
+                        Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
+                    }
+                    .frame(width: 120)
+                }
+                
+                HStack {
+                    Text(String(localized: "Window Height", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.windowHeightSize) {
+                        Text(String(localized: "Small", bundle: .module)).tag("small")
+                        Text(String(localized: "Medium", bundle: .module)).tag("medium")
+                        Text(String(localized: "Large", bundle: .module)).tag("large")
+                        Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
+                    }
+                    .frame(width: 120)
+                }
+                
+                HStack {
                     Text(String(localized: "Font Size", bundle: .module))
                     Spacer()
                     Slider(value: $store.fontSize, in: 10...18, step: 1) {

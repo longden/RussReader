@@ -20,6 +20,24 @@ struct FeedsTabView: View {
                 ForEach(store.feeds) { feed in
                     feedRow(feed)
                 }
+                
+                Button {
+                    if #available(macOS 13.0, *) {
+                        openWindow(id: "suggestedFeeds")
+                    } else {
+                        showingSuggestedFeeds = true
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.blue)
+                        Text(String(localized: "Browse Suggested Feeds…", bundle: .module))
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             .listStyle(.inset)
             
@@ -42,14 +60,6 @@ struct FeedsTabView: View {
                 Button(String(localized: "Export OPML", bundle: .module)) {
                     exportOPML()
                 }
-
-                Button(String(localized: "Starter / Suggested Feeds", bundle: .module)) {
-                    if #available(macOS 13.0, *) {
-                        openWindow(id: "suggestedFeeds")
-                    } else {
-                        showingSuggestedFeeds = true
-                    }
-                }
                 
                 Spacer()
                 
@@ -67,6 +77,7 @@ struct FeedsTabView: View {
                 .keyboardShortcut(.delete, modifiers: [])
             }
             .padding(12)
+            .frame(minHeight: 44)
         }
         .sheet(isPresented: $showingAddSheet) {
             AddFeedSheet(isPresented: $showingAddSheet)

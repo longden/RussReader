@@ -14,6 +14,13 @@ open ".build/debug/RSS Reader.app"
 swift build && .build/debug/RSSReader
 ```
 
+### Auto-Rebuild After Changes
+After making code changes, always run `swift run` to rebuild and launch the app:
+```bash
+swift run
+```
+This compiles the project and starts the app in one step. The app will appear in the menu bar.
+
 ### Production Build
 ```bash
 # Creates stripped, signed .app bundle and DMG

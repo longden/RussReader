@@ -96,6 +96,28 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssStickyWindow") var stickyWindow: Bool = true
     @AppStorage("rssNewItemNotifications") var newItemNotificationsEnabled: Bool = false
     @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = false
+    @AppStorage("rssWindowWidthSize") var windowWidthSize: String = "medium"
+    @AppStorage("rssWindowHeightSize") var windowHeightSize: String = "medium"
+    
+    /// Computed window width based on size preset
+    var windowWidth: CGFloat {
+        switch windowWidthSize {
+        case "small": return 320
+        case "large": return 440
+        case "xlarge": return 520
+        default: return 380  // medium
+        }
+    }
+    
+    /// Computed window height based on size preset
+    var windowHeight: CGFloat {
+        switch windowHeightSize {
+        case "small": return 420
+        case "large": return 620
+        case "xlarge": return 740
+        default: return 520  // medium
+        }
+    }
     
     private let feedsKey = "rssFeeds"
     private let itemsKey = "rssItems"
@@ -887,6 +909,8 @@ final class FeedStore: ObservableObject {
             let keepIds = Set(itemsToKeep.map { $0.id })
             items.removeAll { !keepIds.contains($0.id) }
         }
+        
+        cleanupFilterCache()
     }
     
     func fetchFeed(_ feed: Feed) async {
