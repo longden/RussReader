@@ -79,7 +79,7 @@ struct MenuBarWindowConfigurator: NSViewRepresentable {
 }
 
 @available(macOS 26.0, *)
-struct GlassEffectContainer<Content: View>: View {
+struct GlassCapsule<Content: View>: View {
     let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -90,12 +90,7 @@ struct GlassEffectContainer<Content: View>: View {
         content
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(.regularMaterial)
-            .overlay(
-                Capsule()
-                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
-            )
-            .clipShape(Capsule())
+            .glassEffect(.regular, in: .capsule)
     }
 }
 
@@ -186,8 +181,10 @@ struct HeaderButtonHoverModifier: ViewModifier {
         if #available(macOS 26.0, *) {
             content
                 .foregroundStyle(.primary)
-                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
-                .clipShape(Circle())
+                .glassEffect(
+                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .circle
+                )
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.15)) {
                         isHovered = hovering
@@ -259,6 +256,44 @@ extension View {
     func sectionDivider(alignment: Alignment = .bottom) -> some View {
         modifier(SectionDivider(alignment: alignment))
     }
+    
+    func pointerOnHover() -> some View {
+        self.onHover { hovering in
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+    }
+}
+
+struct CapsuleGlassModifier: ViewModifier {
+    let isActive: Bool
+    let isHovered: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffect(
+                    isActive ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .capsule
+                )
+        } else {
+            content
+                .background(isActive ? Color.primary.opacity(0.15) : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
+                .clipShape(Capsule())
+        }
+    }
+}
+
+struct BadgeGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .glassEffect(.regular.tint(.blue.opacity(0.2)), in: .capsule)
+        } else {
+            content
+        }
+    }
 }
 
 // MARK: - Filter Tab Button (macOS 26+)
@@ -285,8 +320,8 @@ struct FilterTabButton: View {
         }
         .buttonStyle(.plain)
         .contentShape(Capsule())
-        .background(isSelected ? Color.primary.opacity(0.15) : (isHovered ? Color.primary.opacity(0.08) : Color.clear))
-        .clipShape(Capsule())
+        .modifier(CapsuleGlassModifier(isActive: isSelected, isHovered: isHovered))
+        .pointerOnHover()
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
@@ -316,6 +351,7 @@ struct RefreshButton: View {
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
         .modifier(RefreshButtonGlassModifier(isHovered: isHovered))
+        .pointerOnHover()
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
@@ -332,8 +368,10 @@ struct RefreshButtonGlassModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
             content
-                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
-                .clipShape(Circle())
+                .glassEffect(
+                    isHovered ? .regular.interactive().tint(.primary.opacity(0.15)) : .regular.interactive(),
+                    in: .circle
+                )
         } else {
             content
         }
@@ -365,6 +403,7 @@ struct FooterGlassButton: View {
         .contentShape(Capsule())
         .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
         .clipShape(Capsule())
+        .pointerOnHover()
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
@@ -642,6 +681,7 @@ struct RSSReaderView: View {
                         store.openItem(item)
                     }
                     .feedItemContextMenu(item: item, store: store)
+                    .pointerOnHover()
                     .onHover { isHovered in
                         hoveredItemId = isHovered ? item.id : nil
                     }
@@ -753,6 +793,7 @@ struct RSSReaderView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .pointerOnHover()
             .onHover { isHovered in
                 hoveredPickerFeedId = isHovered ? allItemsId : nil
             }
@@ -786,6 +827,7 @@ struct RSSReaderView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .pointerOnHover()
                 .onHover { isHovered in
                     hoveredPickerFeedId = isHovered ? feed.id : nil
                 }
@@ -824,8 +866,8 @@ struct RSSReaderView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(store.selectedFeedId != nil ? Color.primary.opacity(0.15) : (feedPickerHovered ? Color.primary.opacity(0.08) : Color.clear))
-            .clipShape(Capsule())
+            .modifier(CapsuleGlassModifier(isActive: store.selectedFeedId != nil, isHovered: feedPickerHovered))
+            .pointerOnHover()
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.15)) {
                     feedPickerHovered = hovering
@@ -854,6 +896,7 @@ struct RSSReaderView: View {
                         .font(.system(size: 11, weight: .bold))
                 }
                 .foregroundStyle(.primary)
+                .modifier(BadgeGlassModifier())
             }
         }
         .padding(.horizontal, 16)
@@ -873,6 +916,7 @@ struct RSSReaderView: View {
         }
         .buttonStyle(.plain)
         .modifier(HeaderButtonHoverModifier())
+        .pointerOnHover()
         .help(title)
     }
     
