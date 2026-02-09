@@ -103,37 +103,42 @@ Feed items use composite key matching to prevent duplicates on refresh:
 
 ```
 Sources/
-├── RSSReaderApp.swift          # App entry, MenuBarExtra windows, preferences/add-feed windows
-├── FeedStore.swift             # State management, networking, persistence, notifications
-├── Models.swift                # Feed, FeedItem, FeedFilter, FilterRule, Enclosure, SuggestedFeeds
-├── Parsers.swift               # RSSParser (FeedKit), OPMLParser (XMLParserDelegate)
-├── KeychainHelper.swift        # Secure credential storage for feed authentication
-├── LanguageManager.swift       # Localization support
-├── SharedComponents.swift      # Reusable UI components
-├── Views.swift                 # Module entry point, re-exports Views/
-├── AddFeedView.swift           # Feed addition dialog with URL validation
-├── PreferencesView.swift       # 4-tab preferences window (Feeds, Filters, Settings, Help)
-├── FeedsTabView.swift          # Feed management tab (add/remove, OPML, auth)
-├── FiltersTabView.swift        # Smart filter rules editor
-├── SettingsTabView.swift       # Appearance, display, behavior settings
-├── HelpTabView.swift           # Usage instructions and shortcuts
+├── App/
+│   └── RSSReaderApp.swift          # App entry, MenuBarExtra windows, preferences/add-feed windows
+├── Models/
+│   └── Models.swift                # Feed, FeedItem, FeedFilter, FilterRule, Enclosure, SuggestedFeeds
+├── Services/
+│   ├── FeedStore.swift             # State management, networking, persistence, notifications
+│   ├── KeychainHelper.swift        # Secure credential storage for feed authentication
+│   ├── LanguageManager.swift       # Localization support
+│   └── Parsers.swift               # RSSParser (FeedKit), OPMLParser (XMLParserDelegate)
 ├── Views/
-│   ├── RSSReaderView.swift     # Main menu bar window with feed list
-│   ├── FeedItemRow.swift       # Individual feed item display
-│   ├── ArticlePreviewPane.swift # Rich HTML article preview
+│   ├── Main/
+│   │   ├── RSSReaderView.swift     # Main menu bar window with feed list
+│   │   ├── FeedItemRow.swift       # Individual feed item display
+│   │   └── ArticlePreviewPane.swift # Rich HTML article preview
+│   ├── AddFeed/
+│   │   └── AddFeedView.swift       # Feed addition dialog with URL validation
+│   ├── Preferences/
+│   │   ├── PreferencesView.swift   # 4-tab preferences window
+│   │   ├── FeedsTabView.swift      # Feed management tab (add/remove, OPML, auth)
+│   │   ├── FiltersTabView.swift    # Smart filter rules editor
+│   │   ├── SettingsTabView.swift   # Appearance, display, behavior settings
+│   │   └── HelpTabView.swift       # Usage instructions and shortcuts
 │   ├── Components/
+│   │   ├── SharedComponents.swift  # Reusable UI components
 │   │   ├── FilterTabButton.swift
 │   │   ├── FooterGlassButton.swift
 │   │   └── RefreshButton.swift
-│   ├── Utilities/
-│   │   ├── ColorExtensions.swift
-│   │   ├── NSViewRepresentables.swift
-│   │   └── WindowHelpers.swift
-│   └── ViewModifiers/
+│   └── Modifiers/
 │       ├── ButtonStyleModifiers.swift
 │       ├── ContextMenuModifiers.swift
 │       └── GlassEffectModifiers.swift
-└── Resources/                  # AppIcon.icns, Localizable.xcstrings
+├── Utilities/
+│   ├── ColorExtensions.swift
+│   ├── NSViewRepresentables.swift
+│   └── WindowHelpers.swift
+└── Resources/                      # AppIcon.icns, Localizable.xcstrings
 ```
 
 ### View Structure
