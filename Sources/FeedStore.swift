@@ -351,10 +351,11 @@ final class FeedStore: ObservableObject {
     
     func save() {
         saveWorkItem?.cancel()
-        saveWorkItem = DispatchWorkItem { [weak self] in
+        let workItem = DispatchWorkItem { [weak self] in
             self?.saveImmediately()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: saveWorkItem!)
+        saveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
     }
     
     private func saveImmediately() {
@@ -609,9 +610,9 @@ final class FeedStore: ObservableObject {
             let browserURL = URL(fileURLWithPath: selectedBrowser)
             let config = NSWorkspace.OpenConfiguration()
             
-            NSWorkspace.shared.open([url], withApplicationAt: browserURL, configuration: config) { _, error in
+            NSWorkspace.shared.open([url], withApplicationAt: browserURL, configuration: config) { [weak self] _, error in
                 if error != nil {
-                    self.logger.error("Failed to open in selected browser: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
+                    self?.logger.error("Failed to open in selected browser: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
                     // Fall back to default browser if selected browser fails
                     DispatchQueue.main.async {
                         NSWorkspace.shared.open(url)
@@ -715,10 +716,11 @@ final class FeedStore: ObservableObject {
 
         let previousUnreadCount = unreadCount
         
-        // Fetch feeds concurrently - network I/O happens off MainActor
+        // Snapshot feeds to avoid mutation during async iteration
+        let feedsSnapshot = feeds
         let maxConcurrentFetches = 6
         await withTaskGroup(of: (Feed, [FeedItem], String?, String?, String?, String?)?.self) { group in
-            var feedIterator = feeds.makeIterator()
+            var feedIterator = feedsSnapshot.makeIterator()
             var activeTasks = 0
 
             func enqueueNext() {
@@ -729,7 +731,7 @@ final class FeedStore: ObservableObject {
                 }
             }
 
-            for _ in 0..<min(maxConcurrentFetches, feeds.count) {
+            for _ in 0..<min(maxConcurrentFetches, feedsSnapshot.count) {
                 enqueueNext()
             }
             
@@ -815,17 +817,13 @@ final class FeedStore: ObservableObject {
     
     // Process results on MainActor
     private func processFetchedFeed(_ feed: Feed, items newItems: [FeedItem], parsedTitle: String?, parsedIconURL: String?, eTag: String?, lastModified: String?) {
-        if let parsedTitle = parsedTitle, !parsedTitle.isEmpty {
-            if let index = feeds.firstIndex(where: { $0.id == feed.id }), !feeds[index].customTitle {
+        if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+            if let parsedTitle = parsedTitle, !parsedTitle.isEmpty, !feeds[index].customTitle {
                 feeds[index].title = parsedTitle
             }
-        }
-        if let parsedIconURL = parsedIconURL, !parsedIconURL.isEmpty {
-            if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
+            if let parsedIconURL = parsedIconURL, !parsedIconURL.isEmpty {
                 feeds[index].iconURL = parsedIconURL
             }
-        }
-        if let index = feeds.firstIndex(where: { $0.id == feed.id }) {
             feeds[index].lastFetched = Date()
             if let eTag = eTag, !eTag.isEmpty {
                 feeds[index].eTag = eTag
