@@ -405,14 +405,25 @@ struct SuggestedFeedPack: Identifiable, Hashable {
 enum SuggestedFeeds {
     static let packs: [SuggestedFeedPack] = [
         SuggestedFeedPack(
-            title: "AI Essentials",
-            description: "Official blogs and research highlights in AI.",
+            title: "General News",
+            description: "Major news outlets covering world events and current affairs.",
             feeds: [
+                SuggestedFeed(title: "BBC News", url: "https://feeds.bbci.co.uk/news/rss.xml"),
+                SuggestedFeed(title: "BBC World News", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
+                SuggestedFeed(title: "BBC Technology", url: "https://feeds.bbci.co.uk/news/technology/rss.xml"),
+                SuggestedFeed(title: "Reuters Top News", url: "https://www.reuters.com/rssFeed/topNews"),
+                SuggestedFeed(title: "Reuters World", url: "https://www.reuters.com/rssFeed/worldNews")
+            ]
+        ),
+        SuggestedFeedPack(
+            title: "AI & Tech Blogs",
+            description: "Independent voices and engineering blogs on AI and software.",
+            feeds: [
+                SuggestedFeed(title: "Simon Willison", url: "https://simonwillison.net/atom/everything/"),
+                SuggestedFeed(title: "GitHub Blog", url: "https://github.blog/feed/"),
+                SuggestedFeed(title: "GitHub Engineering", url: "https://github.blog/engineering/feed/"),
                 SuggestedFeed(title: "OpenAI News", url: "https://openai.com/news/rss.xml"),
-                SuggestedFeed(title: "Google AI Blog", url: "https://blog.google/technology/ai/rss/"),
-                SuggestedFeed(title: "Microsoft AI Blog", url: "https://blogs.microsoft.com/ai/feed/"),
-                SuggestedFeed(title: "MIT AI News", url: "https://news.mit.edu/rss"),
-                SuggestedFeed(title: "arXiv cs.AI", url: "https://rss.arxiv.org/rss/cs.AI")
+                SuggestedFeed(title: "Google AI Blog", url: "https://blog.google/technology/ai/rss/")
             ]
         ),
         SuggestedFeedPack(

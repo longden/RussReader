@@ -58,7 +58,7 @@ struct FeedItemRow: View {
                         FeedIconView(iconURL: feedIconURL, feedURL: feedURL, size: 11)
                     }
                     Text(feedTitle)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: fontSize - 3, weight: .medium))
                         .foregroundStyle(.secondary)
                     
                     // Enclosure indicator
@@ -73,7 +73,7 @@ struct FeedItemRow: View {
                     // Date aligned to the right on same row as feed name
                     if let pubDate = item.pubDate {
                         Text(formatDate(pubDate))
-                            .font(.system(size: 10))
+                            .font(.system(size: fontSize - 3))
                             .foregroundStyle(.secondary)
                     }
                 }
