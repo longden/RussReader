@@ -18,9 +18,14 @@ struct RSSReaderView: View {
     @State private var feedPickerHovered: Bool = false
     @State private var previewingItem: FeedItem? = nil
     @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
+    @AppStorage("rssOnboardingComplete") private var onboardingComplete: Bool = false
 
     @ViewBuilder
     var body: some View {
+        if !onboardingComplete {
+            OnboardingView()
+                .environmentObject(store)
+        } else {
         let content = VStack(spacing: 0) {
             if let item = previewingItem {
                 ArticlePreviewPane(
@@ -61,7 +66,7 @@ struct RSSReaderView: View {
 
         if #available(macOS 26.0, *) {
             content
-                .background(.ultraThinMaterial)
+                .modifier(WindowStyleModifier(style: store.windowStyle))
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: store.windowWidth, height: store.windowHeight)
@@ -72,7 +77,7 @@ struct RSSReaderView: View {
                 }
         } else {
             content
-                .background(VisualEffectBackground(material: .hudWindow, blendingMode: .behindWindow))
+                .background(backgroundVisualEffect)
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: store.windowWidth, height: store.windowHeight)
@@ -81,6 +86,36 @@ struct RSSReaderView: View {
                 } message: {
                     Text(store.errorMessage ?? String(localized: "An unknown error occurred.", bundle: .module))
                 }
+        }
+        } // else onboardingComplete
+    }
+
+    // MARK: - Background Styles
+    
+    @available(macOS 26.0, *)
+    private struct WindowStyleModifier: ViewModifier {
+        let style: String
+        
+        func body(content: Content) -> some View {
+            switch style {
+            case "translucent":
+                content.background(.ultraThinMaterial)
+            case "frosted":
+                content.background(.thinMaterial)
+            default:
+                content.background(.regularMaterial)
+            }
+        }
+    }
+    
+    private var backgroundVisualEffect: some View {
+        switch store.windowStyle {
+        case "translucent":
+            VisualEffectBackground(material: .underWindowBackground, blendingMode: .behindWindow)
+        case "frosted":
+            VisualEffectBackground(material: .fullScreenUI, blendingMode: .behindWindow)
+        default:
+            VisualEffectBackground(material: .hudWindow, blendingMode: .behindWindow)
         }
     }
 

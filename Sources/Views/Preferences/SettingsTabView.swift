@@ -191,6 +191,13 @@ struct SettingsTabView: View {
                     .foregroundStyle(.red)
                 }
             }
+            
+            // Debug
+            Section(header: Text(String(localized: "Debug", bundle: .module))) {
+                Button(String(localized: "Show Onboarding Again", bundle: .module)) {
+                    UserDefaults.standard.set(false, forKey: "rssOnboardingComplete")
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()
