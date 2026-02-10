@@ -100,6 +100,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssWindowWidthSize") var windowWidthSize: String = "medium"
     @AppStorage("rssWindowHeightSize") var windowHeightSize: String = "medium"
     @AppStorage("rssOpenInPreview") var openInPreview: Bool = false
+    @AppStorage("rssWindowStyle") var windowStyle: String = "default"
     
     /// Computed window width based on size preset
     var windowWidth: CGFloat {
@@ -267,7 +268,7 @@ final class FeedStore: ObservableObject {
         startRefreshTimer()
         setupNotifications()
         
-        if feeds.isEmpty {
+        if feeds.isEmpty && UserDefaults.standard.bool(forKey: "rssOnboardingComplete") {
             addDefaultFeeds()
         }
     }
