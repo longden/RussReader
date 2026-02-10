@@ -5,7 +5,6 @@ import SwiftUI
 @main
 struct RSSReaderApp: App {
     @StateObject private var store = FeedStore()
-    @AppStorage("rssStickyWindow") private var stickyWindow: Bool = true
     
     init() {
         // Apply stored language preference on app launch
@@ -17,7 +16,7 @@ struct RSSReaderApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(isInserted: $stickyWindow) {
+        MenuBarExtra {
             RSSReaderView()
                 .environmentObject(store)
                 .onAppear {
@@ -35,22 +34,6 @@ struct RSSReaderApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        MenuBarExtra(isInserted: Binding(
-            get: { !stickyWindow },
-            set: { stickyWindow = !$0 }
-        )) {
-            RSSReaderView()
-                .environmentObject(store)
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: store.unreadCount > 0 ? "newspaper.fill" : "newspaper")
-                if store.showUnreadBadge && store.unreadCount > 0 {
-                    Text("\(store.unreadCount)")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                }
-            }
-        }
-        .menuBarExtraStyle(.menu)
         Window("Preferences", id: "preferences") {
             PreferencesView()
                 .environmentObject(store)

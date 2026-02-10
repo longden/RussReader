@@ -6,7 +6,6 @@ import AppKit
 struct SettingsTabView: View {
     @EnvironmentObject private var store: FeedStore
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
-    @AppStorage("rssStickyWindow") private var stickyWindow: Bool = true
     @State private var installedBrowsers: [BrowserInfo] = []
     @State private var previousLanguage: String = ""
     @State private var showRestartAlert = false
@@ -52,7 +51,15 @@ struct SettingsTabView: View {
             
             // Reading
             Section(header: Text(String(localized: "Behavior", bundle: .module))) {
-                Toggle(String(localized: "Open Articles in Preview", bundle: .module), isOn: $store.openInPreview)
+                HStack {
+                    Text(String(localized: "Article Open", bundle: .module))
+                    Spacer()
+                    Picker("", selection: $store.openInPreview) {
+                        Text(String(localized: "In App Preview", bundle: .module)).tag(true)
+                        Text(String(localized: "Open in Browser", bundle: .module)).tag(false)
+                    }
+                    .frame(width: 200)
+                }
                 
                 HStack {
                     Text(String(localized: "Browser", bundle: .module))
@@ -62,12 +69,12 @@ struct SettingsTabView: View {
                             Text(browser.name).tag(browser.path)
                         }
                     }
-                    .frame(width: 200)
+                    .frame(width: 250)
                 }
                 
-                Toggle(String(localized: "Sticky Window", bundle: .module), isOn: $stickyWindow)
-                Toggle(String(localized: "Show Unread Badge", bundle: .module), isOn: $store.showUnreadBadge)
-                Toggle(String(localized: "Notify on New Items", bundle: .module), isOn: $store.newItemNotificationsEnabled)
+                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
+                Toggle(String(localized: "Show unread count in menubar", bundle: .module), isOn: $store.showUnreadBadge)
+                Toggle(String(localized: "Send notification on new item", bundle: .module), isOn: $store.newItemNotificationsEnabled)
                     .disabled(!store.notificationsAvailable)
                 
                 if !store.notificationsAvailable {
@@ -145,7 +152,7 @@ struct SettingsTabView: View {
                 }
                 
                 HStack {
-                    Text(String(localized: "Title Max Lines", bundle: .module))
+                    Text(String(localized: "RSS Title Max Lines", bundle: .module))
                     Spacer()
                     Picker("", selection: $store.titleMaxLines) {
                         Text("1").tag(1)
@@ -165,9 +172,8 @@ struct SettingsTabView: View {
                     .frame(width: 120)
                 }
                 
-                Toggle(String(localized: "Show Summary", bundle: .module), isOn: $store.showSummaryGlobal)
+                Toggle(String(localized: "RSS Item Summary", bundle: .module), isOn: $store.showSummaryGlobal)
                 Toggle(String(localized: "Show Feed Icons", bundle: .module), isOn: $store.showFeedIcons)
-                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
             }
             
             // Actions
