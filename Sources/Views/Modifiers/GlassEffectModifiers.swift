@@ -62,11 +62,12 @@ struct BadgeGlassModifier: ViewModifier {
 @available(macOS 26.0, *)
 struct RefreshButtonGlassModifier: ViewModifier {
     let isRefreshing: Bool
+    let isHovered: Bool
     
     func body(content: Content) -> some View {
         content
             .glassEffect(
-                isRefreshing ? .regular.interactive().tint(.primary.opacity(0.12)) : .regular.interactive(),
+                isRefreshing || isHovered ? .regular.interactive().tint(.primary.opacity(0.12)) : .regular.interactive(),
                 in: .circle
             )
     }

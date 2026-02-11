@@ -25,7 +25,7 @@ struct RefreshButton: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
-        .modifier(RefreshButtonModifier(isRefreshing: isRefreshing))
+        .modifier(RefreshButtonModifier(isRefreshing: isRefreshing, isHovered: isHovered))
         .pointerOnHover()
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -40,12 +40,15 @@ struct RefreshButton: View {
 // Internal modifier that handles availability check
 private struct RefreshButtonModifier: ViewModifier {
     let isRefreshing: Bool
+    let isHovered: Bool
     
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
-            content.modifier(RefreshButtonGlassModifier(isRefreshing: isRefreshing))
+            content.modifier(RefreshButtonGlassModifier(isRefreshing: isRefreshing, isHovered: isHovered))
         } else {
             content
+                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
+                .clipShape(Circle())
         }
     }
 }
