@@ -264,3 +264,131 @@ final class OPMLParser: NSObject, XMLParserDelegate {
         }
     }
 }
+
+// MARK: - CSV Feed Parser
+
+final class CSVFeedParser {
+    private let feedId: UUID
+    var feedTitle: String?
+    var feedIconURL: String?
+    
+    init(feedId: UUID) {
+        self.feedId = feedId
+    }
+    
+    func parse(data: Data) -> [FeedItem] {
+        guard let content = String(data: data, encoding: .utf8) else { return [] }
+        let rows = parseCSVRows(content)
+        guard rows.count > 1 else { return [] }
+        
+        let header = rows[0].map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        
+        let titleIdx = header.firstIndex(of: "title")
+        let linkIdx = header.firstIndex(of: "link")
+        let descIdx = header.firstIndex(of: "plain description") ?? header.firstIndex(of: "description")
+        let htmlDescIdx = header.firstIndex(of: "description")
+        let authorIdx = header.firstIndex(of: "author")
+        let dateIdx = header.firstIndex(of: "date")
+        let feedTitleIdx = header.firstIndex(of: "feed title")
+        let feedIconIdx = header.firstIndex(of: "feed icon")
+        
+        if let row = rows.dropFirst().first {
+            if let idx = feedTitleIdx, idx < row.count, !row[idx].isEmpty {
+                feedTitle = row[idx]
+            }
+            if let idx = feedIconIdx, idx < row.count, !row[idx].isEmpty {
+                feedIconURL = row[idx]
+            }
+        }
+        
+        var items: [FeedItem] = []
+        let iso8601 = ISO8601DateFormatter()
+        iso8601.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let iso8601NoFrac = ISO8601DateFormatter()
+        iso8601NoFrac.formatOptions = [.withInternetDateTime]
+        
+        for row in rows.dropFirst() {
+            guard let tIdx = titleIdx, tIdx < row.count, !row[tIdx].isEmpty else { continue }
+            
+            let title = row[tIdx]
+            let link = linkIdx.flatMap { $0 < row.count ? row[$0] : nil } ?? ""
+            let plainDesc = descIdx.flatMap { $0 < row.count ? row[$0] : nil } ?? ""
+            let htmlDesc = htmlDescIdx.flatMap { $0 < row.count ? row[$0] : nil }
+            let author = authorIdx.flatMap { $0 < row.count ? row[$0] : nil }
+            let dateStr = dateIdx.flatMap { $0 < row.count ? row[$0] : nil }
+            let pubDate = dateStr.flatMap { iso8601.date(from: $0) ?? iso8601NoFrac.date(from: $0) }
+            
+            let item = FeedItem(
+                feedId: feedId,
+                title: title,
+                link: link,
+                sourceId: link.isEmpty ? nil : link,
+                description: plainDesc,
+                contentHTML: htmlDesc,
+                pubDate: pubDate,
+                author: author
+            )
+            items.append(item)
+        }
+        
+        return items
+    }
+    
+    private func parseCSVRows(_ content: String) -> [[String]] {
+        var rows: [[String]] = []
+        var currentRow: [String] = []
+        var currentField = ""
+        var inQuotes = false
+        var i = content.startIndex
+        
+        while i < content.endIndex {
+            let char = content[i]
+            
+            if inQuotes {
+                if char == "\"" {
+                    let next = content.index(after: i)
+                    if next < content.endIndex && content[next] == "\"" {
+                        currentField.append("\"")
+                        i = content.index(after: next)
+                        continue
+                    } else {
+                        inQuotes = false
+                    }
+                } else {
+                    currentField.append(char)
+                }
+            } else {
+                if char == "\"" {
+                    inQuotes = true
+                } else if char == "," {
+                    currentRow.append(currentField)
+                    currentField = ""
+                } else if char == "\n" || char == "\r" {
+                    currentRow.append(currentField)
+                    currentField = ""
+                    if !currentRow.allSatisfy({ $0.isEmpty }) {
+                        rows.append(currentRow)
+                    }
+                    currentRow = []
+                    if char == "\r" {
+                        let next = content.index(after: i)
+                        if next < content.endIndex && content[next] == "\n" {
+                            i = next
+                        }
+                    }
+                } else {
+                    currentField.append(char)
+                }
+            }
+            
+            i = content.index(after: i)
+        }
+        
+        currentRow.append(currentField)
+        if !currentRow.allSatisfy({ $0.isEmpty }) {
+            rows.append(currentRow)
+        }
+        
+        return rows
+    }
+}
