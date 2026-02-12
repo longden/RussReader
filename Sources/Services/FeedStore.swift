@@ -386,9 +386,9 @@ final class FeedStore: ObservableObject {
         let tempFeed = Feed(title: title ?? cleanURL, url: cleanURL, customTitle: title != nil, authType: authType)
         
         // Save credentials to Keychain before fetch so fetchFeedData can use them
-        if authType == .basicAuth, let username = username, let password = password {
+        if authType == .basicAuth, let username = username, !username.isEmpty, let password = password, !password.isEmpty {
             KeychainHelper.saveBasicAuth(feedId: tempFeed.id, username: username, password: password)
-        } else if authType == .bearerToken, let token = token {
+        } else if authType == .bearerToken, let token = token, !token.isEmpty {
             KeychainHelper.saveToken(feedId: tempFeed.id, token: token)
         }
         guard let result = await fetchFeedData(tempFeed) else {
@@ -986,6 +986,12 @@ final class FeedStore: ObservableObject {
                 if importedFeed.authType != .none && feeds[idx].authType == .none {
                     feeds[idx].authType = importedFeed.authType
                     feeds[idx].url = importedFeed.url
+                    // Copy credentials to the existing feed's ID and clean up
+                    if importedFeed.authType == .basicAuth,
+                       let creds = KeychainHelper.loadBasicAuth(feedId: importedFeed.id) {
+                        KeychainHelper.saveBasicAuth(feedId: feeds[idx].id, username: creds.username, password: creds.password)
+                        KeychainHelper.deleteCredentials(feedId: importedFeed.id)
+                    }
                 }
             } else {
                 feeds.append(importedFeed)
