@@ -36,6 +36,32 @@ struct RSSReaderView: View {
                 )
             } else {
                 headerView
+                
+                if store.showingError, let errorMessage = store.errorMessage {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                        Text(errorMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                        Spacer()
+                        Button {
+                            withAnimation(.easeOut(duration: 0.2)) { store.showingError = false }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.1))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                
                 filterTabsView
                 Divider()
 
@@ -70,22 +96,12 @@ struct RSSReaderView: View {
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: store.windowWidth, height: store.windowHeight)
-                .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
-                    Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
-                } message: {
-                    Text(store.errorMessage ?? String(localized: "An unknown error occurred.", bundle: .module))
-                }
         } else {
             content
                 .background(backgroundVisualEffect)
                 .background(MenuBarWindowConfigurator())
                 .background(AppearanceApplier(appearanceMode: store.appearanceMode))
                 .frame(width: store.windowWidth, height: store.windowHeight)
-                .alert(String(localized: "Error", bundle: .module), isPresented: $store.showingError) {
-                    Button(String(localized: "OK", bundle: .module)) { store.showingError = false }
-                } message: {
-                    Text(store.errorMessage ?? String(localized: "An unknown error occurred.", bundle: .module))
-                }
         }
         } // else onboardingComplete
     }
@@ -272,9 +288,14 @@ struct RSSReaderView: View {
                             iconEmoji: store.iconEmoji(for: item),
                             showSummary: store.shouldShowSummary(for: item),
                             showFeedIcon: store.showFeedIcons,
+                            openInPreview: store.openInPreview,
                             onPreview: {
                                 store.markAsRead(item)
-                                withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+                                if store.openInPreview {
+                                    withAnimation(.easeInOut(duration: 0.2)) { previewingItem = item }
+                                } else {
+                                    store.openItem(item)
+                                }
                             }
                         )
                         .id(item.id)

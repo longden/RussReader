@@ -72,7 +72,6 @@ struct SettingsTabView: View {
                     .frame(width: 250)
                 }
                 
-                Toggle(String(localized: "Hide Read Items", bundle: .module), isOn: $store.hideReadItems)
                 Toggle(String(localized: "Show unread count in menubar", bundle: .module), isOn: $store.showUnreadBadge)
                 Toggle(String(localized: "Send notification on new item", bundle: .module), isOn: $store.newItemNotificationsEnabled)
                     .disabled(!store.notificationsAvailable)
@@ -93,6 +92,7 @@ struct SettingsTabView: View {
                         Text(String(localized: "30 min", bundle: .module)).tag(30)
                         Text(String(localized: "1 hour", bundle: .module)).tag(60)
                         Text(String(localized: "2 hours", bundle: .module)).tag(120)
+                        Text(String(localized: "3 hours", bundle: .module)).tag(180)
                     }
                     .frame(width: 120)
                     .onChange(of: store.refreshIntervalMinutes) { _, _ in

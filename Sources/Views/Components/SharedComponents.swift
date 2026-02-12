@@ -13,9 +13,11 @@ final class FaviconCache {
     private let cache = NSCache<NSString, NSImage>()
     private let fileManager = FileManager.default
     private let cacheDirectory: URL?
+    private var inFlightURLs = Set<String>()
+    private let lock = NSLock()
     
     private init() {
-        cache.countLimit = 50
+        cache.countLimit = 200
         cache.totalCostLimit = 10 * 1024 * 1024 // 10 MB
         
         // Set up disk cache directory
@@ -51,6 +53,21 @@ final class FaviconCache {
         saveToDisk(image, for: url)
     }
     
+    func beginFetch(for url: URL) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let key = url.absoluteString
+        if inFlightURLs.contains(key) { return false }
+        inFlightURLs.insert(key)
+        return true
+    }
+    
+    func endFetch(for url: URL) {
+        lock.lock()
+        defer { lock.unlock() }
+        inFlightURLs.remove(url.absoluteString)
+    }
+    
     private func cacheFileURL(for url: URL) -> URL? {
         guard let cacheDirectory = cacheDirectory else { return nil }
         let filename = url.absoluteString.data(using: .utf8)?.base64EncodedString() ?? url.lastPathComponent
@@ -81,7 +98,6 @@ struct FeedIconView: View {
     let size: CGFloat
     
     @State private var image: NSImage?
-    @State private var isLoading = false
     
     init(iconURL: String?, feedURL: String? = nil, size: CGFloat = 16) {
         self.iconURL = iconURL
@@ -102,15 +118,13 @@ struct FeedIconView: View {
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: 3))
-        .task {
+        .task(id: iconURL ?? feedURL) {
             await loadIcon()
         }
     }
     
     private func loadIcon() async {
-        guard !isLoading, image == nil else { return }
-        isLoading = true
-        defer { isLoading = false }
+        guard image == nil else { return }
         
         // Try the feed-provided icon URL first
         if let iconURL = iconURL, let url = URL(string: iconURL) {
@@ -135,6 +149,9 @@ struct FeedIconView: View {
         if let cached = FaviconCache.shared.image(for: url) {
             return cached
         }
+        
+        guard FaviconCache.shared.beginFetch(for: url) else { return nil }
+        defer { FaviconCache.shared.endFetch(for: url) }
         
         do {
             let request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)

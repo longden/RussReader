@@ -242,8 +242,24 @@ final class OPMLParser: NSObject, XMLParserDelegate {
         if elementName == "outline" {
             if let xmlUrl = attributeDict["xmlUrl"], !xmlUrl.isEmpty {
                 let title = attributeDict["title"] ?? attributeDict["text"] ?? xmlUrl
-                let feed = Feed(title: title, url: xmlUrl)
-                feeds.append(feed)
+                
+                // Extract embedded credentials from URL (e.g., http://user:pass@host/path)
+                if let urlComponents = URLComponents(string: xmlUrl),
+                   let user = urlComponents.user, !user.isEmpty,
+                   let pass = urlComponents.password, !pass.isEmpty {
+                    // Build clean URL without credentials
+                    var cleanComponents = urlComponents
+                    cleanComponents.user = nil
+                    cleanComponents.password = nil
+                    let cleanURL = cleanComponents.string ?? xmlUrl
+                    
+                    let feed = Feed(title: title, url: cleanURL, authType: .basicAuth)
+                    KeychainHelper.saveBasicAuth(feedId: feed.id, username: user, password: pass)
+                    feeds.append(feed)
+                } else {
+                    let feed = Feed(title: title, url: xmlUrl)
+                    feeds.append(feed)
+                }
             }
         }
     }

@@ -77,9 +77,6 @@ final class FeedStore: ObservableObject {
         didSet { _cachedFilteredItems = nil }
     }
     
-    @AppStorage("rssHideReadItems") var hideReadItems: Bool = false {
-        didSet { _cachedFilteredItems = nil }
-    }
     @AppStorage("rssRefreshInterval") var refreshIntervalMinutes: Int = 30
     @AppStorage("rssMaxItemsPerFeed") var maxItemsPerFeed: Int = 25
     @AppStorage("rssFontSize") var fontSize: Double = 13
@@ -192,10 +189,6 @@ final class FeedStore: ObservableObject {
             result = result.filter { !$0.isRead }
         case .starred:
             result = result.filter { $0.isStarred }
-        }
-        
-        if hideReadItems && filter == .all {
-            result = result.filter { !$0.isRead || $0.isStarred }
         }
         
         result.sort { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
@@ -866,7 +859,7 @@ final class FeedStore: ObservableObject {
         let feedItems = items.filter { $0.feedId == feed.id }
         if feedItems.count > maxItemsPerFeed {
             let sortedItems = feedItems.sorted { ($0.pubDate ?? .distantPast) > ($1.pubDate ?? .distantPast) }
-            let toRemove = Set(sortedItems.dropFirst(maxItemsPerFeed).map { $0.id })
+            let toRemove = Set(sortedItems.dropFirst(maxItemsPerFeed).filter { !$0.isStarred }.map { $0.id })
             items.removeAll { toRemove.contains($0.id) }
         }
         
@@ -959,7 +952,31 @@ final class FeedStore: ObservableObject {
         
         var addedCount = 0
         for importedFeed in importedFeeds {
-            if !feeds.contains(where: { $0.url.lowercased() == importedFeed.url.lowercased() }) {
+            // Check for existing feed by clean URL
+            let importedCleanURL = importedFeed.url.lowercased()
+            
+            // Also check if an existing feed has embedded credentials matching this URL
+            let existingIndex = feeds.firstIndex { existing in
+                let existingClean = existing.url.lowercased()
+                if existingClean == importedCleanURL { return true }
+                // Check if existing feed has embedded creds matching the same host/path
+                if let existingComponents = URLComponents(string: existing.url),
+                   existingComponents.user != nil {
+                    var stripped = existingComponents
+                    stripped.user = nil
+                    stripped.password = nil
+                    return stripped.string?.lowercased() == importedCleanURL
+                }
+                return false
+            }
+            
+            if let idx = existingIndex {
+                // Update existing feed's auth if the import has credentials
+                if importedFeed.authType != .none && feeds[idx].authType == .none {
+                    feeds[idx].authType = importedFeed.authType
+                    feeds[idx].url = importedFeed.url
+                }
+            } else {
                 feeds.append(importedFeed)
                 addedCount += 1
             }
