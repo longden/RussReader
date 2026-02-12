@@ -20,6 +20,7 @@ struct FeedItemRow: View {
     let iconEmoji: String?
     let showSummary: Bool
     let showFeedIcon: Bool
+    let openInPreview: Bool
     var onPreview: (() -> Void)? = nil
 
     var body: some View {
@@ -84,12 +85,12 @@ struct FeedItemRow: View {
                     Button {
                         onPreview?()
                     } label: {
-                        Image(systemName: "doc.text.magnifyingglass")
+                        Image(systemName: openInPreview ? "doc.text.magnifyingglass" : "globe")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(String(localized: "Preview", bundle: .module))
+                    .help(openInPreview ? String(localized: "Preview", bundle: .module) : String(localized: "Open in Browser", bundle: .module))
                 } else if let emoji = iconEmoji {
                     Text(emoji)
                         .font(.system(size: 11))

@@ -6,7 +6,13 @@ struct OnboardingView: View {
     @EnvironmentObject private var store: FeedStore
     @AppStorage("rssOnboardingComplete") private var onboardingComplete: Bool = false
     @State private var currentPage = 0
-    @State private var selectedFeeds: Set<String> = []
+    @State private var selectedFeeds: Set<String> = [
+        "https://openai.com/news/rss.xml",
+        "https://github.blog/feed/",
+        "https://simonwillison.net/atom/everything/",
+        "https://www.hackingwithswift.com/articles/rss",
+        "https://techcrunch.com/feed/"
+    ]
     @State private var articleOpenInPreview = true
     @State private var showUnreadBadge = true
     @State private var refreshInterval = 30
@@ -14,7 +20,7 @@ struct OnboardingView: View {
     private let totalPages = 4
     
     private let starterFeeds: [SuggestedFeed] = [
-        SuggestedFeed(title: "BBC News", url: "https://feeds.bbci.co.uk/news/rss.xml"),
+        SuggestedFeed(title: "OpenAI News", url: "https://openai.com/news/rss.xml"),
         SuggestedFeed(title: "GitHub Blog", url: "https://github.blog/feed/"),
         SuggestedFeed(title: "Simon Willison", url: "https://simonwillison.net/atom/everything/"),
         SuggestedFeed(title: "Hacking with Swift", url: "https://www.hackingwithswift.com/articles/rss"),
@@ -207,7 +213,7 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 4)
             
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 HStack {
                     Text(String(localized: "Article Open", bundle: .module))
                         .font(.system(size: 13))
@@ -216,8 +222,11 @@ struct OnboardingView: View {
                         Text(String(localized: "In App Preview", bundle: .module)).tag(true)
                         Text(String(localized: "Open in Browser", bundle: .module)).tag(false)
                     }
-                    .frame(width: 170)
+                    .labelsHidden()
+                    .fixedSize()
                 }
+                
+                Divider()
                 
                 HStack {
                     Text(String(localized: "Show unread count in menubar", bundle: .module))
@@ -227,8 +236,11 @@ struct OnboardingView: View {
                         Text(String(localized: "On", bundle: .module)).tag(true)
                         Text(String(localized: "Off", bundle: .module)).tag(false)
                     }
-                    .frame(width: 80)
+                    .labelsHidden()
+                    .fixedSize()
                 }
+                
+                Divider()
                 
                 HStack {
                     Text(String(localized: "Refresh Interval", bundle: .module))
@@ -240,8 +252,11 @@ struct OnboardingView: View {
                         Text(String(localized: "30 min", bundle: .module)).tag(30)
                         Text(String(localized: "1 hour", bundle: .module)).tag(60)
                     }
-                    .frame(width: 120)
+                    .labelsHidden()
+                    .fixedSize()
                 }
+                
+                Divider()
                 
                 HStack {
                     Text(String(localized: "Window Width", bundle: .module))
@@ -253,8 +268,11 @@ struct OnboardingView: View {
                         Text(String(localized: "Large", bundle: .module)).tag("large")
                         Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
                     }
-                    .frame(width: 120)
+                    .labelsHidden()
+                    .fixedSize()
                 }
+                
+                Divider()
                 
                 HStack {
                     Text(String(localized: "Window Height", bundle: .module))
@@ -266,9 +284,13 @@ struct OnboardingView: View {
                         Text(String(localized: "Large", bundle: .module)).tag("large")
                         Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
                     }
-                    .frame(width: 120)
+                    .labelsHidden()
+                    .fixedSize()
                 }
             }
+            .padding(12)
+            .background(Color.primary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 28)
             
             Text(String(localized: "Advanced configuration available in Settings", bundle: .module))
