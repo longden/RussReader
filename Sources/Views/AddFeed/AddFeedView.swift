@@ -132,11 +132,21 @@ final class FeedDiscovery {
                 group.addTask {
                     guard let url = URL(string: feedURL) else { return nil }
                     var request = URLRequest(url: url, timeoutInterval: 8)
-                    request.httpMethod = "HEAD"
+                    request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
                     do {
-                        let (_, response) = try await URLSession.shared.data(for: request)
+                        let (data, response) = try await URLSession.shared.data(for: request)
                         if let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) {
-                            return DiscoveredFeed(url: feedURL, title: nil, type: "RSS")
+                            // Verify it's actually a feed, not a generic 200 page
+                            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+                            let isFeedContentType = feedContentTypes.contains(where: { contentType.contains($0) })
+                            let isFeedData = looksLikeFeed(data: data)
+                            
+                            if isFeedContentType || isFeedData {
+                                let title = parseFeedTitle(from: data)
+                                let dataStr = String(data: data.prefix(500), encoding: .utf8) ?? ""
+                                let type = dataStr.contains("<feed") ? "Atom" : (contentType.contains("json") || dataStr.contains("\"version\"") ? "JSON Feed" : "RSS")
+                                return DiscoveredFeed(url: feedURL, title: title, type: type)
+                            }
                         }
                     } catch {}
                     return nil
@@ -539,14 +549,82 @@ struct AddFeedSheet: View {
             await MainActor.run { discoveredFeeds = [bskyRSS] }
             return
         }
+        
+        // GitLab
+        if let gitlabFeeds = convertGitLabToRSS(trimmed), !gitlabFeeds.isEmpty {
+            await MainActor.run { discoveredFeeds = gitlabFeeds }
+            return
+        }
+        
+        // Vimeo
+        if let vimeoRSS = convertVimeoToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [vimeoRSS] }
+            return
+        }
+        
+        // Letterboxd
+        if let letterboxdRSS = convertLetterboxdToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [letterboxdRSS] }
+            return
+        }
+        
+        // Product Hunt
+        if let phRSS = convertProductHuntToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [phRSS] }
+            return
+        }
+        
+        // Pixelfed
+        if let pixelfedRSS = convertPixelfedToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [pixelfedRSS] }
+            return
+        }
+        
+        // Lemmy
+        if let lemmyRSS = convertLemmyToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [lemmyRSS] }
+            return
+        }
+        
+        // ArXiv
+        if let arxivRSS = convertArXivToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [arxivRSS] }
+            return
+        }
+        
+        // Dribbble
+        if let dribbbleRSS = convertDribbbleToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [dribbbleRSS] }
+            return
+        }
+        
+        // Bandcamp
+        if let bandcampRSS = convertBandcampToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [bandcampRSS] }
+            return
+        }
+        
+        // Codeberg
+        if let codebergRSS = convertCodebergToRSS(trimmed) {
+            await MainActor.run { discoveredFeeds = [codebergRSS] }
+            return
+        }
 
         // Generic discovery — works for any URL
-        guard trimmed.hasPrefix("http") else { return }
+        let discoveryURL: String
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            discoveryURL = trimmed
+        } else if trimmed.contains(".") {
+            // Looks like a domain — auto-add https://
+            discoveryURL = "https://\(trimmed)"
+        } else {
+            return
+        }
 
         isDiscovering = true
         discoveredFeeds = []
 
-        let feeds = await FeedDiscovery.discoverFeeds(from: trimmed)
+        let feeds = await FeedDiscovery.discoverFeeds(from: discoveryURL)
 
         await MainActor.run {
             isDiscovering = false
@@ -900,6 +978,190 @@ struct AddFeedSheet: View {
             )
         }
         return nil
+    }
+    
+    // MARK: - GitLab Converter
+    
+    private func convertGitLabToRSS(_ url: String) -> [DiscoveredFeed]? {
+        guard url.contains("gitlab.com") else { return nil }
+        
+        guard let match = url.range(of: #"gitlab\.com/([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) else { return nil }
+        let pathPart = String(url[match]).replacingOccurrences(of: "gitlab.com/", with: "")
+        let parts = pathPart.split(separator: "/")
+        guard parts.count >= 2 else { return nil }
+        let user = String(parts[0])
+        let repo = String(parts[1])
+        
+        return [
+            DiscoveredFeed(url: "https://gitlab.com/\(user)/\(repo)/-/commits/main.atom", title: "\(user)/\(repo) — Commits", type: "Atom"),
+            DiscoveredFeed(url: "https://gitlab.com/\(user)/\(repo)/-/tags.atom", title: "\(user)/\(repo) — Releases", type: "Atom"),
+        ]
+    }
+    
+    // MARK: - Vimeo Converter
+    
+    private func convertVimeoToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("vimeo.com") else { return nil }
+        
+        let reserved = ["categories", "channels", "watch", "about", "settings", "login", "explore", "search", "features", "upload", "help"]
+        if let match = url.range(of: #"vimeo\.com/([a-zA-Z0-9_-]+)"#, options: .regularExpression) {
+            let username = String(url[match]).replacingOccurrences(of: "vimeo.com/", with: "")
+            guard !reserved.contains(username.lowercased()) else { return nil }
+            return DiscoveredFeed(
+                url: "https://vimeo.com/\(username)/videos/rss",
+                title: "Vimeo — \(username)",
+                type: "RSS"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Letterboxd Converter
+    
+    private func convertLetterboxdToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("letterboxd.com") else { return nil }
+        
+        let reserved = ["film", "films", "list", "lists", "about", "settings", "login", "explore", "search", "activity", "members"]
+        if let match = url.range(of: #"letterboxd\.com/([a-zA-Z0-9_-]+)"#, options: .regularExpression) {
+            let username = String(url[match]).replacingOccurrences(of: "letterboxd.com/", with: "")
+            guard !reserved.contains(username.lowercased()) else { return nil }
+            return DiscoveredFeed(
+                url: "https://letterboxd.com/\(username)/rss/",
+                title: "Letterboxd — \(username)",
+                type: "RSS"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Product Hunt Converter
+    
+    private func convertProductHuntToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("producthunt.com") else { return nil }
+        return DiscoveredFeed(
+            url: "https://www.producthunt.com/feed",
+            title: "Product Hunt",
+            type: "RSS"
+        )
+    }
+    
+    // MARK: - Pixelfed Converter
+    
+    private func convertPixelfedToRSS(_ url: String) -> DiscoveredFeed? {
+        let instances = ["pixelfed.social", "pixelfed.de", "pixel.tchncs.de", "pxl.mx"]
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        guard instances.contains(host) else { return nil }
+        
+        if let match = url.range(of: #"/([a-zA-Z0-9_.-]+)$"#, options: .regularExpression) {
+            let username = String(url[match]).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            guard username != "users" && !username.isEmpty else { return nil }
+            return DiscoveredFeed(
+                url: "https://\(host)/users/\(username).atom",
+                title: "Pixelfed — @\(username)@\(host)",
+                type: "Atom"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Lemmy Converter
+    
+    private func convertLemmyToRSS(_ url: String) -> DiscoveredFeed? {
+        let instances = ["lemmy.world", "lemmy.ml", "lemmy.dbzer0.com", "programming.dev", "sh.itjust.works", "beehaw.org"]
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        guard instances.contains(host) else { return nil }
+        
+        // Community feed
+        if let match = url.range(of: #"/c/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) {
+            let community = String(url[match]).replacingOccurrences(of: "/c/", with: "")
+            return DiscoveredFeed(
+                url: "https://\(host)/feeds/c/\(community).xml?sort=New",
+                title: "Lemmy — \(community)@\(host)",
+                type: "RSS"
+            )
+        }
+        
+        // User feed
+        if let match = url.range(of: #"/u/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) {
+            let user = String(url[match]).replacingOccurrences(of: "/u/", with: "")
+            return DiscoveredFeed(
+                url: "https://\(host)/feeds/u/\(user).xml?sort=New",
+                title: "Lemmy — u/\(user)@\(host)",
+                type: "RSS"
+            )
+        }
+        
+        return nil
+    }
+    
+    // MARK: - ArXiv Converter
+    
+    private func convertArXivToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("arxiv.org") else { return nil }
+        
+        // Category listing: arxiv.org/list/cs.AI or arxiv.org/list/math.CO
+        if let match = url.range(of: #"arxiv\.org/list/([a-zA-Z-]+\.[a-zA-Z]+)"#, options: .regularExpression) {
+            let category = String(url[match]).replacingOccurrences(of: "arxiv.org/list/", with: "")
+            return DiscoveredFeed(
+                url: "https://export.arxiv.org/rss/\(category)",
+                title: "ArXiv — \(category)",
+                type: "RSS"
+            )
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Dribbble Converter
+    
+    private func convertDribbbleToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("dribbble.com") else { return nil }
+        
+        let reserved = ["shots", "tags", "about", "settings", "login", "explore", "search", "signup", "stories"]
+        if let match = url.range(of: #"dribbble\.com/([a-zA-Z0-9_-]+)"#, options: .regularExpression) {
+            let username = String(url[match]).replacingOccurrences(of: "dribbble.com/", with: "")
+            guard !reserved.contains(username.lowercased()) else { return nil }
+            return DiscoveredFeed(
+                url: "https://dribbble.com/\(username)/shots.rss",
+                title: "Dribbble — \(username)",
+                type: "RSS"
+            )
+        }
+        return nil
+    }
+    
+    // MARK: - Bandcamp Converter
+    
+    private func convertBandcampToRSS(_ url: String) -> DiscoveredFeed? {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
+        
+        guard host.hasSuffix(".bandcamp.com") else { return nil }
+        let artist = host.replacingOccurrences(of: ".bandcamp.com", with: "")
+        guard !artist.isEmpty else { return nil }
+        return DiscoveredFeed(
+            url: "https://\(artist).bandcamp.com/feed",
+            title: "Bandcamp — \(artist)",
+            type: "RSS"
+        )
+    }
+    
+    // MARK: - Codeberg Converter
+    
+    private func convertCodebergToRSS(_ url: String) -> DiscoveredFeed? {
+        guard url.contains("codeberg.org") else { return nil }
+        
+        guard let match = url.range(of: #"codeberg\.org/([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)"#, options: .regularExpression) else { return nil }
+        let pathPart = String(url[match]).replacingOccurrences(of: "codeberg.org/", with: "")
+        let parts = pathPart.split(separator: "/")
+        guard parts.count >= 2 else { return nil }
+        let user = String(parts[0])
+        let repo = String(parts[1])
+        
+        return DiscoveredFeed(
+            url: "https://codeberg.org/\(user)/\(repo).atom",
+            title: "\(user)/\(repo) — Codeberg",
+            type: "Atom"
+        )
     }
 
     private func addFeed() {
