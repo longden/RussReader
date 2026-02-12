@@ -796,9 +796,20 @@ final class FeedStore: ObservableObject {
             if httpResponse.statusCode >= 400 {
                 throw URLError(.badServerResponse)
             }
-            let parser = RSSParser(feedId: feed.id)
-            let newItems = parser.parse(data: data)
-            return (feed, newItems, parser.feedTitle, parser.feedIconURL, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+            
+            // Detect CSV format by content-type or URL extension
+            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            let isCSV = contentType.contains("text/csv") || feed.url.lowercased().hasSuffix(".csv")
+            
+            if isCSV {
+                let csvParser = CSVFeedParser(feedId: feed.id)
+                let newItems = csvParser.parse(data: data)
+                return (feed, newItems, csvParser.feedTitle, csvParser.feedIconURL, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+            } else {
+                let parser = RSSParser(feedId: feed.id)
+                let newItems = parser.parse(data: data)
+                return (feed, newItems, parser.feedTitle, parser.feedIconURL, httpResponse.value(forHTTPHeaderField: "ETag"), httpResponse.value(forHTTPHeaderField: "Last-Modified"))
+            }
         } catch let error as URLError where error.code == .userAuthenticationRequired {
             await MainActor.run {
                 showError(String(format: String(localized: "Authentication failed for %@. Check your credentials.", bundle: .module), feed.title))
