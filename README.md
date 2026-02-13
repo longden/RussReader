@@ -7,12 +7,16 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 
 ## Features
 
-- **Menu Bar Integration** - Lives in your menu bar with unread count indicator
+- **Menu Bar Integration** - Lives in your menu bar with unread count badge
 - **Multiple Feeds** - Subscribe to unlimited RSS/Atom feeds
-- **Smart Filtering** - Filter by All, Unread, or Starred items
-- **OPML Support** - Import and export your subscriptions
-- **Customizable** - Adjust font size, colors, and refresh interval
-- **Keyboard Shortcuts** - Quick access with ⌘R (refresh), ⌘, (preferences), ⌘Q (quit)
+- **Smart Filters** - Rule-based filters: highlight, hide, auto-star, notify, and more
+- **Article Preview** - Inline article preview pane with HTML rendering
+- **Authenticated Feeds** - Basic Auth and Bearer Token support via Keychain
+- **OPML Support** - Import and export your subscriptions (including CSV)
+- **Suggested Feeds** - Curated feed packs across news, tech, AI, and more
+- **Localization** - Multi-language support with per-language preference
+- **Customizable** - Font size, colors, refresh interval
+- **Keyboard Shortcuts** - ⌘R (refresh), ⌘, (preferences), ⌘Q (quit)
 
 ## Installation
 
@@ -46,12 +50,13 @@ This single command builds, strips symbols, and creates a distributable DMG.
 3. Click articles to open in browser
 4. Right-click to star or mark as read/unread
 
-## Default Feeds
+## Suggested Feeds
 
-The app comes with sample feeds:
-- Daring Fireball
-- Swift by Sundell
-- NSHipster
+The app includes curated feed packs to get started:
+- General News (BBC, Reuters)
+- AI & Tech Blogs (Simon Willison, GitHub, OpenAI)
+- iOS / macOS (Swift by Sundell, Hacking with Swift, SwiftLee)
+- Cybersecurity, Machine Learning, React, Startups, Product Management
 
 ## Configuration
 
@@ -78,8 +83,6 @@ Share the `.app` bundle or `.dmg` file directly with others.
 - Compiled native code (not easily reverse-engineered)
 - Stripped debug symbols (58% size reduction, better obfuscation)
 - Release optimizations and code signing
-
-See [SECURITY.md](SECURITY.md) for details on code protection.
 
 ### Future Distribution Channels
 - **App Store**: Planned for future release
