@@ -12,6 +12,8 @@ struct FeedItemRow: View {
     let feedTitle: String
     let feedIconURL: String?
     let feedURL: String?
+    let feedId: UUID?
+    let feedAuthType: AuthType
     let isHovered: Bool
     let fontSize: Double
     let titleMaxLines: Int
@@ -20,6 +22,7 @@ struct FeedItemRow: View {
     let iconEmoji: String?
     let showSummary: Bool
     let showFeedIcon: Bool
+    let showViaFeed: Bool
     let openInPreview: Bool
     var onPreview: (() -> Void)? = nil
 
@@ -54,13 +57,36 @@ struct FeedItemRow: View {
                         .lineLimit(1)
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     if showFeedIcon {
-                        FeedIconView(iconURL: feedIconURL, feedURL: feedURL, size: 11)
+                        FeedIconView(iconURL: nil, feedURL: item.link, size: 11)
                     }
-                    Text(feedTitle)
-                        .font(.system(size: fontSize - 3, weight: .medium))
-                        .foregroundStyle(.secondary)
+                    
+                    // Source attribution: "ArticleDomain via FeedTitle" for aggregators, just "FeedTitle" for direct feeds
+                    // Compare SLDs (e.g. "github" from both "github.com" and "github.blog") to avoid redundant "via"
+                    let articleDomain = articleDomainName(from: item.link)
+                    let feedDomain = feedURL.flatMap { secondLevelDomain(of: $0) }
+                    let isAggregator = showViaFeed && articleDomain != nil && feedDomain != nil &&
+                        articleDomain!.lowercased() != feedDomain!.lowercased()
+                    
+                    if isAggregator, let domain = articleDomain {
+                        Text(domain.capitalized)
+                            .font(.system(size: fontSize - 3, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Text("via")
+                            .font(.system(size: fontSize - 3))
+                            .foregroundStyle(.tertiary)
+                        Text(feedTitle)
+                            .font(.system(size: fontSize - 3, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(feedTitle)
+                            .font(.system(size: fontSize - 3, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                     
                     // Enclosure indicator
                     if !item.enclosures.isEmpty {
@@ -159,5 +185,18 @@ struct FeedItemRow: View {
         if enclosure.isVideo { return "video" }
         if enclosure.isImage { return "photo" }
         return "paperclip"
+    }
+    
+    /// Returns the second-level domain (brand name) from a URL string.
+    /// e.g. "github" from "github.com" or "github.blog", "ycombinator" from "news.ycombinator.com"
+    private func secondLevelDomain(of urlString: String) -> String? {
+        guard let url = URL(string: urlString), let host = url.host else { return nil }
+        let parts = host.replacingOccurrences(of: "www.", with: "").components(separatedBy: ".")
+        guard parts.count >= 2 else { return parts.first }
+        return parts[parts.count - 2]
+    }
+
+    private func articleDomainName(from link: String) -> String? {
+        secondLevelDomain(of: link)
     }
 }

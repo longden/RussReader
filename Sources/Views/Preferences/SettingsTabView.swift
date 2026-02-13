@@ -174,6 +174,7 @@ struct SettingsTabView: View {
                 
                 Toggle(String(localized: "RSS Item Summary", bundle: .module), isOn: $store.showSummaryGlobal)
                 Toggle(String(localized: "Show Feed Icons", bundle: .module), isOn: $store.showFeedIcons)
+                Toggle(String(localized: "Show \"via Feed\" Source", bundle: .module), isOn: $store.showViaFeed)
             }
             
             // Actions

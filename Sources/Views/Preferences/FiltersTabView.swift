@@ -710,7 +710,7 @@ struct FeedSelectorSheet: View {
                         }
                     )) {
                         HStack {
-                            FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 14)
+                            FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 14, feedId: feed.id, authType: feed.authType)
                             Text(feed.title)
                                 .font(.system(size: 13))
                         }

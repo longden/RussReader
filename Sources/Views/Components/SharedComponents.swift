@@ -96,13 +96,17 @@ struct FeedIconView: View {
     let iconURL: String?
     let feedURL: String?
     let size: CGFloat
+    let feedId: UUID?
+    let authType: AuthType
     
     @State private var image: NSImage?
     
-    init(iconURL: String?, feedURL: String? = nil, size: CGFloat = 16) {
+    init(iconURL: String?, feedURL: String? = nil, size: CGFloat = 16, feedId: UUID? = nil, authType: AuthType = .none) {
         self.iconURL = iconURL
         self.feedURL = feedURL
         self.size = size
+        self.feedId = feedId
+        self.authType = authType
     }
     
     var body: some View {
@@ -126,26 +130,26 @@ struct FeedIconView: View {
     private func loadIcon() async {
         guard image == nil else { return }
         
-        // Try the feed-provided icon URL first
+        // Try the feed-provided icon URL first (with auth if needed)
         if let iconURL = iconURL, let url = URL(string: iconURL) {
-            if let loadedImage = await loadImageWithCache(from: url) {
+            if let loadedImage = await loadImageWithCache(from: url, useAuth: true) {
                 await MainActor.run { self.image = loadedImage }
                 return
             }
         }
         
-        // Fall back to favicon from the website
+        // Fall back to favicon from the website (no auth needed)
         if let feedURL = feedURL,
            let feedUrl = URL(string: feedURL),
            let host = feedUrl.host,
            let faviconURL = URL(string: "https://\(host)/favicon.ico") {
-            if let loadedImage = await loadImageWithCache(from: faviconURL) {
+            if let loadedImage = await loadImageWithCache(from: faviconURL, useAuth: false) {
                 await MainActor.run { self.image = loadedImage }
             }
         }
     }
     
-    private func loadImageWithCache(from url: URL) async -> NSImage? {
+    private func loadImageWithCache(from url: URL, useAuth: Bool) async -> NSImage? {
         if let cached = FaviconCache.shared.image(for: url) {
             return cached
         }
@@ -154,7 +158,26 @@ struct FeedIconView: View {
         defer { FaviconCache.shared.endFetch(for: url) }
         
         do {
-            let request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
+            var request = URLRequest(url: url, timeoutInterval: defaultRequestTimeout)
+            
+            if useAuth, let feedId = feedId {
+                switch authType {
+                case .basicAuth:
+                    if let creds = KeychainHelper.loadBasicAuth(feedId: feedId) {
+                        let credString = "\(creds.username):\(creds.password)"
+                        if let credData = credString.data(using: .utf8) {
+                            request.setValue("Basic \(credData.base64EncodedString())", forHTTPHeaderField: "Authorization")
+                        }
+                    }
+                case .bearerToken:
+                    if let creds = KeychainHelper.loadToken(feedId: feedId) {
+                        request.setValue("Bearer \(creds.token)", forHTTPHeaderField: "Authorization")
+                    }
+                case .none:
+                    break
+                }
+            }
+            
             let (data, _) = try await URLSession.shared.data(for: request)
             if let image = NSImage(data: data) {
                 FaviconCache.shared.store(image, for: url)
