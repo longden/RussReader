@@ -280,6 +280,8 @@ struct RSSReaderView: View {
                             feedTitle: store.feedTitle(for: item),
                             feedIconURL: store.feedIconURL(for: item),
                             feedURL: store.feedURL(for: item),
+                            feedId: store.feedId(for: item),
+                            feedAuthType: store.feedAuthType(for: item),
                             isHovered: hoveredItemId == item.id,
                             fontSize: store.fontSize,
                             titleMaxLines: store.titleMaxLines,
@@ -288,6 +290,7 @@ struct RSSReaderView: View {
                             iconEmoji: store.iconEmoji(for: item),
                             showSummary: store.shouldShowSummary(for: item),
                             showFeedIcon: store.showFeedIcons,
+                            showViaFeed: store.showViaFeed,
                             openInPreview: store.openInPreview,
                             onPreview: {
                                 store.markAsRead(item)

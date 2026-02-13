@@ -96,7 +96,7 @@ struct FeedsTabView: View {
     
     private func feedRow(_ feed: Feed) -> some View {
         HStack(spacing: 8) {
-            FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 16)
+            FeedIconView(iconURL: feed.iconURL, feedURL: feed.url, size: 16, feedId: feed.id, authType: feed.authType)
             Text(feed.title)
                 .lineLimit(1)
             if feed.authType != .none {

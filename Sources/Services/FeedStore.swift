@@ -94,6 +94,7 @@ final class FeedStore: ObservableObject {
     @AppStorage("rssNewItemNotifications") var newItemNotificationsEnabled: Bool = false
     var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
     @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = false
+    @AppStorage("rssShowViaFeed") var showViaFeed: Bool = true
     @AppStorage("rssWindowWidthSize") var windowWidthSize: String = "medium"
     @AppStorage("rssWindowHeightSize") var windowHeightSize: String = "medium"
     @AppStorage("rssOpenInPreview") var openInPreview: Bool = false
@@ -474,6 +475,14 @@ final class FeedStore: ObservableObject {
 
     func feedURL(for item: FeedItem) -> String? {
         feeds.first { $0.id == item.feedId }?.url
+    }
+    
+    func feedId(for item: FeedItem) -> UUID? {
+        feeds.first { $0.id == item.feedId }?.id
+    }
+    
+    func feedAuthType(for item: FeedItem) -> AuthType {
+        feeds.first { $0.id == item.feedId }?.authType ?? .none
     }
     
     // MARK: - Item Management
