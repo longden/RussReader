@@ -154,34 +154,34 @@ struct RussReaderView: View {
                                 Task { await store.refreshAll() }
                             }
                             .keyboardShortcut("r")
-                            .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
+                            .accessibilityLabel(String(localized: "Refresh feeds"))
 
-                            headerButton(String(localized: "Mark all as read", bundle: .module), icon: "text.badge.checkmark") {
+                            headerButton(String(localized: "Mark all as read"), icon: "text.badge.checkmark") {
                                 store.markAllAsRead()
                             }
                             .disabled(store.unreadCount == 0)
-                            .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+                            .accessibilityLabel(String(localized: "Mark all as read"))
 
-                            headerButton(String(localized: "Add Feed", bundle: .module), icon: "plus") {
+                            headerButton(String(localized: "Add Feed"), icon: "plus") {
                                 openAddFeedWindow(openWindow: openWindow)
                             }
                             .keyboardShortcut("n", modifiers: [.command])
-                            .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
+                            .accessibilityLabel(String(localized: "Add Feed"))
 
-                            headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
+                            headerButton(String(localized: "Preferences"), icon: "gearshape.fill") {
                                 preferencesTab = "feeds"
                                 openPreferencesWindow(openWindow: openWindow)
                             }
                             .keyboardShortcut(",")
-                            .accessibilityLabel(String(localized: "Preferences", bundle: .module))
+                            .accessibilityLabel(String(localized: "Preferences"))
                         }
                     }
 
-                    headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
+                    headerButton(String(localized: "Quit"), icon: "xmark.circle.fill") {
                         NSApplication.shared.terminate(nil)
                     }
                     .keyboardShortcut("q")
-                    .accessibilityLabel(String(localized: "Quit", bundle: .module))
+                    .accessibilityLabel(String(localized: "Quit"))
                 }
             } else {
                 HStack(spacing: 12) {
@@ -190,33 +190,33 @@ struct RussReaderView: View {
                             Task { await store.refreshAll() }
                         }
                         .keyboardShortcut("r")
-                        .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
+                        .accessibilityLabel(String(localized: "Refresh feeds"))
 
-                        headerButton(String(localized: "Mark all as read", bundle: .module), icon: "text.badge.checkmark") {
+                        headerButton(String(localized: "Mark all as read"), icon: "text.badge.checkmark") {
                             store.markAllAsRead()
                         }
                         .disabled(store.unreadCount == 0)
-                        .accessibilityLabel(String(localized: "Mark all as read", bundle: .module))
+                        .accessibilityLabel(String(localized: "Mark all as read"))
 
-                        headerButton(String(localized: "Add Feed", bundle: .module), icon: "plus") {
+                        headerButton(String(localized: "Add Feed"), icon: "plus") {
                             openAddFeedWindow(openWindow: openWindow)
                         }
                         .keyboardShortcut("n", modifiers: [.command])
-                        .accessibilityLabel(String(localized: "Add Feed", bundle: .module))
+                        .accessibilityLabel(String(localized: "Add Feed"))
 
-                        headerButton(String(localized: "Preferences", bundle: .module), icon: "gearshape.fill") {
+                        headerButton(String(localized: "Preferences"), icon: "gearshape.fill") {
                             preferencesTab = "feeds"
                             openPreferencesWindow(openWindow: openWindow)
                         }
                         .keyboardShortcut(",")
-                        .accessibilityLabel(String(localized: "Preferences", bundle: .module))
+                        .accessibilityLabel(String(localized: "Preferences"))
                     }
 
-                    headerButton(String(localized: "Quit", bundle: .module), icon: "xmark.circle.fill") {
+                    headerButton(String(localized: "Quit"), icon: "xmark.circle.fill") {
                         NSApplication.shared.terminate(nil)
                     }
                     .keyboardShortcut("q")
-                    .accessibilityLabel(String(localized: "Quit", bundle: .module))
+                    .accessibilityLabel(String(localized: "Quit"))
                 }
             }
         }
@@ -248,9 +248,9 @@ struct RussReaderView: View {
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel(String(localized: "Filter", bundle: .module))
+            .accessibilityLabel(String(localized: "Filter"))
         } else {
-            Picker(String(localized: "Filter", bundle: .module), selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
+            Picker(String(localized: "Filter"), selection: $store.filter.animation(.easeInOut(duration: 0.2))) {
                 ForEach(FeedFilter.allCases, id: \.self) { filter in
                     Label {
                         Text(filter.localizedName)
@@ -324,7 +324,7 @@ struct RussReaderView: View {
                     HStack {
                         Image(systemName: "eye.slash")
                             .font(.system(size: 11))
-                        Text(String(format: String(localized: "%lld items hidden by filters", bundle: .module), store.hiddenItemCount))
+                        Text(String(format: String(localized: "%lld items hidden by filters"), store.hiddenItemCount))
                             .font(.system(size: 11))
                     }
                     .foregroundStyle(.secondary)
@@ -361,13 +361,13 @@ struct RussReaderView: View {
 
             if store.feeds.isEmpty {
                 if #available(macOS 26.0, *) {
-                    Button(String(localized: "Add Feeds", bundle: .module)) {
+                    Button(String(localized: "Add Feeds")) {
                         preferencesTab = "feeds"
                         openPreferencesWindow(openWindow: openWindow)
                     }
                     .buttonStyle(.glassProminent)
                 } else {
-                    Button(String(localized: "Add Feeds", bundle: .module)) {
+                    Button(String(localized: "Add Feeds")) {
                         preferencesTab = "feeds"
                         openPreferencesWindow(openWindow: openWindow)
                     }
@@ -375,12 +375,12 @@ struct RussReaderView: View {
                 }
             } else if store.filter == .all {
                 if #available(macOS 26.0, *) {
-                    Button(String(localized: "Refresh", bundle: .module)) {
+                    Button(String(localized: "Refresh")) {
                         Task { await store.refreshAll() }
                     }
                     .buttonStyle(.glassProminent)
                 } else {
-                    Button(String(localized: "Refresh", bundle: .module)) {
+                    Button(String(localized: "Refresh")) {
                         Task { await store.refreshAll() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -396,12 +396,12 @@ struct RussReaderView: View {
         switch store.filter {
         case .all:
             return store.feeds.isEmpty
-                ? String(localized: "No feeds added yet.\nAdd some feeds to get started.", bundle: .module)
-                : String(localized: "No items to show.\nTry refreshing your feeds.", bundle: .module)
+                ? String(localized: "No feeds added yet.\nAdd some feeds to get started.")
+                : String(localized: "No items to show.\nTry refreshing your feeds.")
         case .unread:
-            return String(localized: "All caught up!\nNo unread items.", bundle: .module)
+            return String(localized: "All caught up!\nNo unread items.")
         case .starred:
-            return String(localized: "No starred items.\nStar items to save them here.", bundle: .module)
+            return String(localized: "No starred items.\nStar items to save them here.")
         }
     }
 
@@ -415,7 +415,7 @@ struct RussReaderView: View {
                 showingFeedPicker = false
             } label: {
                 HStack {
-                    Text(String(localized: "All Feeds", bundle: .module))
+                    Text(String(localized: "All Feeds"))
                         .font(.system(size: 12))
                     Spacer()
                     Text("\(store.items.count)")
@@ -488,7 +488,7 @@ struct RussReaderView: View {
                let feed = store.feeds.first(where: { $0.id == id }) {
                 return String(feed.title.prefix(25))
             }
-            return String(localized: "All Feeds", bundle: .module)
+            return String(localized: "All Feeds")
         }()
         
         HStack {
@@ -514,8 +514,8 @@ struct RussReaderView: View {
                     feedPickerHovered = hovering
                 }
             }
-            .help(String(localized: "Select Feed", bundle: .module))
-            .accessibilityLabel(String(localized: "Select Feed", bundle: .module))
+            .help(String(localized: "Select Feed"))
+            .accessibilityLabel(String(localized: "Select Feed"))
             .popover(isPresented: $showingFeedPicker) {
                 feedPickerPopover
             }
@@ -566,9 +566,9 @@ struct RussReaderView: View {
         
         // Handle very recent times explicitly
         if seconds < 2 {
-            return String(localized: "just now", bundle: .module)
+            return String(localized: "just now")
         } else if seconds < 60 {
-            return String(format: String(localized: "%llds ago", bundle: .module), seconds)
+            return String(format: String(localized: "%llds ago"), seconds)
         }
         
         // Use system formatter for longer durations

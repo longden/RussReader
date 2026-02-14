@@ -7,11 +7,11 @@
 	<key>CFBundleDisplayName</key>
 	<string>RussReader</string>
 	<key>CFBundleExecutable</key>
-	<string>RussReader</string>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.russreader.menubar</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

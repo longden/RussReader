@@ -16,11 +16,11 @@ struct FiltersTabView: View {
                 Toggle("", isOn: $store.smartFiltersEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.small)
-                Text(String(localized: "Enable rules", bundle: .module))
+                Text(String(localized: "Enable rules"))
                     .font(.system(size: 13, weight: .medium))
                 Spacer()
                 if store.smartFiltersEnabled && !store.filterRules.isEmpty {
-                    Text(String(format: String(localized: "%lld active", bundle: .module), store.filterRules.filter { $0.isEnabled }.count))
+                    Text(String(format: String(localized: "%lld active"), store.filterRules.filter { $0.isEnabled }.count))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -47,8 +47,8 @@ struct FiltersTabView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help(String(localized: "Add filter rule", bundle: .module))
-                .accessibilityLabel(String(localized: "Add filter rule", bundle: .module))
+                .help(String(localized: "Add filter rule"))
+                .accessibilityLabel(String(localized: "Add filter rule"))
                 
                 if let rule = selectedRule {
                     Button {
@@ -56,8 +56,8 @@ struct FiltersTabView: View {
                     } label: {
                         Image(systemName: "pencil")
                     }
-                    .help(String(localized: "Edit selected rule", bundle: .module))
-                    .accessibilityLabel(String(localized: "Edit selected rule", bundle: .module))
+                    .help(String(localized: "Edit selected rule"))
+                    .accessibilityLabel(String(localized: "Edit selected rule"))
                 }
                 
                 Spacer()
@@ -69,8 +69,8 @@ struct FiltersTabView: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .help(String(localized: "Delete selected rule", bundle: .module))
-                    .accessibilityLabel(String(localized: "Delete selected rule", bundle: .module))
+                    .help(String(localized: "Delete selected rule"))
+                    .accessibilityLabel(String(localized: "Delete selected rule"))
                 }
             }
             .padding(.horizontal, 12)
@@ -93,18 +93,18 @@ struct FiltersTabView: View {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 32))
                 .foregroundStyle(.secondary)
-            Text(String(localized: "No filter rules yet", bundle: .module))
+            Text(String(localized: "No filter rules yet"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             
             VStack(alignment: .leading, spacing: 6) {
-                exampleRow(icon: "highlighter", color: .orange, text: String(localized: "Highlight articles about \"Swift\"", bundle: .module))
-                exampleRow(icon: "eye.slash", color: .gray, text: String(localized: "Hide items containing \"sponsored\"", bundle: .module))
-                exampleRow(icon: "star.fill", color: .yellow, text: String(localized: "Auto-star posts from favorite feeds", bundle: .module))
+                exampleRow(icon: "highlighter", color: .orange, text: String(localized: "Highlight articles about \"Swift\""))
+                exampleRow(icon: "eye.slash", color: .gray, text: String(localized: "Hide items containing \"sponsored\""))
+                exampleRow(icon: "star.fill", color: .yellow, text: String(localized: "Auto-star posts from favorite feeds"))
             }
             .padding(.vertical, 8)
             
-            Button(String(localized: "Create First Rule", bundle: .module)) {
+            Button(String(localized: "Create First Rule")) {
                 editingRule = nil
                 showingRuleEditor = true
             }
@@ -133,14 +133,14 @@ struct FiltersTabView: View {
                 RuleRowView(rule: rule)
                     .tag(rule)
                     .contextMenu {
-                        Button(String(localized: "Edit", bundle: .module)) {
+                        Button(String(localized: "Edit")) {
                             editingRule = rule
                         }
-                        Button(rule.isEnabled ? String(localized: "Disable", bundle: .module) : String(localized: "Enable", bundle: .module)) {
+                        Button(rule.isEnabled ? String(localized: "Disable") : String(localized: "Enable")) {
                             store.toggleFilterRule(rule)
                         }
                         Divider()
-                        Button(String(localized: "Delete", bundle: .module), role: .destructive) {
+                        Button(String(localized: "Delete"), role: .destructive) {
                             store.deleteFilterRule(rule)
                             if selectedRule?.id == rule.id {
                                 selectedRule = nil
@@ -202,8 +202,8 @@ struct RuleRowView: View {
     
     private var ruleDescription: String {
         let conditionCount = rule.conditions.count
-        let conditionText = conditionCount == 1 ? String(localized: "1 condition", bundle: .module) : String(format: String(localized: "%lld conditions", bundle: .module), conditionCount)
-        let feedText = rule.feedScope.isAllFeeds ? String(localized: "All feeds", bundle: .module) : String(format: String(localized: "%lld feeds", bundle: .module), rule.feedScope.selectedFeedIds.count)
+        let conditionText = conditionCount == 1 ? String(localized: "1 condition") : String(format: String(localized: "%lld conditions"), conditionCount)
+        let feedText = rule.feedScope.isAllFeeds ? String(localized: "All feeds") : String(format: String(localized: "%lld feeds"), rule.feedScope.selectedFeedIds.count)
         return "\(rule.action.rawValue) • \(conditionText) • \(feedText)"
     }
 }
@@ -265,7 +265,7 @@ struct RuleEditorView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(isEditing ? String(localized: "Edit Rule", bundle: .module) : String(localized: "New Rule", bundle: .module))
+                Text(isEditing ? String(localized: "Edit Rule") : String(localized: "New Rule"))
                     .font(.headline)
                 Spacer()
             }
@@ -278,16 +278,16 @@ struct RuleEditorView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // Rule name
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(String(localized: "Name", bundle: .module))
+                        Text(String(localized: "Name"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
-                        FocusableTextField(text: $name, placeholder: String(localized: "e.g., Highlight Swift articles", bundle: .module), shouldFocus: false)
+                        FocusableTextField(text: $name, placeholder: String(localized: "e.g., Highlight Swift articles"), shouldFocus: false)
                             .frame(height: 22)
                     }
                     
                     // Feed scope - button to show multi-select sheet
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(String(localized: "Apply to", bundle: .module))
+                        Text(String(localized: "Apply to"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                         
@@ -314,7 +314,7 @@ struct RuleEditorView: View {
                     
                     // Action picker
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(String(localized: "Action", bundle: .module))
+                        Text(String(localized: "Action"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                         
@@ -335,7 +335,7 @@ struct RuleEditorView: View {
                     // Color picker (only for highlight)
                     if action == .highlight {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(String(localized: "Background Color", bundle: .module))
+                            Text(String(localized: "Background Color"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -384,7 +384,7 @@ struct RuleEditorView: View {
                                 .buttonStyle(.plain)
                                 .popover(isPresented: $showingColorPicker) {
                                     VStack(spacing: 12) {
-                                        Text(String(localized: "Choose Custom Color", bundle: .module))
+                                        Text(String(localized: "Choose Custom Color"))
                                             .font(.system(size: 12, weight: .medium))
                                         
                                         // Show current color
@@ -398,13 +398,13 @@ struct RuleEditorView: View {
                                         
                                         // Hex code input
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(String(localized: "Hex Code", bundle: .module))
+                                            Text(String(localized: "Hex Code"))
                                                 .font(.system(size: 11))
                                                 .foregroundStyle(.secondary)
                                             HStack {
                                                 Text("#")
                                                     .foregroundStyle(.secondary)
-                                                FocusableTextField(text: $hexInput, placeholder: String(localized: "e.g. FF5733", bundle: .module), shouldFocus: false)
+                                                FocusableTextField(text: $hexInput, placeholder: String(localized: "e.g. FF5733"), shouldFocus: false)
                                                     .frame(width: 100, height: 22)
                                                     .onChange(of: hexInput) { _, newValue in
                                                         if newValue.count == 6 {
@@ -415,7 +415,7 @@ struct RuleEditorView: View {
                                             }
                                         }
                                         
-                                        Button(String(localized: "Done", bundle: .module)) {
+                                        Button(String(localized: "Done")) {
                                             showingColorPicker = false
                                         }
                                         .buttonStyle(.borderedProminent)
@@ -434,7 +434,7 @@ struct RuleEditorView: View {
                     // Emoji picker (only for addIcon)
                     if action == .addIcon {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(String(localized: "Icon", bundle: .module))
+                            Text(String(localized: "Icon"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -452,7 +452,7 @@ struct RuleEditorView: View {
                             }
                             
                             HStack {
-                                Text(String(localized: "Or type custom:", bundle: .module))
+                                Text(String(localized: "Or type custom:"))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                                 FocusableTextField(text: $iconEmoji, placeholder: "", shouldFocus: false)
@@ -466,7 +466,7 @@ struct RuleEditorView: View {
                     // Conditions
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text(String(localized: "When", bundle: .module))
+                            Text(String(localized: "When"))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                             
@@ -495,7 +495,7 @@ struct RuleEditorView: View {
                         Button {
                             conditions.append(FilterCondition())
                         } label: {
-                            Label(String(localized: "Add Condition", bundle: .module), systemImage: "plus.circle")
+                            Label(String(localized: "Add Condition"), systemImage: "plus.circle")
                                 .font(.system(size: 12))
                         }
                         .buttonStyle(.plain)
@@ -509,14 +509,14 @@ struct RuleEditorView: View {
             
             // Footer buttons
             HStack {
-                Button(String(localized: "Cancel", bundle: .module)) {
+                Button(String(localized: "Cancel")) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
                 
                 Spacer()
                 
-                Button(isEditing ? String(localized: "Save", bundle: .module) : String(localized: "Add Rule", bundle: .module)) {
+                Button(isEditing ? String(localized: "Save") : String(localized: "Add Rule")) {
                     saveRule()
                 }
                 .buttonStyle(.borderedProminent)
@@ -567,14 +567,14 @@ struct RuleEditorView: View {
     
     private var feedScopeLabel: String {
         if applyToAllFeeds {
-            return String(localized: "All feeds", bundle: .module)
+            return String(localized: "All feeds")
         } else if selectedFeedIds.isEmpty {
-            return String(localized: "Select feeds", bundle: .module)
+            return String(localized: "Select feeds")
         } else if selectedFeedIds.count == 1 {
             let feedId = selectedFeedIds.first!
-            return store.feeds.first { $0.id == feedId }?.title ?? String(localized: "1 feed", bundle: .module)
+            return store.feeds.first { $0.id == feedId }?.title ?? String(localized: "1 feed")
         } else {
-            return String(format: String(localized: "%lld feeds", bundle: .module), selectedFeedIds.count)
+            return String(format: String(localized: "%lld feeds"), selectedFeedIds.count)
         }
     }
     
@@ -632,7 +632,7 @@ struct ConditionRow: View {
             .labelsHidden()
             .frame(width: 120)
             
-            FocusableTextField(text: $condition.value, placeholder: String(localized: "value", bundle: .module), shouldFocus: false)
+            FocusableTextField(text: $condition.value, placeholder: String(localized: "value"), shouldFocus: false)
                 .frame(height: 22)
             
             Button {
@@ -642,7 +642,7 @@ struct ConditionRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Remove condition", bundle: .module))
+            .accessibilityLabel(String(localized: "Remove condition"))
         }
         .padding(8)
         .background(Color.primary.opacity(0.03))
@@ -662,10 +662,10 @@ struct FeedSelectorSheet: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(String(localized: "Select Feeds", bundle: .module))
+                Text(String(localized: "Select Feeds"))
                     .font(.headline)
                 Spacer()
-                Button(String(localized: "Done", bundle: .module)) {
+                Button(String(localized: "Done")) {
                     isPresented = false
                 }
                 .buttonStyle(.borderedProminent)
@@ -683,7 +683,7 @@ struct FeedSelectorSheet: View {
                         Image(systemName: "globe")
                             .font(.system(size: 14))
                             .foregroundStyle(.blue)
-                        Text(String(localized: "All feeds", bundle: .module))
+                        Text(String(localized: "All feeds"))
                             .font(.system(size: 13, weight: .medium))
                     }
                 }

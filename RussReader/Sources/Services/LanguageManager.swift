@@ -71,8 +71,8 @@ extension Bundle {
             return resourceBundle
         }
         
-        // Fallback to module bundle
-        return .module
+        // Fallback to main bundle
+        return .main
     }
 }
 

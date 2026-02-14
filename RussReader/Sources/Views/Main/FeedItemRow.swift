@@ -116,7 +116,7 @@ struct FeedItemRow: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help(openInPreview ? String(localized: "Preview", bundle: .module) : String(localized: "Open in Browser", bundle: .module))
+                    .help(openInPreview ? String(localized: "Preview") : String(localized: "Open in Browser"))
                 } else if let emoji = iconEmoji {
                     Text(emoji)
                         .font(.system(size: 11))
@@ -156,7 +156,7 @@ struct FeedItemRow: View {
         if calendar.isDateInToday(date) {
             return formatTime(date, timeFormat: timeFormat)
         } else if calendar.isDateInYesterday(date) {
-            return String(localized: "Yesterday", bundle: .module)
+            return String(localized: "Yesterday")
         } else {
             return Self.dateFormatter.string(from: date)
         }

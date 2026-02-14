@@ -32,8 +32,8 @@ struct RefreshButton: View {
                 isHovered = hovering
             }
         }
-        .help(String(localized: "Refresh feeds", bundle: .module))
-        .accessibilityLabel(String(localized: "Refresh feeds", bundle: .module))
+        .help(String(localized: "Refresh feeds"))
+        .accessibilityLabel(String(localized: "Refresh feeds"))
     }
 }
 

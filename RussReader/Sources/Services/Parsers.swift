@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import FeedKit
+import XMLKit
 import OSLog
 
 // MARK: - RSS Parser using FeedKit

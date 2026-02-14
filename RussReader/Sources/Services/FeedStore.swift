@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 import OSLog
 @preconcurrency import UserNotifications
 import CoreFoundation
@@ -281,9 +282,9 @@ final class FeedStore: ObservableObject {
         UNUserNotificationCenter.current().delegate = delegate
         
         // Register notification categories with actions
-        let openAction = UNNotificationAction(identifier: "OPEN_ARTICLE", title: String(localized: "Open", bundle: .module), options: [.foreground])
-        let markReadAction = UNNotificationAction(identifier: "MARK_READ", title: String(localized: "Mark as Read", bundle: .module), options: [])
-        let markAllReadAction = UNNotificationAction(identifier: "MARK_ALL_READ", title: String(localized: "Mark All as Read", bundle: .module), options: [])
+        let openAction = UNNotificationAction(identifier: "OPEN_ARTICLE", title: String(localized: "Open"), options: [.foreground])
+        let markReadAction = UNNotificationAction(identifier: "MARK_READ", title: String(localized: "Mark as Read"), options: [])
+        let markAllReadAction = UNNotificationAction(identifier: "MARK_ALL_READ", title: String(localized: "Mark All as Read"), options: [])
         
         let singleItemCategory = UNNotificationCategory(identifier: "SINGLE_NEW_ITEM", actions: [openAction, markReadAction], intentIdentifiers: [])
         let multiItemCategory = UNNotificationCategory(identifier: "MULTI_NEW_ITEMS", actions: [markAllReadAction], intentIdentifiers: [])
@@ -318,7 +319,7 @@ final class FeedStore: ObservableObject {
                 feeds = decoded
             } else {
                 logger.error("Failed to decode feeds from UserDefaults")
-                showError(String(localized: "Failed to load feeds. Your saved data may be corrupted.", bundle: .module))
+                showError(String(localized: "Failed to load feeds. Your saved data may be corrupted."))
             }
         }
         
@@ -331,7 +332,7 @@ final class FeedStore: ObservableObject {
                 items = decoded
             } else {
                 logger.error("Failed to decode items from UserDefaults")
-                showError(String(localized: "Failed to load items. Your saved data may be corrupted.", bundle: .module))
+                showError(String(localized: "Failed to load items. Your saved data may be corrupted."))
             }
         }
         
@@ -358,13 +359,13 @@ final class FeedStore: ObservableObject {
             UserDefaults.standard.set(feedsData, forKey: self.feedsKey)
         } else {
             logger.error("Failed to encode feeds for save")
-            showError(String(localized: "Failed to save feeds. Please check available disk space.", bundle: .module))
+            showError(String(localized: "Failed to save feeds. Please check available disk space."))
         }
         if let itemsData = try? JSONEncoder().encode(self.items) {
             UserDefaults.standard.set(itemsData, forKey: self.itemsKey)
         } else {
             logger.error("Failed to encode items for save")
-            showError(String(localized: "Failed to save items. Please check available disk space.", bundle: .module))
+            showError(String(localized: "Failed to save items. Please check available disk space."))
         }
         // Cap read keys to prevent unbounded growth (keep most recent 2000)
         if readItemKeys.count > 2000 {
@@ -377,10 +378,10 @@ final class FeedStore: ObservableObject {
     
     func addFeed(url: String, title: String? = nil, authType: AuthType = .none, username: String? = nil, password: String? = nil, token: String? = nil) async -> (success: Bool, errorMessage: String?) {
         let cleanURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanURL.isEmpty else { return (false, String(localized: "Feed URL cannot be empty.", bundle: .module)) }
+        guard !cleanURL.isEmpty else { return (false, String(localized: "Feed URL cannot be empty.")) }
         
         if feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
-            return (false, String(localized: "This feed is already added.", bundle: .module))
+            return (false, String(localized: "This feed is already added."))
         }
         
         // Validate the feed by attempting to fetch it first
@@ -394,7 +395,7 @@ final class FeedStore: ObservableObject {
         }
         guard let result = await fetchFeedData(tempFeed) else {
             KeychainHelper.deleteCredentials(feedId: tempFeed.id)
-            return (false, String(localized: "Unable to fetch feed. Please check the URL and try again.", bundle: .module))
+            return (false, String(localized: "Unable to fetch feed. Please check the URL and try again."))
         }
         
         let (_, fetchedItems, parsedTitle, parsedIconURL, eTag, lastModified) = result
@@ -402,7 +403,7 @@ final class FeedStore: ObservableObject {
         // Ensure we got at least some items
         guard !fetchedItems.isEmpty else {
             KeychainHelper.deleteCredentials(feedId: tempFeed.id)
-            return (false, String(localized: "No items found in feed. The URL may not be a valid RSS/Atom feed.", bundle: .module))
+            return (false, String(localized: "No items found in feed. The URL may not be a valid RSS/Atom feed."))
         }
         
         // Feed is valid, add it to the list
@@ -466,7 +467,7 @@ final class FeedStore: ObservableObject {
     }
     
     func feedTitle(for item: FeedItem) -> String {
-        feeds.first { $0.id == item.feedId }?.title ?? String(localized: "Unknown", bundle: .module)
+        feeds.first { $0.id == item.feedId }?.title ?? String(localized: "Unknown")
     }
 
     func feedIconURL(for item: FeedItem) -> String? {
@@ -630,7 +631,7 @@ final class FeedStore: ObservableObject {
         guard let url = URL(string: cleanLink),
               (url.scheme == "http" || url.scheme == "https") else {
             logger.error("Invalid URL: \(item.link)")
-            showError(String(localized: "Cannot share this item because its link is invalid.", bundle: .module))
+            showError(String(localized: "Cannot share this item because its link is invalid."))
             return
         }
 
@@ -638,7 +639,7 @@ final class FeedStore: ObservableObject {
         let itemsToShare: [Any] = title.isEmpty ? [url] : [title, url]
         let picker = NSSharingServicePicker(items: itemsToShare)
         guard let targetView = (NSApp.keyWindow ?? NSApp.windows.first)?.contentView else {
-            showError(String(localized: "Unable to open the share menu right now.", bundle: .module))
+            showError(String(localized: "Unable to open the share menu right now."))
             return
         }
         picker.show(relativeTo: targetView.bounds, of: targetView, preferredEdge: .minY)
@@ -821,7 +822,7 @@ final class FeedStore: ObservableObject {
             }
         } catch let error as URLError where error.code == .userAuthenticationRequired {
             await MainActor.run {
-                showError(String(format: String(localized: "Authentication failed for %@. Check your credentials.", bundle: .module), feed.title))
+                showError(String(format: String(localized: "Authentication failed for %@. Check your credentials."), feed.title))
             }
             return nil
         } catch {
@@ -926,7 +927,7 @@ final class FeedStore: ObservableObject {
             processFetchedFeed(result.0, items: result.1, parsedTitle: result.2, parsedIconURL: result.3, eTag: result.4, lastModified: result.5)
             save()
         } else {
-            showError(String(format: String(localized: "Failed to fetch %@", bundle: .module), feed.title))
+            showError(String(format: String(localized: "Failed to fetch %@"), feed.title))
         }
     }
     
@@ -1060,8 +1061,8 @@ final class FeedStore: ObservableObject {
             content.categoryIdentifier = "SINGLE_NEW_ITEM"
         } else {
             // Multiple items: show count with Mark All as Read action
-            content.title = String(localized: "New items available", bundle: .module)
-            content.body = String(format: String(localized: "%lld new items", bundle: .module), addedCount)
+            content.title = String(localized: "New items available")
+            content.body = String(format: String(localized: "%lld new items"), addedCount)
             content.categoryIdentifier = "MULTI_NEW_ITEMS"
         }
 

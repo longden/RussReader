@@ -10,6 +10,9 @@
 		D853CC9D2F40A70E002ADA0C /* CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = D853CC752F40A70E002ADA0C /* CHANGELOG.md */; };
 		D853CC9F2F40A70E002ADA0C /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = D853CC772F40A70E002ADA0C /* LICENSE */; };
 		D853CCA12F40A70E002ADA0C /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D853CC7A2F40A70E002ADA0C /* README.md */; };
+		D8D0C9832F40FB6300892619 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = D8D0C9822F40FB6300892619 /* FeedKit */; };
+		D8D0C9852F40FB6300892619 /* XMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = D8D0C9842F40FB6300892619 /* XMLKit */; };
+		D8D0C9882F40FB7500892619 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = D8D0C9872F40FB7500892619 /* SwiftSoup */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +35,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8D0C9832F40FB6300892619 /* FeedKit in Frameworks */,
+				D8D0C9852F40FB6300892619 /* XMLKit in Frameworks */,
+				D8D0C9882F40FB7500892619 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +83,9 @@
 			);
 			name = RussReader;
 			packageProductDependencies = (
+				D8D0C9822F40FB6300892619 /* FeedKit */,
+				D8D0C9842F40FB6300892619 /* XMLKit */,
+				D8D0C9872F40FB7500892619 /* SwiftSoup */,
 			);
 			productName = RussReader;
 			productReference = D853CC2A2F40A541002ADA0C /* RussReader.app */;
@@ -106,6 +115,10 @@
 			);
 			mainGroup = D853CC212F40A541002ADA0C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D8D0C9812F40FB6300892619 /* XCRemoteSwiftPackageReference "FeedKit" */,
+				D8D0C9862F40FB7500892619 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D853CC2B2F40A541002ADA0C /* Products */;
 			projectDirPath = "";
@@ -194,7 +207,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -252,7 +265,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -266,6 +279,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = RussReader/RSSReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -274,8 +288,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RussReader/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -299,6 +313,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = RussReader/RSSReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -307,8 +322,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RussReader/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -348,6 +363,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D8D0C9812F40FB6300892619 /* XCRemoteSwiftPackageReference "FeedKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nmdias/FeedKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.4.0;
+			};
+		};
+		D8D0C9862F40FB7500892619 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.11.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D8D0C9822F40FB6300892619 /* FeedKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D8D0C9812F40FB6300892619 /* XCRemoteSwiftPackageReference "FeedKit" */;
+			productName = FeedKit;
+		};
+		D8D0C9842F40FB6300892619 /* XMLKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D8D0C9812F40FB6300892619 /* XCRemoteSwiftPackageReference "FeedKit" */;
+			productName = XMLKit;
+		};
+		D8D0C9872F40FB7500892619 /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D8D0C9862F40FB7500892619 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D853CC222F40A541002ADA0C /* Project object */;
 }

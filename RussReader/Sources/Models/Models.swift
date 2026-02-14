@@ -10,9 +10,9 @@ enum FeedFilter: String, CaseIterable {
     
     var localizedName: String {
         switch self {
-        case .all: return String(localized: "All", bundle: .module)
-        case .unread: return String(localized: "Unread", bundle: .module)
-        case .starred: return String(localized: "Starred", bundle: .module)
+        case .all: return String(localized: "All")
+        case .unread: return String(localized: "Unread")
+        case .starred: return String(localized: "Starred")
         }
     }
     
@@ -87,14 +87,14 @@ enum FilterAction: String, Codable, CaseIterable {
     
     var localizedName: String {
         switch self {
-        case .show: return String(localized: "Show Only", bundle: .module)
-        case .hide: return String(localized: "Hide", bundle: .module)
-        case .highlight: return String(localized: "Highlight", bundle: .module)
-        case .addIcon: return String(localized: "Add Icon", bundle: .module)
-        case .addSummary: return String(localized: "Show Summary", bundle: .module)
-        case .autoStar: return String(localized: "Auto-Star", bundle: .module)
-        case .markRead: return String(localized: "Mark Read", bundle: .module)
-        case .notify: return String(localized: "Send Notification", bundle: .module)
+        case .show: return String(localized: "Show Only")
+        case .hide: return String(localized: "Hide")
+        case .highlight: return String(localized: "Highlight")
+        case .addIcon: return String(localized: "Add Icon")
+        case .addSummary: return String(localized: "Show Summary")
+        case .autoStar: return String(localized: "Auto-Star")
+        case .markRead: return String(localized: "Mark Read")
+        case .notify: return String(localized: "Send Notification")
         }
     }
     
@@ -113,14 +113,14 @@ enum FilterAction: String, Codable, CaseIterable {
     
     var localizedDescription: String {
         switch self {
-        case .show: return String(localized: "Only show items that match this rule", bundle: .module)
-        case .hide: return String(localized: "Hide items that match this rule", bundle: .module)
-        case .highlight: return String(localized: "Add colored background to matching items", bundle: .module)
-        case .addIcon: return String(localized: "Show an emoji/icon next to matching items", bundle: .module)
-        case .addSummary: return String(localized: "Show 1-line article summary preview", bundle: .module)
-        case .autoStar: return String(localized: "Automatically star matching items", bundle: .module)
-        case .markRead: return String(localized: "Automatically mark matching items as read", bundle: .module)
-        case .notify: return String(localized: "Send notification when new items match this rule", bundle: .module)
+        case .show: return String(localized: "Only show items that match this rule")
+        case .hide: return String(localized: "Hide items that match this rule")
+        case .highlight: return String(localized: "Add colored background to matching items")
+        case .addIcon: return String(localized: "Show an emoji/icon next to matching items")
+        case .addSummary: return String(localized: "Show 1-line article summary preview")
+        case .autoStar: return String(localized: "Automatically star matching items")
+        case .markRead: return String(localized: "Automatically mark matching items as read")
+        case .notify: return String(localized: "Send notification when new items match this rule")
         }
     }
 }
@@ -131,8 +131,8 @@ enum FilterLogic: String, Codable, CaseIterable {
     
     var localizedDescription: String {
         switch self {
-        case .all: return String(localized: "all conditions", bundle: .module)
-        case .any: return String(localized: "any condition", bundle: .module)
+        case .all: return String(localized: "all conditions")
+        case .any: return String(localized: "any condition")
         }
     }
 }
@@ -160,11 +160,11 @@ enum FilterField: String, Codable, CaseIterable {
     
     var localizedName: String {
         switch self {
-        case .title: return String(localized: "Title", bundle: .module)
-        case .content: return String(localized: "Content", bundle: .module)
-        case .author: return String(localized: "Author", bundle: .module)
-        case .link: return String(localized: "Link", bundle: .module)
-        case .category: return String(localized: "Category", bundle: .module)
+        case .title: return String(localized: "Title")
+        case .content: return String(localized: "Content")
+        case .author: return String(localized: "Author")
+        case .link: return String(localized: "Link")
+        case .category: return String(localized: "Category")
         }
     }
     
@@ -188,11 +188,11 @@ enum FilterComparison: String, Codable, CaseIterable {
     
     var localizedName: String {
         switch self {
-        case .contains: return String(localized: "contains", bundle: .module)
-        case .notContains: return String(localized: "does not contain", bundle: .module)
-        case .equals: return String(localized: "equals", bundle: .module)
-        case .startsWith: return String(localized: "starts with", bundle: .module)
-        case .endsWith: return String(localized: "ends with", bundle: .module)
+        case .contains: return String(localized: "contains")
+        case .notContains: return String(localized: "does not contain")
+        case .equals: return String(localized: "equals")
+        case .startsWith: return String(localized: "starts with")
+        case .endsWith: return String(localized: "ends with")
         }
     }
 }
@@ -250,9 +250,9 @@ enum AuthType: String, Codable, CaseIterable {
     
     var localizedName: String {
         switch self {
-        case .none: return String(localized: "None", bundle: .module)
-        case .basicAuth: return String(localized: "Basic Auth", bundle: .module)
-        case .bearerToken: return String(localized: "API Key / Token", bundle: .module)
+        case .none: return String(localized: "None")
+        case .basicAuth: return String(localized: "Basic Auth")
+        case .bearerToken: return String(localized: "API Key / Token")
         }
     }
 }
