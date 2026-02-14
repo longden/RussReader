@@ -31,14 +31,14 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 
 #### Development Build (Fast)
 ```bash
-./scripts/build-debug.sh
-open ".build/debug/RussReader.app"
+./RussReader/scripts/build-debug.sh
+open "RussReader/.build/debug/RussReader.app"
 ```
 
 #### Production Build (One Command)
 ```bash
-./scripts/build-release.sh
-# Creates: .build/release/RussReader-1.0.0.dmg
+./RussReader/scripts/build-release.sh
+# Creates: RussReader/.build/release/RussReader-1.0.0.dmg
 ```
 
 This single command builds, strips symbols, and creates a distributable DMG.

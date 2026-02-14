@@ -20,40 +20,64 @@ APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+XCODE_PROJECT="../RussReader.xcodeproj"
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
 rm -rf "$APP_BUNDLE"
+mkdir -p "$BUILD_DIR"
 
-# Build release binary
-echo "🔨 Building release binary..."
-swift build -c release \
-    -Xswiftc -enforce-exclusivity=checked \
-    -Xswiftc -O
+if [ -f "Package.swift" ]; then
+    # Build release binary
+    echo "🔨 Building release binary..."
+    swift build -c release \
+        -Xswiftc -enforce-exclusivity=checked \
+        -Xswiftc -O
 
-# Create app bundle structure
-echo "📦 Creating app bundle..."
-mkdir -p "$MACOS_DIR"
-mkdir -p "$RESOURCES_DIR"
+    # Create app bundle structure
+    echo "📦 Creating app bundle..."
+    mkdir -p "$MACOS_DIR"
+    mkdir -p "$RESOURCES_DIR"
 
-# Copy executable
-echo "📋 Copying executable..."
-cp "$BUILD_DIR/RussReader" "$MACOS_DIR/RussReader"
+    # Copy executable
+    echo "📋 Copying executable..."
+    cp "$BUILD_DIR/RussReader" "$MACOS_DIR/RussReader"
+
+    # Copy resources
+    echo "🎨 Copying resources..."
+    cp Info.plist "$CONTENTS_DIR/Info.plist"
+    cp Sources/Resources/AppIcon.icns "$RESOURCES_DIR/AppIcon.icns"
+    if [ -f "Sources/Resources/Localizable.xcstrings" ]; then
+        cp Sources/Resources/Localizable.xcstrings "$RESOURCES_DIR/"
+    fi
+
+    # Create PkgInfo
+    echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
+elif [ -f "$XCODE_PROJECT/project.pbxproj" ]; then
+    if ! xcodebuild -version >/dev/null 2>&1; then
+        echo "❌ xcodebuild is unavailable. Install/select full Xcode before building."
+        exit 1
+    fi
+    DERIVED_DATA_DIR="$BUILD_DIR/DerivedData"
+    echo "🔨 Building release app with Xcode project..."
+    rm -rf "$DERIVED_DATA_DIR"
+    xcodebuild -project "$XCODE_PROJECT" -target "$APP_NAME" -configuration Release -derivedDataPath "$DERIVED_DATA_DIR" -quiet
+    XCODE_APP="$DERIVED_DATA_DIR/Build/Products/Release/$APP_NAME.app"
+    if [ ! -d "$XCODE_APP" ]; then
+        echo "❌ Build succeeded but app bundle was not found at $XCODE_APP"
+        exit 1
+    fi
+    cp -R "$XCODE_APP" "$APP_BUNDLE"
+else
+    echo "❌ No Package.swift or Xcode project found to build from."
+    exit 1
+fi
+
+ORIGINAL_SIZE=$(stat -f%z "$MACOS_DIR/$APP_NAME" 2>/dev/null || echo "0")
 
 # Strip symbols for better obfuscation
 echo "🔒 Stripping debug symbols..."
-strip -x "$MACOS_DIR/RussReader"
-
-# Copy resources
-echo "🎨 Copying resources..."
-cp Info.plist "$CONTENTS_DIR/Info.plist"
-cp Sources/Resources/AppIcon.icns "$RESOURCES_DIR/AppIcon.icns"
-if [ -f "Sources/Resources/Localizable.xcstrings" ]; then
-    cp Sources/Resources/Localizable.xcstrings "$RESOURCES_DIR/"
-fi
-
-# Create PkgInfo
-echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
+strip -x "$MACOS_DIR/$APP_NAME"
 
 # Sign the app (ad-hoc signature for local distribution)
 echo "✍️  Signing app..."
@@ -76,8 +100,7 @@ else
 fi
 
 # Display bundle info
-ORIGINAL_SIZE=$(stat -f%z "$BUILD_DIR/RussReader" 2>/dev/null || echo "0")
-STRIPPED_SIZE=$(stat -f%z "$MACOS_DIR/RussReader" 2>/dev/null || echo "0")
+STRIPPED_SIZE=$(stat -f%z "$MACOS_DIR/$APP_NAME" 2>/dev/null || echo "0")
 
 echo ""
 echo "✨ Build complete!"
