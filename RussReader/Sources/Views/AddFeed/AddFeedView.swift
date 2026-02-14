@@ -259,16 +259,16 @@ struct AddFeedSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text(String(localized: "Add Feed", bundle: .module))
+            Text(String(localized: "Add Feed"))
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "Feed URL", bundle: .module))
+                Text(String(localized: "Feed URL"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 HStack {
-                    FocusableTextField(text: $feedURL, placeholder: String(localized: "https://example.com/feed.xml", bundle: .module), shouldFocus: true)
+                    FocusableTextField(text: $feedURL, placeholder: String(localized: "https://example.com/feed.xml"), shouldFocus: true)
                         .frame(height: 22)
                         .onChange(of: feedURL) { oldValue, newValue in
                             // Auto-detect feeds when URL changes
@@ -289,7 +289,7 @@ struct AddFeedSheet: View {
                 // Show discovered feeds
                 if !discoveredFeeds.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "Found RSS feeds:", bundle: .module))
+                        Text(String(localized: "Found RSS feeds:"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -312,7 +312,7 @@ struct AddFeedSheet: View {
 
                                 Spacer()
 
-                                Button(String(localized: "Use", bundle: .module)) {
+                                Button(String(localized: "Use")) {
                                     feedURL = feed.url
                                     if let title = feed.title, feedTitle.isEmpty {
                                         feedTitle = title
@@ -330,14 +330,14 @@ struct AddFeedSheet: View {
                     }
                 }
 
-                    Text(String(localized: "Title (optional)", bundle: .module))
+                    Text(String(localized: "Title (optional)"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                FocusableTextField(text: $feedTitle, placeholder: String(localized: "My Feed", bundle: .module), shouldFocus: false)
+                FocusableTextField(text: $feedTitle, placeholder: String(localized: "My Feed"), shouldFocus: false)
                     .frame(height: 22)
 
                 DisclosureGroup(isExpanded: $authExpanded) {
-                    Picker(String(localized: "Type", bundle: .module), selection: $authType) {
+                    Picker(String(localized: "Type"), selection: $authType) {
                         ForEach(AuthType.allCases, id: \.self) { type in
                             Text(type.localizedName).tag(type)
                         }
@@ -347,15 +347,15 @@ struct AddFeedSheet: View {
                     .padding(.top, 6)
                     
                     if authType == .basicAuth {
-                        TextField(String(localized: "Username", bundle: .module), text: $authUsername)
+                        TextField(String(localized: "Username"), text: $authUsername)
                             .textFieldStyle(.roundedBorder)
                             .frame(height: 24)
-                        SecureField(String(localized: "Password", bundle: .module), text: $authPassword)
+                        SecureField(String(localized: "Password"), text: $authPassword)
                             .textFieldStyle(.roundedBorder)
                             .frame(height: 24)
                             .padding(.top, 4)
                     } else if authType == .bearerToken {
-                        SecureField(String(localized: "API Key or Token", bundle: .module), text: $authToken)
+                        SecureField(String(localized: "API Key or Token"), text: $authToken)
                             .textFieldStyle(.roundedBorder)
                             .frame(height: 24)
                     }
@@ -364,14 +364,14 @@ struct AddFeedSheet: View {
                         HStack(spacing: 4) {
                             Image(systemName: "lock.shield")
                                 .font(.system(size: 9))
-                            Text(String(localized: "Stored securely in Keychain. Only sent with feed requests.", bundle: .module))
+                            Text(String(localized: "Stored securely in Keychain. Only sent with feed requests."))
                                 .font(.system(size: 10))
                         }
                         .foregroundStyle(.secondary)
                         .padding(.top, 2)
                     }
                 } label: {
-                    Text(String(localized: "Authentication", bundle: .module))
+                    Text(String(localized: "Authentication"))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                         .onTapGesture { authExpanded.toggle() }
@@ -387,7 +387,7 @@ struct AddFeedSheet: View {
             }
 
             HStack {
-                Button(String(localized: "Cancel", bundle: .module)) {
+                Button(String(localized: "Cancel")) {
                     // Reset state and close
                     errorMessage = nil
                     isDiscovering = false
@@ -399,14 +399,14 @@ struct AddFeedSheet: View {
                 Spacer()
 
                 if #available(macOS 26.0, *) {
-                    Button(String(localized: "Add", bundle: .module)) {
+                    Button(String(localized: "Add")) {
                         addFeed()
                     }
                     .buttonStyle(.glassProminent)
                     .keyboardShortcut(.return)
                     .disabled(feedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isDiscovering)
                 } else {
-                    Button(String(localized: "Add", bundle: .module)) {
+                    Button(String(localized: "Add")) {
                         addFeed()
                     }
                     .keyboardShortcut(.return)
@@ -1169,7 +1169,7 @@ struct AddFeedSheet: View {
 
         let cleanURL = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
         if store.feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
-            errorMessage = String(localized: "This feed is already added.", bundle: .module)
+            errorMessage = String(localized: "This feed is already added.")
             return
         }
 

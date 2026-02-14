@@ -49,7 +49,7 @@ struct OnboardingView: View {
                     Button {
                         withAnimation(.easeInOut(duration: 0.25)) { currentPage -= 1 }
                     } label: {
-                        Text(String(localized: "Back", bundle: .module))
+                        Text(String(localized: "Back"))
                             .font(.system(size: 12))
                             .frame(width: 60)
                     }
@@ -97,7 +97,7 @@ struct OnboardingView: View {
         Button {
             withAnimation(.easeInOut(duration: 0.25)) { currentPage += 1 }
         } label: {
-            Text(String(localized: "Next", bundle: .module))
+            Text(String(localized: "Next"))
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 70)
         }
@@ -110,7 +110,7 @@ struct OnboardingView: View {
         Button {
             completeOnboarding()
         } label: {
-            Text(String(localized: "Get Started", bundle: .module))
+            Text(String(localized: "Get Started"))
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 70)
         }
@@ -128,10 +128,10 @@ struct OnboardingView: View {
                 .font(.system(size: 44))
                 .foregroundStyle(Color.accentColor)
             
-            Text(String(localized: "Welcome to RussReader", bundle: .module))
+            Text(String(localized: "Welcome to RussReader"))
                 .font(.title2.bold())
             
-            Text(String(localized: "A lightweight menu bar reader for staying up to date with your favourite feeds.", bundle: .module))
+            Text(String(localized: "A lightweight menu bar reader for staying up to date with your favourite feeds."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -145,10 +145,10 @@ struct OnboardingView: View {
         VStack(spacing: 10) {
             Spacer()
             
-            Text(String(localized: "Pick Some Feeds", bundle: .module))
+            Text(String(localized: "Pick Some Feeds"))
                 .font(.title3.bold())
             
-            Text(String(localized: "Select a few to get started.", bundle: .module))
+            Text(String(localized: "Select a few to get started."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             
@@ -160,7 +160,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 20)
             .padding(.top, 4)
             
-            Text(String(localized: "Add & browse more in Settings → Suggested Feeds", bundle: .module))
+            Text(String(localized: "Add & browse more in Settings → Suggested Feeds"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)
@@ -177,22 +177,22 @@ struct OnboardingView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(Color.accentColor)
             
-            Text(String(localized: "Smart Filters", bundle: .module))
+            Text(String(localized: "Smart Filters"))
                 .font(.title3.bold())
             
-            Text(String(localized: "Set up rules to organise your feed:", bundle: .module))
+            Text(String(localized: "Set up rules to organise your feed:"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             
             VStack(alignment: .leading, spacing: 8) {
-                filterRow(icon: "bell.badge.fill", color: .blue, text: String(localized: "Get notified about topics you care about", bundle: .module))
-                filterRow(icon: "paintbrush.fill", color: .orange, text: String(localized: "Highlight posts with custom colours", bundle: .module))
-                filterRow(icon: "eye.slash.fill", color: .red, text: String(localized: "Hide unwanted posts automatically", bundle: .module))
-                filterRow(icon: "star.fill", color: .yellow, text: String(localized: "Auto-star items matching your rules", bundle: .module))
+                filterRow(icon: "bell.badge.fill", color: .blue, text: String(localized: "Get notified about topics you care about"))
+                filterRow(icon: "paintbrush.fill", color: .orange, text: String(localized: "Highlight posts with custom colours"))
+                filterRow(icon: "eye.slash.fill", color: .red, text: String(localized: "Hide unwanted posts automatically"))
+                filterRow(icon: "star.fill", color: .yellow, text: String(localized: "Auto-star items matching your rules"))
             }
             .padding(.horizontal, 36)
             
-            Text(String(localized: "Configure in Settings → Filters", bundle: .module))
+            Text(String(localized: "Configure in Settings → Filters"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)
@@ -205,22 +205,22 @@ struct OnboardingView: View {
         VStack(spacing: 8) {
             Spacer()
             
-            Text(String(localized: "Quick Settings", bundle: .module))
+            Text(String(localized: "Quick Settings"))
                 .font(.title3.bold())
             
-            Text(String(localized: "Config to get you started.", bundle: .module))
+            Text(String(localized: "Config to get you started."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 4)
             
             VStack(spacing: 10) {
                 HStack {
-                    Text(String(localized: "Article Open", bundle: .module))
+                    Text(String(localized: "Article Open"))
                         .font(.system(size: 13))
                     Spacer()
                     Picker("", selection: $articleOpenInPreview) {
-                        Text(String(localized: "In App Preview", bundle: .module)).tag(true)
-                        Text(String(localized: "Open in Browser", bundle: .module)).tag(false)
+                        Text(String(localized: "In App Preview")).tag(true)
+                        Text(String(localized: "Open in Browser")).tag(false)
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -229,12 +229,12 @@ struct OnboardingView: View {
                 Divider()
                 
                 HStack {
-                    Text(String(localized: "Show unread count in menubar", bundle: .module))
+                    Text(String(localized: "Show unread count in menubar"))
                         .font(.system(size: 13))
                     Spacer()
                     Picker("", selection: $showUnreadBadge) {
-                        Text(String(localized: "On", bundle: .module)).tag(true)
-                        Text(String(localized: "Off", bundle: .module)).tag(false)
+                        Text(String(localized: "On")).tag(true)
+                        Text(String(localized: "Off")).tag(false)
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -243,14 +243,14 @@ struct OnboardingView: View {
                 Divider()
                 
                 HStack {
-                    Text(String(localized: "Refresh Interval", bundle: .module))
+                    Text(String(localized: "Refresh Interval"))
                         .font(.system(size: 13))
                     Spacer()
                     Picker("", selection: $refreshInterval) {
-                        Text(String(localized: "Manual", bundle: .module)).tag(0)
-                        Text(String(localized: "15 min", bundle: .module)).tag(15)
-                        Text(String(localized: "30 min", bundle: .module)).tag(30)
-                        Text(String(localized: "1 hour", bundle: .module)).tag(60)
+                        Text(String(localized: "Manual")).tag(0)
+                        Text(String(localized: "15 min")).tag(15)
+                        Text(String(localized: "30 min")).tag(30)
+                        Text(String(localized: "1 hour")).tag(60)
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -259,14 +259,14 @@ struct OnboardingView: View {
                 Divider()
                 
                 HStack {
-                    Text(String(localized: "Window Width", bundle: .module))
+                    Text(String(localized: "Window Width"))
                         .font(.system(size: 13))
                     Spacer()
                     Picker("", selection: $store.windowWidthSize) {
-                        Text(String(localized: "Small", bundle: .module)).tag("small")
-                        Text(String(localized: "Medium", bundle: .module)).tag("medium")
-                        Text(String(localized: "Large", bundle: .module)).tag("large")
-                        Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
+                        Text(String(localized: "Small")).tag("small")
+                        Text(String(localized: "Medium")).tag("medium")
+                        Text(String(localized: "Large")).tag("large")
+                        Text(String(localized: "X-Large")).tag("xlarge")
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -275,14 +275,14 @@ struct OnboardingView: View {
                 Divider()
                 
                 HStack {
-                    Text(String(localized: "Window Height", bundle: .module))
+                    Text(String(localized: "Window Height"))
                         .font(.system(size: 13))
                     Spacer()
                     Picker("", selection: $store.windowHeightSize) {
-                        Text(String(localized: "Small", bundle: .module)).tag("small")
-                        Text(String(localized: "Medium", bundle: .module)).tag("medium")
-                        Text(String(localized: "Large", bundle: .module)).tag("large")
-                        Text(String(localized: "X-Large", bundle: .module)).tag("xlarge")
+                        Text(String(localized: "Small")).tag("small")
+                        Text(String(localized: "Medium")).tag("medium")
+                        Text(String(localized: "Large")).tag("large")
+                        Text(String(localized: "X-Large")).tag("xlarge")
                     }
                     .labelsHidden()
                     .fixedSize()
@@ -293,7 +293,7 @@ struct OnboardingView: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 28)
             
-            Text(String(localized: "Advanced configuration available in Settings", bundle: .module))
+            Text(String(localized: "Advanced configuration available in Settings"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)

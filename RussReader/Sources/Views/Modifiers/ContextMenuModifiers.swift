@@ -17,26 +17,26 @@ struct FeedItemContextMenu: ViewModifier {
     func body(content: Content) -> some View {
         content
             .contextMenu {
-                Button(item.isRead ? String(localized: "Mark as Unread", bundle: .module) : String(localized: "Mark as Read", bundle: .module)) {
+                Button(item.isRead ? String(localized: "Mark as Unread") : String(localized: "Mark as Read")) {
                     store.toggleRead(item)
                 }
-                Button(item.isStarred ? String(localized: "Unstar", bundle: .module) : String(localized: "Star", bundle: .module)) {
+                Button(item.isStarred ? String(localized: "Unstar") : String(localized: "Star")) {
                     store.toggleStarred(item)
                 }
                 Divider()
-                Button(String(localized: "Mark all above as read", bundle: .module)) {
+                Button(String(localized: "Mark all above as read")) {
                     store.markItemsAboveAsRead(item)
                 }
                 .disabled(store.filteredItems.first?.id == item.id)
-                Button(String(localized: "Mark all below as read", bundle: .module)) {
+                Button(String(localized: "Mark all below as read")) {
                     store.markItemsBelowAsRead(item)
                 }
                 .disabled(store.filteredItems.last?.id == item.id)
                 Divider()
-                Button(String(localized: "Share", bundle: .module)) {
+                Button(String(localized: "Share")) {
                     store.shareItem(item)
                 }
-                Button(String(localized: "Copy Link", bundle: .module)) {
+                Button(String(localized: "Copy Link")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.link, forType: .string)
                 }

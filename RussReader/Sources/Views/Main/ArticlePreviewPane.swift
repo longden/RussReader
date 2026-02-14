@@ -75,7 +75,7 @@ struct ArticlePreviewPane: View {
         if #available(macOS 26.0, *) {
             HStack(spacing: 12) {
                 Button { onClose() } label: {
-                    Label(String(localized: "Back", bundle: .module), systemImage: "chevron.left")
+                    Label(String(localized: "Back"), systemImage: "chevron.left")
                         .labelStyle(.iconOnly)
                         .font(.system(size: 14, weight: .medium))
                         .frame(width: 30, height: 30)
@@ -95,7 +95,7 @@ struct ArticlePreviewPane: View {
         } else {
             HStack(spacing: 12) {
                 Button { onClose() } label: {
-                    Label(String(localized: "Back", bundle: .module), systemImage: "chevron.left")
+                    Label(String(localized: "Back"), systemImage: "chevron.left")
                         .labelStyle(.iconOnly)
                         .font(.system(size: 14, weight: .medium))
                         .frame(width: 30, height: 30)
@@ -198,10 +198,10 @@ struct ArticlePreviewPane: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text(String(localized: "Couldn't load article", bundle: .module))
+            Text(String(localized: "Couldn't load article"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
-            Button(String(localized: "Open in Browser", bundle: .module)) {
+            Button(String(localized: "Open in Browser")) {
                 store.openItem(item)
             }
             .buttonStyle(.bordered)
@@ -219,10 +219,10 @@ struct ArticlePreviewPane: View {
                 Image(systemName: "doc.text")
                     .font(.system(size: 32))
                     .foregroundStyle(.quaternary)
-                Text(String(localized: "No preview available", bundle: .module))
+                Text(String(localized: "No preview available"))
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
-                Button(String(localized: "Open in Browser", bundle: .module)) {
+                Button(String(localized: "Open in Browser")) {
                     store.openItem(item)
                 }
                 .buttonStyle(.bordered)
@@ -447,7 +447,7 @@ struct ArticlePreviewPane: View {
             HStack(spacing: 6) {
                 ProgressView()
                     .controlSize(.small)
-                Text(String(localized: "Loading full article…", bundle: .module))
+                Text(String(localized: "Loading full article…"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -464,7 +464,7 @@ struct ArticlePreviewPane: View {
                 HStack(spacing: 4) {
                     Image(systemName: "doc.richtext")
                         .font(.system(size: 11))
-                    Text(String(localized: "Load full article", bundle: .module))
+                    Text(String(localized: "Load full article"))
                         .font(.system(size: 12))
                 }
                 .foregroundStyle(.secondary)
@@ -514,13 +514,13 @@ struct ArticlePreviewPane: View {
     
     private func previewDateString(_ date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 { return String(localized: "Just now", bundle: .module) }
+        if seconds < 60 { return String(localized: "Just now") }
         let minutes = seconds / 60
-        if minutes < 60 { return String(format: String(localized: "%lld min ago", bundle: .module), minutes) }
+        if minutes < 60 { return String(format: String(localized: "%lld min ago"), minutes) }
         let hours = minutes / 60
-        if hours < 24 { return String(format: String(localized: "%lld hr ago", bundle: .module), hours) }
+        if hours < 24 { return String(format: String(localized: "%lld hr ago"), hours) }
         let days = hours / 24
-        if days < 7 { return String(format: String(localized: "%lld days ago", bundle: .module), days) }
+        if days < 7 { return String(format: String(localized: "%lld days ago"), days) }
         return Self.previewDateFormatter.string(from: date)
     }
     

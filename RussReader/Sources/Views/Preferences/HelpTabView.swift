@@ -9,50 +9,50 @@ struct HelpTabView: View {
                 Group {
                     helpItem(
                         icon: "newspaper",
-                        title: String(localized: "Reading Articles", bundle: .module),
-                        description: String(localized: "Click on an article to open it in your browser and mark it as read.", bundle: .module)
+                        title: String(localized: "Reading Articles"),
+                        description: String(localized: "Click on an article to open it in your browser and mark it as read.")
                     )
                     
                     helpItem(
                         icon: "star",
-                        title: String(localized: "Starring Items", bundle: .module),
-                        description: String(localized: "Right-click an article and select 'Star' to save it for later.", bundle: .module)
+                        title: String(localized: "Starring Items"),
+                        description: String(localized: "Right-click an article and select 'Star' to save it for later.")
                     )
                     
                     helpItem(
                         icon: "arrow.clockwise",
-                        title: String(localized: "Refreshing Feeds", bundle: .module),
-                        description: String(localized: "Press ⌘R or click the refresh button to fetch new articles.", bundle: .module)
+                        title: String(localized: "Refreshing Feeds"),
+                        description: String(localized: "Press ⌘R or click the refresh button to fetch new articles.")
                     )
                     
                     helpItem(
                         icon: "link",
-                        title: String(localized: "Adding Feeds", bundle: .module),
-                        description: String(localized: "Go to Feeds tab and click + to add a new RSS feed URL, or use Starter / Suggested Feeds for packs.", bundle: .module)
+                        title: String(localized: "Adding Feeds"),
+                        description: String(localized: "Go to Feeds tab and click + to add a new RSS feed URL, or use Starter / Suggested Feeds for packs.")
                     )
                     
                     helpItem(
                         icon: "square.and.arrow.up",
-                        title: String(localized: "Import/Export", bundle: .module),
-                        description: String(localized: "Use OPML files to import or export your feed subscriptions.", bundle: .module)
+                        title: String(localized: "Import/Export"),
+                        description: String(localized: "Use OPML files to import or export your feed subscriptions.")
                     )
                     
                     helpItem(
                         icon: "line.3.horizontal.decrease.circle",
-                        title: String(localized: "Smart Filters", bundle: .module),
-                        description: String(localized: "Create rules in the Filters tab to automatically highlight, hide, star, or add icons to articles based on title, content, author, URL, or category. Combine conditions with 'All' or 'Any' logic.", bundle: .module)
+                        title: String(localized: "Smart Filters"),
+                        description: String(localized: "Create rules in the Filters tab to automatically highlight, hide, star, or add icons to articles based on title, content, author, URL, or category. Combine conditions with 'All' or 'Any' logic.")
                     )
                 }
                 
                 Divider()
                 
-                Text(String(localized: "Keyboard Shortcuts", bundle: .module))
+                Text(String(localized: "Keyboard Shortcuts"))
                     .font(.headline)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    shortcutRow("⌘R", String(localized: "Refresh feeds", bundle: .module))
-                    shortcutRow("⌘,", String(localized: "Open preferences", bundle: .module))
-                    shortcutRow("⌘Q", String(localized: "Quit app", bundle: .module))
+                    shortcutRow("⌘R", String(localized: "Refresh feeds"))
+                    shortcutRow("⌘,", String(localized: "Open preferences"))
+                    shortcutRow("⌘Q", String(localized: "Quit app"))
                 }
                 
                 Spacer()

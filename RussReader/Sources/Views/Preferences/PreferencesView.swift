@@ -17,10 +17,10 @@ struct PreferencesView: View {
         
         var title: String {
             switch self {
-            case .feeds: return String(localized: "Feeds", bundle: .module)
-            case .filters: return String(localized: "Filters", bundle: .module)
-            case .settings: return String(localized: "Settings", bundle: .module)
-            case .help: return String(localized: "Help", bundle: .module)
+            case .feeds: return String(localized: "Feeds")
+            case .filters: return String(localized: "Filters")
+            case .settings: return String(localized: "Settings")
+            case .help: return String(localized: "Help")
             }
         }
         
@@ -38,7 +38,7 @@ struct PreferencesView: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Text(String(localized: "Preferences", bundle: .module))
+                Text(String(localized: "Preferences"))
                     .font(.headline)
                 Spacer()
             }

@@ -32,7 +32,7 @@ struct FeedsTabView: View {
                         Image(systemName: "sparkles")
                             .font(.system(size: 12))
                             .foregroundStyle(.blue)
-                        Text(String(localized: "Browse Suggested Feeds…", bundle: .module))
+                        Text(String(localized: "Browse Suggested Feeds…"))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -49,15 +49,15 @@ struct FeedsTabView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help(String(localized: "Add feed", bundle: .module))
-                .accessibilityLabel(String(localized: "Add feed", bundle: .module))
+                .help(String(localized: "Add feed"))
+                .accessibilityLabel(String(localized: "Add feed"))
                 .keyboardShortcut("n", modifiers: [.command])
                 
-                Button(String(localized: "Import OPML", bundle: .module)) {
+                Button(String(localized: "Import OPML")) {
                     importOPML()
                 }
                 
-                Button(String(localized: "Export OPML", bundle: .module)) {
+                Button(String(localized: "Export OPML")) {
                     exportOPML()
                 }
                 
@@ -72,8 +72,8 @@ struct FeedsTabView: View {
                     Image(systemName: "trash")
                 }
                 .disabled(selectedFeed == nil)
-                .help(String(localized: "Remove selected feed", bundle: .module))
-                .accessibilityLabel(String(localized: "Remove selected feed", bundle: .module))
+                .help(String(localized: "Remove selected feed"))
+                .accessibilityLabel(String(localized: "Remove selected feed"))
                 .keyboardShortcut(.delete, modifiers: [])
             }
             .padding(12)
@@ -109,10 +109,10 @@ struct FeedsTabView: View {
         .contentShape(Rectangle())
         .tag(feed)
         .contextMenu {
-            Button(String(localized: "Edit Credentials…", bundle: .module)) {
+            Button(String(localized: "Edit Credentials…")) {
                 editingCredentialsFeed = feed
             }
-            Button(String(localized: "Remove Feed", bundle: .module)) {
+            Button(String(localized: "Remove Feed")) {
                 store.removeFeed(feed)
                 if selectedFeed?.id == feed.id { selectedFeed = nil }
             }
@@ -163,14 +163,14 @@ struct EditCredentialsSheet: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Text(String(localized: "Credentials", bundle: .module))
+            Text(String(localized: "Credentials"))
                 .font(.headline)
             
             Text(feed.title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             
-            Picker(String(localized: "Authentication", bundle: .module), selection: $authType) {
+            Picker(String(localized: "Authentication"), selection: $authType) {
                 ForEach(AuthType.allCases, id: \.self) { type in
                     Text(type.localizedName).tag(type)
                 }
@@ -178,12 +178,12 @@ struct EditCredentialsSheet: View {
             .pickerStyle(.segmented)
             
             if authType == .basicAuth {
-                TextField(String(localized: "Username", bundle: .module), text: $username)
+                TextField(String(localized: "Username"), text: $username)
                     .textFieldStyle(.roundedBorder)
-                SecureField(String(localized: "Password", bundle: .module), text: $password)
+                SecureField(String(localized: "Password"), text: $password)
                     .textFieldStyle(.roundedBorder)
             } else if authType == .bearerToken {
-                SecureField(String(localized: "API Key or Token", bundle: .module), text: $token)
+                SecureField(String(localized: "API Key or Token"), text: $token)
                     .textFieldStyle(.roundedBorder)
             }
             
@@ -191,21 +191,21 @@ struct EditCredentialsSheet: View {
                 HStack(spacing: 4) {
                     Image(systemName: "lock.shield")
                         .font(.system(size: 9))
-                    Text(String(localized: "Stored securely in Keychain. Only sent with feed requests.", bundle: .module))
+                    Text(String(localized: "Stored securely in Keychain. Only sent with feed requests."))
                         .font(.system(size: 10))
                 }
                 .foregroundStyle(.secondary)
             }
             
             HStack {
-                Button(String(localized: "Cancel", bundle: .module)) {
+                Button(String(localized: "Cancel")) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
                 
                 Spacer()
                 
-                Button(String(localized: "Save", bundle: .module)) {
+                Button(String(localized: "Save")) {
                     saveCredentials()
                     dismiss()
                 }
@@ -260,11 +260,11 @@ struct SuggestedFeedsSheet: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack {
-                Text(String(localized: "Starter / Suggested Feeds", bundle: .module))
+                Text(String(localized: "Starter / Suggested Feeds"))
                     .font(.headline)
                 Spacer()
                 if !hideDoneButton {
-                    Button(String(localized: "Done", bundle: .module)) {
+                    Button(String(localized: "Done")) {
                         isPresented = false
                     }
                     .keyboardShortcut(.escape)
@@ -306,7 +306,7 @@ struct SuggestedFeedsSheet: View {
                 
                 Spacer()
                 
-                Button(String(localized: "Add All", bundle: .module)) {
+                Button(String(localized: "Add All")) {
                     addFeeds(pack.feeds, packTitle: pack.title)
                 }
                 .disabled(!hasAddableFeeds)
@@ -329,7 +329,7 @@ struct SuggestedFeedsSheet: View {
                                 .font(.system(size: 12, weight: .medium))
                             Spacer()
                             if isFeedAlreadyAdded(feed) {
-                                Text(String(localized: "Added", bundle: .module))
+                                Text(String(localized: "Added"))
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
@@ -342,7 +342,7 @@ struct SuggestedFeedsSheet: View {
             
             HStack {
                 Spacer()
-                Button(String(localized: "Add Selected", bundle: .module)) {
+                Button(String(localized: "Add Selected")) {
                     addFeeds(selectedInPack, packTitle: pack.title)
                 }
                 .disabled(selectedInPack.isEmpty)
@@ -368,9 +368,9 @@ struct SuggestedFeedsSheet: View {
         let addedCount = store.addSuggestedFeeds(feeds)
         feedbackIsError = addedCount == 0
         if addedCount == 0 {
-            feedbackMessage = String(format: String(localized: "All feeds in %@ are already added.", bundle: .module), packTitle)
+            feedbackMessage = String(format: String(localized: "All feeds in %@ are already added."), packTitle)
         } else {
-            feedbackMessage = String(format: String(localized: "Added %lld feed(s) from %@.", bundle: .module), addedCount, packTitle)
+            feedbackMessage = String(format: String(localized: "Added %lld feed(s) from %@."), addedCount, packTitle)
         }
         removeSelectedAlreadyAdded()
     }
