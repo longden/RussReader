@@ -82,7 +82,7 @@ struct ArticlePreviewPane: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .circle)
+                .modifier(HeaderButtonHoverModifier())
                 .pointerOnHover()
                 
                 Spacer()
@@ -102,6 +102,7 @@ struct ArticlePreviewPane: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .modifier(HeaderButtonHoverModifier())
                 .pointerOnHover()
                 
                 Spacer()
@@ -478,15 +479,21 @@ struct ArticlePreviewPane: View {
     @ViewBuilder
     private var previewCategories: some View {
         if !item.categories.isEmpty {
-            HStack(spacing: 6) {
-                ForEach(item.categories.prefix(5), id: \.self) { tag in
-                    Text(tag)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.primary.opacity(0.06))
-                        .clipShape(Capsule())
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(item.categories.prefix(5), id: \.self) { tag in
+                        Text(tag)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .truncationMode(.tail)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: 120, alignment: .leading)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.primary.opacity(0.06))
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .padding(.top, 8)
