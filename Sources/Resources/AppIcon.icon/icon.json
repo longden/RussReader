@@ -1,0 +1,126 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "gray:1.00000,1.00000",
+      "display-p3:0.67645,0.67645,0.67645,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,0.38039,0.06667,1.00000",
+                  "display-p3:0.96783,0.50000,0.21159,1.00000"
+                ],
+                "orientation" : {
+                  "start" : {
+                    "x" : 0.5,
+                    "y" : 0
+                  },
+                  "stop" : {
+                    "x" : 0.8511500800460244,
+                    "y" : 0.7818659680387968
+                  }
+                }
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,0.38039,0.06667,1.00000",
+                  "display-p3:0.96783,0.50000,0.21159,1.00000"
+                ],
+                "orientation" : {
+                  "start" : {
+                    "x" : 0.5,
+                    "y" : 0
+                  },
+                  "stop" : {
+                    "x" : 0.8511500800460244,
+                    "y" : 0.7818659680387968
+                  }
+                }
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "rss-waves.png",
+          "name" : "rss-waves",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              295.72137930670294,
+              -289.29126513817243
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "display-p3:0.78824,0.78824,0.78824,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "russ-r.svg",
+          "name" : "russ-r",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -17.56144574102916,
+              2.3972376583496953
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}
