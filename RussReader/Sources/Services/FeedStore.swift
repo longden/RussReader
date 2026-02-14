@@ -89,12 +89,12 @@ final class FeedStore: ObservableObject {
         didSet { _cachedFilteredItems = nil }
     }
     @AppStorage("rssSelectedBrowser") var selectedBrowser: String = "default"
-    @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = false
+    @AppStorage("rssShowSummary") var showSummaryGlobal: Bool = true
     @AppStorage("rssLanguage") var selectedLanguage: String = "system"
     @AppStorage("rssStickyWindow") var stickyWindow: Bool = true
     @AppStorage("rssNewItemNotifications") var newItemNotificationsEnabled: Bool = false
     var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
-    @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = false
+    @AppStorage("rssShowFeedIcons") var showFeedIcons: Bool = true
     @AppStorage("rssShowViaFeed") var showViaFeed: Bool = true
     @AppStorage("rssWindowWidthSize") var windowWidthSize: String = "medium"
     @AppStorage("rssWindowHeightSize") var windowHeightSize: String = "medium"

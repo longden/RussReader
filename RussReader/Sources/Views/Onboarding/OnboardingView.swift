@@ -131,7 +131,7 @@ struct OnboardingView: View {
             Text(String(localized: "Welcome to RussReader"))
                 .font(.title2.bold())
             
-            Text(String(localized: "A lightweight menu bar reader for staying up to date with your favourite feeds."))
+            Text(String(localized: "A lightweight menu bar RSS app for staying up to date with your favourite feeds."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
