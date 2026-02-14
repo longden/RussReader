@@ -22,7 +22,7 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 
 ### Option 1: Download Release (Recommended)
 
-1. Download the latest `RussReader-X.X.X.dmg` from [Releases](https://github.com/yourusername/russreader/releases)
+1. Download the latest `RussReader-X.X.X.dmg` from [Releases](https://github.com/longden/russreader/releases)
 2. Open the DMG file
 3. Drag "RussReader" to your Applications folder
 4. Launch from Applications or Spotlight
