@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OSLog
 
 // MARK: - RSS Feed Discovery
 
@@ -11,6 +12,8 @@ struct DiscoveredFeed: Identifiable {
 }
 
 final class FeedDiscovery {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "FeedDiscovery")
+
     /// Feed content types that indicate a URL is a direct feed
     private static let feedContentTypes = [
         "application/rss+xml", "application/atom+xml", "application/feed+json",
@@ -52,6 +55,7 @@ final class FeedDiscovery {
             
             return feeds
         } catch {
+            logger.debug("Feed discovery failed for \(urlString, privacy: .public): \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -148,7 +152,9 @@ final class FeedDiscovery {
                                 return DiscoveredFeed(url: feedURL, title: title, type: type)
                             }
                         }
-                    } catch {}
+                    } catch {
+                        logger.debug("Feed probe failed for \(feedURL, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    }
                     return nil
                 }
             }
@@ -176,6 +182,7 @@ final class FeedDiscovery {
 struct AddFeedWindow: View {
     @EnvironmentObject private var store: FeedStore
     @State private var isSheetPresented = true
+    @State private var windowCloseObserver: NSObjectProtocol?
     
     var body: some View {
         AddFeedSheet(isPresented: $isSheetPresented)
@@ -199,6 +206,12 @@ struct AddFeedWindow: View {
                 }
             }
             .frame(width: 420)
+            .onDisappear {
+                if let observer = windowCloseObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    windowCloseObserver = nil
+                }
+            }
             .onAppear {
                 // Reset state when window opens
                 isSheetPresented = true
@@ -232,9 +245,11 @@ struct AddFeedWindow: View {
         NSApp.activate(ignoringOtherApps: true)
         
         // Restore LSUIElement behavior when window closes
-        // Using unique name to avoid duplicate observers
-        NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: window)
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+        // Keep observer token so we can remove it and avoid accumulating observers.
+        if let observer = windowCloseObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        windowCloseObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             NSApp.setActivationPolicy(.accessory)
         }
     }
