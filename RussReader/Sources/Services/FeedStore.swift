@@ -825,7 +825,11 @@ final class FeedStore: ObservableObject {
                 showError(String(format: String(localized: "Authentication failed for %@. Check your credentials."), feed.title))
             }
             return nil
+        } catch let error as URLError {
+            logger.debug("Feed fetch failed for \(feed.url, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
         } catch {
+            logger.debug("Feed fetch failed for \(feed.url, privacy: .public): \(String(describing: error), privacy: .public)")
             return nil
         }
     }
@@ -1040,7 +1044,9 @@ final class FeedStore: ObservableObject {
                 if granted {
                     postNewItemsNotification(addedCount: addedCount, latestItem: latestItem)
                 }
-            } catch {}
+            } catch {
+                logger.debug("Notification authorization request failed: \(String(describing: error), privacy: .public)")
+            }
         default:
             break
         }
