@@ -1,6 +1,6 @@
 //
 //  GlassEffectModifiers.swift
-//  RSSReader
+//  RussReader
 //
 //  View modifiers for glass effect styling (macOS 26+)
 //

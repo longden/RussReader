@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "RSSReader",
+    name: "RussReader",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v14)
@@ -13,7 +13,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "RSSReader",
+            name: "RussReader",
             dependencies: ["FeedKit", "SwiftSoup"],
             path: "Sources",
             resources: [

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# RSS Reader Debug Build Script
+# RussReader Debug Build Script
 # Builds for development/testing - NO stripping, NO DMG
 
 # Change to project root (parent of scripts directory)
@@ -9,10 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
-echo "🔧 Building RSS Reader (debug mode)..."
+echo "🔧 Building RussReader (debug mode)..."
 
 # Configuration
-APP_NAME="RSS Reader"
+APP_NAME="RussReader"
 BUILD_DIR=".build/debug"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -34,7 +34,7 @@ mkdir -p "$RESOURCES_DIR"
 
 # Copy executable (NO stripping for debug)
 echo "📋 Copying executable..."
-cp "$BUILD_DIR/RSSReader" "$MACOS_DIR/RSSReader"
+cp "$BUILD_DIR/RussReader" "$MACOS_DIR/RussReader"
 
 # Copy resources
 echo "🎨 Copying resources..."
@@ -49,7 +49,7 @@ echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
 # Sign the app
 echo "✍️  Signing app..."
-codesign --force --deep --sign - --entitlements RSSReader.entitlements "$APP_BUNDLE" 2>/dev/null
+codesign --force --deep --sign - --entitlements RussReader.entitlements "$APP_BUNDLE" 2>/dev/null
 
 echo ""
 echo "✨ Debug build complete!"

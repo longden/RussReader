@@ -125,7 +125,7 @@ final class FeedStore: ObservableObject {
     private let filterRulesKey = "rssFilterRules"
     private let readKeysKey = "rssReadItemKeys"
     private var refreshTimer: DispatchSourceTimer?
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSReader")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RussReader")
     private var saveWorkItem: DispatchWorkItem?
     private let maxTotalItems = 200
     private let itemRetentionDays = 30
@@ -768,7 +768,7 @@ final class FeedStore: ObservableObject {
         
         do {
             var request = URLRequest(url: url)
-            request.setValue("macbar-rssreader/1.0", forHTTPHeaderField: "User-Agent")
+            request.setValue("macbar-russreader/1.0", forHTTPHeaderField: "User-Agent")
             request.timeoutInterval = requestTimeout
             if let eTag = feed.eTag, !eTag.isEmpty {
                 request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
@@ -937,7 +937,7 @@ final class FeedStore: ObservableObject {
         <?xml version="1.0" encoding="UTF-8"?>
         <opml version="2.0">
           <head>
-            <title>RSS Reader Feeds</title>
+            <title>RussReader Feeds</title>
           </head>
           <body>
         """
@@ -1066,7 +1066,7 @@ final class FeedStore: ObservableObject {
         }
 
         let request = UNNotificationRequest(
-            identifier: "rssreader.newitems.\(Date().timeIntervalSince1970)",
+            identifier: "russreader.newitems.\(Date().timeIntervalSince1970)",
             content: content,
             trigger: nil
         )

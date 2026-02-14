@@ -1,6 +1,6 @@
 //
 //  ContextMenuModifiers.swift
-//  RSSReader
+//  RussReader
 //
 //  View modifiers for context menus and utility modifiers
 //

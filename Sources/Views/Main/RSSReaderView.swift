@@ -1,6 +1,6 @@
 //
-//  RSSReaderView.swift
-//  RSSReader
+//  RussReaderView.swift
+//  RussReader
 //
 //  Main menu bar content view
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 import AppKit
 
-struct RSSReaderView: View {
+struct RussReaderView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
     @State private var hoveredItemId: UUID?

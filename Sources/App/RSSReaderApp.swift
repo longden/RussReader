@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - App Entry Point
 
 @main
-struct RSSReaderApp: App {
+struct RussReaderApp: App {
     @StateObject private var store = FeedStore()
     
     init() {
@@ -17,7 +17,7 @@ struct RSSReaderApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            RSSReaderView()
+            RussReaderView()
                 .environmentObject(store)
                 .onAppear {
                     // Request notification permissions after app is initialized

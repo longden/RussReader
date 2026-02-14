@@ -1,6 +1,6 @@
 //
 //  FeedItemRow.swift
-//  RSSReader
+//  RussReader
 //
 //  Individual feed item row component
 //

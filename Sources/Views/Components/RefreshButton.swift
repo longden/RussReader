@@ -1,6 +1,6 @@
 //
 //  RefreshButton.swift
-//  RSSReader
+//  RussReader
 //
 //  Refresh button component with rotation animation
 //

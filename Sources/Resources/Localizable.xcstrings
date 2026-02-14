@@ -4005,30 +4005,30 @@
         }
       }
     },
-    "RSS Reader Feeds" : {
+    "RussReader Feeds" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "RSS Reader Feeds"
+            "value" : "RussReader Feeds"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feeds de RSS Reader"
+            "value" : "Feeds de RussReader"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flux RSS Reader"
+            "value" : "Flux RussReader"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "RSS Reader 订阅"
+            "value" : "RussReader 订阅"
           }
         }
       }
