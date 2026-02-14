@@ -6,8 +6,7 @@
 .swiftpm/
 
 # Xcode
-*.xcodeproj
-*.xcworkspace
+/*.xcworkspace
 xcuserdata/
 DerivedData/
 
