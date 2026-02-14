@@ -57,7 +57,7 @@ extension Bundle {
         
         // For Swift Package Manager, we need to find the resource bundle
         // The .module bundle is in the compiled resources
-        if let resourceBundleURL = Bundle.main.url(forResource: "RSSReader_RSSReader", withExtension: "bundle"),
+        if let resourceBundleURL = Bundle.main.url(forResource: "RussReader_RussReader", withExtension: "bundle"),
            let resourceBundle = Bundle(url: resourceBundleURL) {
             
             // If we have a language preference, try to get that language from the resource bundle

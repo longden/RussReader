@@ -1,6 +1,6 @@
 //
 //  ButtonStyleModifiers.swift
-//  RSSReader
+//  RussReader
 //
 //  View modifiers for button styling and interactions
 //

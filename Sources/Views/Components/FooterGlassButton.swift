@@ -1,6 +1,6 @@
 //
 //  FooterGlassButton.swift
-//  RSSReader
+//  RussReader
 //
 //  Footer button component with glass effect (macOS 26+)
 //

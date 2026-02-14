@@ -1,6 +1,6 @@
 //
 //  FilterTabButton.swift
-//  RSSReader
+//  RussReader
 //
 //  Filter tab button component for feed filtering
 //

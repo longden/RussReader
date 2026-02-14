@@ -1,6 +1,6 @@
 //
 //  NSViewRepresentables.swift
-//  RSSReader
+//  RussReader
 //
 //  AppKit integration via NSViewRepresentable wrappers
 //

@@ -1,6 +1,6 @@
 //
 //  WindowHelpers.swift
-//  RSSReader
+//  RussReader
 //
 //  Window management helper functions
 //

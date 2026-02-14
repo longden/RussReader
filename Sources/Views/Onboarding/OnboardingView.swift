@@ -128,7 +128,7 @@ struct OnboardingView: View {
                 .font(.system(size: 44))
                 .foregroundStyle(Color.accentColor)
             
-            Text(String(localized: "Welcome to RSS Reader", bundle: .module))
+            Text(String(localized: "Welcome to RussReader", bundle: .module))
                 .font(.title2.bold())
             
             Text(String(localized: "A lightweight menu bar reader for staying up to date with your favourite feeds.", bundle: .module))

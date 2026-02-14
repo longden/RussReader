@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 enum KeychainHelper {
-    private static let service = "com.rssreader.feedAuth"
+    private static let service = "com.russreader.feedAuth"
     
     struct BasicAuthCredentials: Codable {
         let username: String

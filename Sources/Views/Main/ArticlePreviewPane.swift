@@ -1,6 +1,6 @@
 //
 //  ArticlePreviewPane.swift
-//  RSSReader
+//  RussReader
 //
 //  Article detail view with full content preview
 //

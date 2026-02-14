@@ -1,6 +1,6 @@
 //
 //  ColorExtensions.swift
-//  RSSReader
+//  RussReader
 //
 //  Color utility extensions
 //

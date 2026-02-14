@@ -1,4 +1,4 @@
-# RSS Reader
+# RussReader
 
 A lightweight macOS menu bar RSS reader built with SwiftUI.
 
@@ -22,9 +22,9 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 
 ### Option 1: Download Release (Recommended)
 
-1. Download the latest `RSSReader-X.X.X.dmg` from [Releases](https://github.com/yourusername/rssreader/releases)
+1. Download the latest `RussReader-X.X.X.dmg` from [Releases](https://github.com/yourusername/russreader/releases)
 2. Open the DMG file
-3. Drag "RSS Reader" to your Applications folder
+3. Drag "RussReader" to your Applications folder
 4. Launch from Applications or Spotlight
 
 ### Option 2: Build from Source
@@ -32,13 +32,13 @@ A lightweight macOS menu bar RSS reader built with SwiftUI.
 #### Development Build (Fast)
 ```bash
 ./scripts/build-debug.sh
-open ".build/debug/RSS Reader.app"
+open ".build/debug/RussReader.app"
 ```
 
 #### Production Build (One Command)
 ```bash
 ./scripts/build-release.sh
-# Creates: .build/release/RSSReader-1.0.0.dmg
+# Creates: .build/release/RussReader-1.0.0.dmg
 ```
 
 This single command builds, strips symbols, and creates a distributable DMG.
@@ -86,7 +86,7 @@ Share the `.app` bundle or `.dmg` file directly with others.
 
 ### Future Distribution Channels
 - **App Store**: Planned for future release
-- **Homebrew**: Planned via `brew install rssreader`
+- **Homebrew**: Planned via `brew install russreader`
 
 ## Version
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# RSS Reader Build Script
+# RussReader Build Script
 # Builds a production-ready .app bundle for local distribution
 
 # Change to project root (parent of scripts directory)
@@ -9,11 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
-echo "🚀 Building RSS Reader for production..."
+echo "🚀 Building RussReader for production..."
 
 # Configuration
-APP_NAME="RSS Reader"
-BUNDLE_ID="com.rssreader.menubar"
+APP_NAME="RussReader"
+BUNDLE_ID="com.russreader.menubar"
 VERSION="1.0.0"
 BUILD_DIR=".build/release"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
@@ -38,11 +38,11 @@ mkdir -p "$RESOURCES_DIR"
 
 # Copy executable
 echo "📋 Copying executable..."
-cp "$BUILD_DIR/RSSReader" "$MACOS_DIR/RSSReader"
+cp "$BUILD_DIR/RussReader" "$MACOS_DIR/RussReader"
 
 # Strip symbols for better obfuscation
 echo "🔒 Stripping debug symbols..."
-strip -x "$MACOS_DIR/RSSReader"
+strip -x "$MACOS_DIR/RussReader"
 
 # Copy resources
 echo "🎨 Copying resources..."
@@ -57,11 +57,11 @@ echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 
 # Sign the app (ad-hoc signature for local distribution)
 echo "✍️  Signing app..."
-codesign --force --deep --sign - --entitlements RSSReader.entitlements "$APP_BUNDLE"
+codesign --force --deep --sign - --entitlements RussReader.entitlements "$APP_BUNDLE"
 
 # Verify the app
 echo "✅ Verifying app bundle..."
-if [ -x "$MACOS_DIR/RSSReader" ]; then
+if [ -x "$MACOS_DIR/RussReader" ]; then
     echo "✓ Executable is valid"
 else
     echo "✗ Executable is not valid"
@@ -76,8 +76,8 @@ else
 fi
 
 # Display bundle info
-ORIGINAL_SIZE=$(stat -f%z "$BUILD_DIR/RSSReader" 2>/dev/null || echo "0")
-STRIPPED_SIZE=$(stat -f%z "$MACOS_DIR/RSSReader" 2>/dev/null || echo "0")
+ORIGINAL_SIZE=$(stat -f%z "$BUILD_DIR/RussReader" 2>/dev/null || echo "0")
+STRIPPED_SIZE=$(stat -f%z "$MACOS_DIR/RussReader" 2>/dev/null || echo "0")
 
 echo ""
 echo "✨ Build complete!"
@@ -95,9 +95,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Create DMG
-DMG_NAME="RSSReader-$VERSION.dmg"
-TEMP_DMG="RSSReader-temp.dmg"
-VOLUME_NAME="RSS Reader $VERSION"
+DMG_NAME="RussReader-$VERSION.dmg"
+TEMP_DMG="RussReader-temp.dmg"
+VOLUME_NAME="RussReader $VERSION"
 
 echo "💿 Creating distributable DMG..."
 rm -f "$BUILD_DIR/$DMG_NAME" 2>/dev/null

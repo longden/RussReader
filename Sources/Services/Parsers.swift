@@ -7,7 +7,7 @@ import OSLog
 
 final class RSSParser {
     private let feedId: UUID
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RSSParser")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "local.macbar", category: "RussReader")
     var feedTitle: String?
     var feedIconURL: String?
     
