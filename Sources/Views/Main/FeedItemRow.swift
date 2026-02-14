@@ -59,7 +59,7 @@ struct FeedItemRow: View {
 
                 HStack(spacing: 4) {
                     if showFeedIcon {
-                        FeedIconView(iconURL: nil, feedURL: item.link, size: 11)
+                        FeedIconView(iconURL: feedIconURL, feedURL: feedURL, size: 11, feedId: feedId, authType: feedAuthType)
                     }
                     
                     // Source attribution: "ArticleDomain via FeedTitle" for aggregators, just "FeedTitle" for direct feeds
