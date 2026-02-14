@@ -7,37 +7,34 @@ A macOS menu bar RSS reader built with SwiftUI, featuring smart filtering, authe
 ### Development Build
 ```bash
 # Fast build for testing (includes debug symbols)
-./scripts/build-debug.sh
-open ".build/debug/RSS Reader.app"
-
-# Or with Swift Package Manager directly
-swift build && .build/debug/RSSReader
+./RussReader/scripts/build-debug.sh
+open "RussReader/.build/debug/RussReader.app"
 ```
 
 ### Auto-Rebuild After Changes
-After making code changes, always run `swift run` to rebuild and launch the app:
+After making code changes, rebuild with the debug script:
 ```bash
-swift run
+./RussReader/scripts/build-debug.sh
+open "RussReader/.build/debug/RussReader.app"
 ```
-This compiles the project and starts the app in one step. The app will appear in the menu bar.
 
 ### Production Build
 ```bash
 # Creates stripped, signed .app bundle and DMG
-./scripts/build-release.sh
-# Output: .build/release/RSSReader-1.0.0.dmg
+./RussReader/scripts/build-release.sh
+# Output: RussReader/.build/release/RussReader-1.0.0.dmg
 ```
 
 ### Dependencies
 ```bash
-# Resolve and download packages
-swift package resolve
+# Resolve Xcode-managed Swift package dependencies
+xcodebuild -project RussReader.xcodeproj -resolvePackageDependencies
 
 # Update dependencies
-swift package update
+xcodebuild -project RussReader.xcodeproj -resolvePackageDependencies
 ```
 
-**Note**: The project uses Swift Package Manager with FeedKit 10.0.0+ (RSS/Atom parsing) and SwiftSoup 2.7.0+ (HTML processing).
+**Note**: The project uses Xcode project builds with Swift Package dependencies (FeedKit 10.0.0+ and SwiftSoup 2.7.0+). Full Xcode must be selected for CLI builds.
 
 ## Architecture
 
@@ -102,7 +99,7 @@ Feed items use composite key matching to prevent duplicates on refresh:
 ### File Organization
 
 ```
-Sources/
+RussReader/Sources/
 ├── App/
 │   └── RSSReaderApp.swift          # App entry, MenuBarExtra windows, preferences/add-feed windows
 ├── Models/
@@ -119,6 +116,8 @@ Sources/
 │   │   └── ArticlePreviewPane.swift # Rich HTML article preview
 │   ├── AddFeed/
 │   │   └── AddFeedView.swift       # Feed addition dialog with URL validation
+│   ├── Onboarding/
+│   │   └── OnboardingView.swift    # First-run onboarding flow
 │   ├── Preferences/
 │   │   ├── PreferencesView.swift   # 4-tab preferences window
 │   │   ├── FeedsTabView.swift      # Feed management tab (add/remove, OPML, auth)
@@ -138,7 +137,7 @@ Sources/
 │   ├── ColorExtensions.swift
 │   ├── NSViewRepresentables.swift
 │   └── WindowHelpers.swift
-└── Resources/                      # AppIcon.icns, Localizable.xcstrings
+└── Resources/                      # Localizable.xcstrings and bundled assets
 ```
 
 ### View Structure
