@@ -19,4 +19,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Persistent storage via UserDefaults
 - Localization support (English)
 
-[1.0.0]: https://github.com/yourusername/russreader/releases/tag/v1.0.0
+[1.0.0]: https://github.com/longden/russreader/releases/tag/v1.0.0
