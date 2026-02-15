@@ -588,6 +588,65 @@ final class FeedStore: ObservableObject {
         save()
     }
     
+    /// Nuclear reset: clears all data, preferences, caches, and keychain credentials.
+    /// Returns the app to the onboarding state.
+    func clearAllData() {
+        // Stop auto-refresh
+        refreshTimer?.cancel()
+        refreshTimer = nil
+        
+        // Clear keychain credentials for all feeds
+        KeychainHelper.deleteAll()
+        
+        // Clear in-memory state
+        feeds.removeAll()
+        items.removeAll()
+        filterRules.removeAll()
+        filterResultsCache.removeAll()
+        readItemKeys.removeAll()
+        selectedFeedId = nil
+        filter = .all
+        lastRefreshTime = nil
+        isRefreshing = false
+        errorMessage = nil
+        showingError = false
+        invalidateDerivedState()
+        
+        // Cancel any pending debounced save
+        saveWorkItem?.cancel()
+        saveWorkItem = nil
+        
+        // Remove all persisted UserDefaults data
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: feedsKey)
+        defaults.removeObject(forKey: itemsKey)
+        defaults.removeObject(forKey: filterRulesKey)
+        defaults.removeObject(forKey: readKeysKey)
+        
+        // Reset all @AppStorage preferences to defaults
+        let appStorageKeys = [
+            "rssRefreshInterval", "rssMaxItemsPerFeed", "rssFontSize",
+            "rssTitleMaxLines", "rssTimeFormat", "rssAppearanceMode",
+            "rssShowUnreadBadge", "rssSmartFiltersEnabled", "rssSelectedBrowser",
+            "rssShowSummary", "rssLanguage", "rssStickyWindow",
+            "rssNewItemNotifications", "rssShowFeedIcons", "rssShowViaFeed",
+            "rssWindowWidthSize", "rssWindowHeightSize", "rssOpenInPreview",
+            "rssWindowStyle", "rssLaunchAtLogin", "rssPreferencesTab"
+        ]
+        for key in appStorageKeys {
+            defaults.removeObject(forKey: key)
+        }
+        
+        // Reset onboarding so the user sees it again
+        defaults.removeObject(forKey: "rssOnboardingComplete")
+        
+        // Remove delivered notifications
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        logger.info("All data cleared — app reset to onboarding state")
+    }
+    
     func openItem(_ item: FeedItem) {
         markAsRead(item)
         

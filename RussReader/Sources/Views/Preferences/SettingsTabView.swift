@@ -9,6 +9,7 @@ struct SettingsTabView: View {
     @State private var installedBrowsers: [BrowserInfo] = []
     @State private var previousLanguage: String = ""
     @State private var showRestartAlert = false
+    @State private var showClearAllDataAlert = false
     
     var body: some View {
         Form {
@@ -187,7 +188,7 @@ struct SettingsTabView: View {
                     Spacer()
                     
                     Button(String(localized: "Clear All Data")) {
-                        store.clearItems()
+                        showClearAllDataAlert = true
                     }
                     .foregroundStyle(.red)
                 }
@@ -213,6 +214,14 @@ struct SettingsTabView: View {
             }
         } message: {
             Text(String(localized: "Please quit and restart the app for the language change to take effect."))
+        }
+        .alert(String(localized: "Clear All Data?"), isPresented: $showClearAllDataAlert) {
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Clear All Data"), role: .destructive) {
+                store.clearAllData()
+            }
+        } message: {
+            Text(String(localized: "This will delete all feeds, articles, settings, and credentials. The app will return to the onboarding screen. This cannot be undone."))
         }
     }
 }

@@ -1578,6 +1578,9 @@
         }
       }
     },
+    "Clear All Data?" : {
+
+    },
     "Click an item to open it in your browser. Right-click for more options like starring or marking as read/unread." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5064,6 +5067,9 @@
           }
         }
       }
+    },
+    "This will delete all feeds, articles, settings, and credentials. The app will return to the onboarding screen. This cannot be undone." : {
+
     },
     "Time Format" : {
       "localizations" : {
