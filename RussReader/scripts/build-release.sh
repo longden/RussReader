@@ -14,7 +14,7 @@ echo "🚀 Building RussReader for production..."
 # Configuration
 APP_NAME="RussReader"
 BUNDLE_ID="com.russreader.menubar"
-VERSION="1.0.0"
+VERSION="1.1.0"
 BUILD_DIR=".build/release"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
