@@ -452,186 +452,199 @@ struct AddFeedSheet: View {
     private func detectFeeds(from urlString: String) async {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+
+        // Skip re-detection if the URL is already a known feed URL (e.g. after clicking "Use")
+        if trimmed.contains("/feeds/videos.xml") || trimmed.hasSuffix(".rss") || trimmed.hasSuffix("/feed") || trimmed.hasSuffix("/feed.xml") || trimmed.hasSuffix("/rss.xml") || trimmed.hasSuffix("/atom.xml") {
+            return
+        }
+
+        let normalizedURL = normalizedURLForDetection(trimmed)
         
         // Platform-specific converters (instant, no network needed for most)
         
-        // YouTube
-        if trimmed.contains("youtube.com") || trimmed.contains("youtu.be") {
+        // YouTube — always return from this block (don't fall through to Mastodon etc.)
+        if normalizedURL.contains("youtube.com") || normalizedURL.contains("youtu.be") {
             isDiscovering = true
             discoveredFeeds = []
-            if let youtubeRSS = await convertYouTubeToRSS(trimmed) {
+            if let youtubeRSS = await convertYouTubeToRSS(normalizedURL) {
                 await MainActor.run {
                     isDiscovering = false
                     discoveredFeeds = [youtubeRSS]
                 }
                 return
             }
-            await MainActor.run { isDiscovering = false }
+            // YouTube-specific conversion failed — try generic discovery as fallback
+            let feeds = await FeedDiscovery.discoverFeeds(from: normalizedURL)
+            await MainActor.run {
+                isDiscovering = false
+                discoveredFeeds = feeds
+            }
+            return
         }
         
         // Reddit
-        if let redditRSS = convertRedditToRSS(trimmed) {
+        if let redditRSS = convertRedditToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [redditRSS] }
             return
         }
         
         // GitHub
-        if let githubFeeds = convertGitHubToRSS(trimmed), !githubFeeds.isEmpty {
+        if let githubFeeds = convertGitHubToRSS(normalizedURL), !githubFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = githubFeeds }
             return
         }
         
         // Mastodon / Fediverse
-        if let mastodonRSS = convertMastodonToRSS(trimmed) {
+        if let mastodonRSS = convertMastodonToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [mastodonRSS] }
             return
         }
         
         // Substack
-        if let substackRSS = convertSubstackToRSS(trimmed) {
+        if let substackRSS = convertSubstackToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [substackRSS] }
             return
         }
         
         // Medium
-        if let mediumRSS = convertMediumToRSS(trimmed) {
+        if let mediumRSS = convertMediumToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [mediumRSS] }
             return
         }
         
         // Tumblr
-        if let tumblrRSS = convertTumblrToRSS(trimmed) {
+        if let tumblrRSS = convertTumblrToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [tumblrRSS] }
             return
         }
         
         // Hacker News
-        if let hnFeeds = convertHackerNewsToRSS(trimmed), !hnFeeds.isEmpty {
+        if let hnFeeds = convertHackerNewsToRSS(normalizedURL), !hnFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = hnFeeds }
             return
         }
         
         // WordPress.com
-        if let wpRSS = convertWordPressToRSS(trimmed) {
+        if let wpRSS = convertWordPressToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [wpRSS] }
             return
         }
         
         // Blogger / Blogspot
-        if let bloggerRSS = convertBloggerToRSS(trimmed) {
+        if let bloggerRSS = convertBloggerToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [bloggerRSS] }
             return
         }
         
         // Dev.to
-        if let devtoRSS = convertDevToRSS(trimmed) {
+        if let devtoRSS = convertDevToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [devtoRSS] }
             return
         }
         
         // Hashnode
-        if let hashnodeRSS = convertHashnodeToRSS(trimmed) {
+        if let hashnodeRSS = convertHashnodeToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [hashnodeRSS] }
             return
         }
         
         // Ghost blogs (detect via common pattern)
-        if let ghostRSS = convertGhostToRSS(trimmed) {
+        if let ghostRSS = convertGhostToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [ghostRSS] }
             return
         }
         
         // NPR
-        if let nprFeeds = convertNPRToRSS(trimmed), !nprFeeds.isEmpty {
+        if let nprFeeds = convertNPRToRSS(normalizedURL), !nprFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = nprFeeds }
             return
         }
         
         // BBC News
-        if let bbcFeeds = convertBBCToRSS(trimmed), !bbcFeeds.isEmpty {
+        if let bbcFeeds = convertBBCToRSS(normalizedURL), !bbcFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = bbcFeeds }
             return
         }
         
         // Stack Overflow
-        if let soFeeds = convertStackOverflowToRSS(trimmed), !soFeeds.isEmpty {
+        if let soFeeds = convertStackOverflowToRSS(normalizedURL), !soFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = soFeeds }
             return
         }
         
         // Bluesky
-        if let bskyRSS = convertBlueskyToRSS(trimmed) {
+        if let bskyRSS = convertBlueskyToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [bskyRSS] }
             return
         }
         
         // GitLab
-        if let gitlabFeeds = convertGitLabToRSS(trimmed), !gitlabFeeds.isEmpty {
+        if let gitlabFeeds = convertGitLabToRSS(normalizedURL), !gitlabFeeds.isEmpty {
             await MainActor.run { discoveredFeeds = gitlabFeeds }
             return
         }
         
         // Vimeo
-        if let vimeoRSS = convertVimeoToRSS(trimmed) {
+        if let vimeoRSS = convertVimeoToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [vimeoRSS] }
             return
         }
         
         // Letterboxd
-        if let letterboxdRSS = convertLetterboxdToRSS(trimmed) {
+        if let letterboxdRSS = convertLetterboxdToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [letterboxdRSS] }
             return
         }
         
         // Product Hunt
-        if let phRSS = convertProductHuntToRSS(trimmed) {
+        if let phRSS = convertProductHuntToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [phRSS] }
             return
         }
         
         // Pixelfed
-        if let pixelfedRSS = convertPixelfedToRSS(trimmed) {
+        if let pixelfedRSS = convertPixelfedToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [pixelfedRSS] }
             return
         }
         
         // Lemmy
-        if let lemmyRSS = convertLemmyToRSS(trimmed) {
+        if let lemmyRSS = convertLemmyToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [lemmyRSS] }
             return
         }
         
         // ArXiv
-        if let arxivRSS = convertArXivToRSS(trimmed) {
+        if let arxivRSS = convertArXivToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [arxivRSS] }
             return
         }
         
         // Dribbble
-        if let dribbbleRSS = convertDribbbleToRSS(trimmed) {
+        if let dribbbleRSS = convertDribbbleToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [dribbbleRSS] }
             return
         }
         
         // Bandcamp
-        if let bandcampRSS = convertBandcampToRSS(trimmed) {
+        if let bandcampRSS = convertBandcampToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [bandcampRSS] }
             return
         }
         
         // Codeberg
-        if let codebergRSS = convertCodebergToRSS(trimmed) {
+        if let codebergRSS = convertCodebergToRSS(normalizedURL) {
             await MainActor.run { discoveredFeeds = [codebergRSS] }
             return
         }
 
         // Generic discovery — works for any URL
         let discoveryURL: String
-        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
-            discoveryURL = trimmed
-        } else if trimmed.contains(".") {
+        if normalizedURL.hasPrefix("http://") || normalizedURL.hasPrefix("https://") {
+            discoveryURL = normalizedURL
+        } else if normalizedURL.contains(".") {
             // Looks like a domain — auto-add https://
-            discoveryURL = "https://\(trimmed)"
+            discoveryURL = "https://\(normalizedURL)"
         } else {
             return
         }
@@ -646,11 +659,34 @@ struct AddFeedSheet: View {
             discoveredFeeds = feeds
         }
     }
+
+    private func normalizedURLForDetection(_ input: String) -> String {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            return trimmed
+        }
+        if trimmed.contains(".") {
+            return "https://\(trimmed)"
+        }
+        return trimmed
+    }
+
+    private func firstRegexCapture(in text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: text) else {
+            return nil
+        }
+        return String(text[range])
+    }
     
     private func convertYouTubeToRSS(_ url: String) async -> DiscoveredFeed? {
+        let normalizedURL = normalizedURLForDetection(url)
+
         // Direct channel ID pattern: /channel/UCxxxxxx — no fetch needed
-        if let range = url.range(of: #"/channel/(UC[a-zA-Z0-9_-]+)"#, options: .regularExpression) {
-            let channelId = String(url[range]).replacingOccurrences(of: "/channel/", with: "")
+        if let channelId = firstRegexCapture(in: normalizedURL, pattern: #"/channel/(UC[a-zA-Z0-9_-]+)"#) {
             return DiscoveredFeed(
                 url: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelId)",
                 title: "YouTube Channel",
@@ -659,9 +695,7 @@ struct AddFeedSheet: View {
         }
         
         // Playlist pattern: ?list=PLxxxxxx — no fetch needed
-        if let range = url.range(of: #"[?&]list=([a-zA-Z0-9_-]+)"#, options: .regularExpression) {
-            let match = String(url[range])
-            let playlistId = match.replacingOccurrences(of: "?list=", with: "").replacingOccurrences(of: "&list=", with: "")
+        if let playlistId = firstRegexCapture(in: normalizedURL, pattern: #"[?&]list=([a-zA-Z0-9_-]+)"#) {
             return DiscoveredFeed(
                 url: "https://www.youtube.com/feeds/videos.xml?playlist_id=\(playlistId)",
                 title: "YouTube Playlist",
@@ -670,47 +704,60 @@ struct AddFeedSheet: View {
         }
         
         // For @handle, video URLs, or any other YouTube page — fetch and extract channel ID
-        guard let pageURL = URL(string: url) else { return nil }
+        guard let pageURL = URL(string: normalizedURL) else { return nil }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: pageURL)
+            var request = URLRequest(url: pageURL, timeoutInterval: defaultRequestTimeout)
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36", forHTTPHeaderField: "User-Agent")
+            request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+            // Bypass YouTube cookie consent wall (returns consent page without this)
+            request.setValue("SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMwODI5LjA3X3AxGgJlbiACGgYIgJnPpwY; CONSENT=YES+1", forHTTPHeaderField: "Cookie")
+            let (data, _) = try await URLSession.shared.data(for: request)
             guard let html = String(data: data, encoding: .utf8) else { return nil }
             
             // Look for channel ID in the page HTML
-            // Pattern 1: "channelId":"UCxxxx" (in JSON data)
-            // Pattern 2: "externalId":"UCxxxx"
-            // Pattern 3: <meta itemprop="channelId" content="UCxxxx">
-            // Pattern 4: /channel/UCxxxx in canonical or RSS link
+            // Priority: RSS link tag > canonical link > externalId > meta tag > channelId (last — it matches related channels first)
             let patterns = [
-                #""channelId"\s*:\s*"(UC[a-zA-Z0-9_-]+)""#,
+                #"feeds/videos\.xml\?channel_id=(UC[a-zA-Z0-9_-]+)"#,
+                #"<link[^>]*rel="canonical"[^>]*href="[^"]*/channel/(UC[a-zA-Z0-9_-]+)""#,
                 #""externalId"\s*:\s*"(UC[a-zA-Z0-9_-]+)""#,
-                #"content="(UC[a-zA-Z0-9_-]+)""#,
-                #"/channel/(UC[a-zA-Z0-9_-]+)"#
+                #"<meta[^>]*itemprop="channelId"[^>]*content="(UC[a-zA-Z0-9_-]+)""#,
+                #""browseId"\s*:\s*"(UC[a-zA-Z0-9_-]+)""#,
+                #""channelId"\s*:\s*"(UC[a-zA-Z0-9_-]+)""#,
             ]
-            
+
+            var channelId: String?
             for pattern in patterns {
-                if let regex = try? NSRegularExpression(pattern: pattern),
-                   let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
-                   match.numberOfRanges > 1,
-                   let idRange = Range(match.range(at: 1), in: html) {
-                    let channelId = String(html[idRange])
-                    
-                    // Extract channel name from page title if possible
-                    var title = "YouTube Channel"
-                    if let titleMatch = html.range(of: #"<title>(.+?)(?:\s*-\s*YouTube)?</title>"#, options: .regularExpression),
-                       let innerRange = html.range(of: #"<title>(.+?)<"#, options: .regularExpression) {
-                        let _ = titleMatch // suppress warning
-                        let raw = String(html[innerRange]).replacingOccurrences(of: "<title>", with: "").replacingOccurrences(of: "<", with: "")
-                        let cleaned = raw.replacingOccurrences(of: " - YouTube", with: "").trimmingCharacters(in: .whitespaces)
-                        if !cleaned.isEmpty { title = cleaned }
-                    }
-                    
-                    return DiscoveredFeed(
-                        url: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelId)",
-                        title: title,
-                        type: "Atom"
-                    )
+                if let found = firstRegexCapture(in: html, pattern: pattern) {
+                    channelId = found
+                    break
                 }
+            }
+
+            if channelId == nil {
+                let unescapedHTML = html.replacingOccurrences(of: #"\/"#, with: "/")
+                for pattern in patterns {
+                    if let found = firstRegexCapture(in: unescapedHTML, pattern: pattern) {
+                        channelId = found
+                        break
+                    }
+                }
+            }
+
+            if let channelId {
+                var title = "YouTube Channel"
+                if let extractedTitle = firstRegexCapture(in: html, pattern: #"<title>([^<]+)</title>"#) {
+                    let cleaned = extractedTitle.replacingOccurrences(of: " - YouTube", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !cleaned.isEmpty {
+                        title = cleaned
+                    }
+                }
+
+                return DiscoveredFeed(
+                    url: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelId)",
+                    title: title,
+                    type: "Atom"
+                )
             }
         } catch {
             // Network error — fall through
@@ -773,12 +820,12 @@ struct AddFeedSheet: View {
         // Pattern: https://instance.social/@username
         guard let urlObj = URL(string: url),
               let host = urlObj.host,
-              let match = url.range(of: #"/@([a-zA-Z0-9_]+)$"#, options: .regularExpression) else { return nil }
+              let match = urlObj.path.range(of: #"^/@([a-zA-Z0-9_]+)/?$"#, options: .regularExpression) else { return nil }
         // Exclude known non-Mastodon sites
-        let excluded = ["github.com", "twitter.com", "x.com", "medium.com"]
+        let excluded = ["github.com", "twitter.com", "x.com", "medium.com", "youtube.com", "youtu.be"]
         guard !excluded.contains(host) else { return nil }
         
-        let username = String(url[match]).replacingOccurrences(of: "/@", with: "")
+        let username = String(urlObj.path[match]).replacingOccurrences(of: "/@", with: "").replacingOccurrences(of: "/", with: "")
         return DiscoveredFeed(
             url: "https://\(host)/@\(username).rss",
             title: "@\(username)@\(host)",
@@ -889,10 +936,11 @@ struct AddFeedSheet: View {
     
     private func convertDevToRSS(_ url: String) -> DiscoveredFeed? {
         guard url.contains("dev.to") else { return nil }
-        // Pattern: dev.to/username
-        if let match = url.range(of: #"dev\.to/([a-zA-Z0-9_]+)$"#, options: .regularExpression) {
-            let username = String(url[match]).replacingOccurrences(of: "dev.to/", with: "")
-            return DiscoveredFeed(url: "https://dev.to/feed/\(username)", title: "Dev.to — \(username)", type: "RSS")
+        if let urlObj = URL(string: url), let host = urlObj.host, host.contains("dev.to") {
+            let path = urlObj.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            if !path.isEmpty && !path.contains("/") {
+                return DiscoveredFeed(url: "https://dev.to/feed/\(path)", title: "Dev.to — \(path)", type: "RSS")
+            }
         }
         // Just dev.to homepage
         if url.hasSuffix("dev.to") || url.hasSuffix("dev.to/") {
@@ -1067,16 +1115,21 @@ struct AddFeedSheet: View {
         guard let urlObj = URL(string: url), let host = urlObj.host else { return nil }
         guard instances.contains(host) else { return nil }
         
-        if let match = url.range(of: #"/([a-zA-Z0-9_.-]+)$"#, options: .regularExpression) {
-            let username = String(url[match]).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            guard username != "users" && !username.isEmpty else { return nil }
-            return DiscoveredFeed(
-                url: "https://\(host)/users/\(username).atom",
-                title: "Pixelfed — @\(username)@\(host)",
-                type: "Atom"
-            )
+        let parts = urlObj.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        let username: String?
+        if parts.count == 1 {
+            username = parts[0]
+        } else if parts.count == 2, parts[0] == "users" {
+            username = parts[1]
+        } else {
+            username = nil
         }
-        return nil
+        guard let username, username != "users" else { return nil }
+        return DiscoveredFeed(
+            url: "https://\(host)/users/\(username).atom",
+            title: "Pixelfed — @\(username)@\(host)",
+            type: "Atom"
+        )
     }
     
     // MARK: - Lemmy Converter
@@ -1182,7 +1235,19 @@ struct AddFeedSheet: View {
     private func addFeed() {
         errorMessage = nil
 
-        let cleanURL = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        // If a platform-specific feed was discovered (e.g. YouTube → RSS), use it
+        let urlToAdd: String
+        var titleToUse = feedTitle
+        if let discovered = discoveredFeeds.first {
+            urlToAdd = discovered.url
+            if titleToUse.isEmpty, let title = discovered.title {
+                titleToUse = title
+            }
+        } else {
+            urlToAdd = feedURL
+        }
+
+        let cleanURL = urlToAdd.trimmingCharacters(in: .whitespacesAndNewlines)
         if store.feeds.contains(where: { $0.url.lowercased() == cleanURL.lowercased() }) {
             errorMessage = String(localized: "This feed is already added.")
             return
@@ -1191,8 +1256,8 @@ struct AddFeedSheet: View {
         isDiscovering = true
         Task {
             let result = await store.addFeed(
-                url: feedURL,
-                title: feedTitle.isEmpty ? nil : feedTitle,
+                url: urlToAdd,
+                title: titleToUse.isEmpty ? nil : titleToUse,
                 authType: authType,
                 username: authType == .basicAuth ? authUsername : nil,
                 password: authType == .basicAuth ? authPassword : nil,
