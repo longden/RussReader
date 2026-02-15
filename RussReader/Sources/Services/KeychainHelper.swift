@@ -39,6 +39,15 @@ enum KeychainHelper {
         delete(account: feedId.uuidString)
     }
     
+    /// Delete all keychain items for this app's service
+    static func deleteAll() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+    
     // MARK: - Private Keychain Operations
     
     private static func save(account: String, data: Data) {
