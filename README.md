@@ -42,8 +42,8 @@ This was built using [Copilot CLI](https://github.com/features/copilot/cli) insp
 
 ### Download (Recommended)
 
-1. Grab the latest `RussReader-X.X.X.dmg` from [Releases](https://github.com/longden/russreader/releases)
-2. Open the DMG and drag RussReader to Applications
+1. Grab the latest `RussReader-amm64.zip` from [Releases](https://github.com/longden/russreader/releases)
+2. Open the zip, then drag RussReader to Applications
 3. Launch from Applications or Spotlight
 
 ### Build from Source
