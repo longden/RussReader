@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/screenshots/RussReader-1024x1024@1x.png" width="128" alt="RussReader icon">
+</p>
+
 # RussReader
 
 A beautiful, lightweight RSS reader that lives in your Mac menu bar. Add any RSS or Atom feed, set up filters, notifications and read articles in or out of the app. 
