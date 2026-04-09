@@ -33,8 +33,22 @@ struct HeaderButtonStyle: ViewModifier {
             content
                 .labelStyle(.iconOnly)
                 .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.primary)
                 .frame(width: 30, height: 30)
                 .contentShape(Rectangle())
+                .background {
+                    Circle()
+                        .fill(Color(NSColor.controlBackgroundColor).opacity(isHovered ? 0.95 : 0.8))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.primary.opacity(isHovered ? 0.18 : 0.1), lineWidth: 1)
+                        }
+                }
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isHovered = hovering
+                    }
+                }
         }
     }
 }
@@ -57,6 +71,21 @@ struct HeaderButtonHoverModifier: ViewModifier {
                 }
         } else {
             content
+                .foregroundStyle(.primary)
+                .background {
+                    Circle()
+                        .fill(Color(NSColor.controlBackgroundColor).opacity(isHovered ? 0.95 : 0.8))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.primary.opacity(isHovered ? 0.18 : 0.1), lineWidth: 1)
+                        }
+                }
+                .clipShape(Circle())
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isHovered = hovering
+                    }
+                }
         }
     }
 }

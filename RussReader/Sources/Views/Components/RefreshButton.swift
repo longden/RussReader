@@ -47,7 +47,14 @@ private struct RefreshButtonModifier: ViewModifier {
             content.modifier(RefreshButtonGlassModifier(isRefreshing: isRefreshing, isHovered: isHovered))
         } else {
             content
-                .background(isHovered ? Color.primary.opacity(0.12) : Color.clear)
+                .background {
+                    Circle()
+                        .fill(Color(NSColor.controlBackgroundColor).opacity((isRefreshing || isHovered) ? 0.95 : 0.8))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.primary.opacity((isRefreshing || isHovered) ? 0.18 : 0.1), lineWidth: 1)
+                        }
+                }
                 .clipShape(Circle())
         }
     }
