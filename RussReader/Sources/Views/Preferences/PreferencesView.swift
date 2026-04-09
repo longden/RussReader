@@ -35,43 +35,28 @@ struct PreferencesView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Text(String(localized: "Preferences"))
-                    .font(.headline)
-                Spacer()
+        Group {
+            switch selectedTab {
+            case .feeds:
+                FeedsTabView()
+            case .filters:
+                FiltersTabView()
+            case .settings:
+                SettingsTabView()
+            case .help:
+                HelpTabView()
             }
-            .padding(.vertical, 12)
-
-            HStack(spacing: 16) {
-                ForEach(PreferencesTab.allCases, id: \.self) { tab in
-                    tabButton(tab)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-
-            Divider()
-
-            Group {
-                switch selectedTab {
-                case .feeds:
-                    FeedsTabView()
-                case .filters:
-                    FiltersTabView()
-                case .settings:
-                    SettingsTabView()
-                case .help:
-                    HelpTabView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.ultraThinMaterial)
         .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 450, height: 500)
         .environmentObject(store)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                toolbarTabPicker
+            }
+        }
         .onAppear {
             switch preferencesTab {
             case "filters":
@@ -109,6 +94,30 @@ struct PreferencesView: View {
                 }
             }
         }
+    }
+
+    private var toolbarTabPicker: some View {
+        Picker(String(localized: "Preferences"), selection: bindingForSelectedTab) {
+            ForEach(PreferencesTab.allCases, id: \.self) { tab in
+                Label(tab.title, systemImage: tab.icon)
+                    .tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 320)
+    }
+
+    private var bindingForSelectedTab: Binding<PreferencesTab> {
+        Binding(
+            get: { selectedTab },
+            set: { tab in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    selectedTab = tab
+                    preferencesTab = tabPreferenceKey(tab)
+                }
+            }
+        )
     }
 
     @ViewBuilder

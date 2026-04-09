@@ -38,7 +38,7 @@ struct RussReaderApp: App {
             PreferencesView()
                 .environmentObject(store)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
