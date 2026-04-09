@@ -59,6 +59,7 @@ struct HelpTabView: View {
             }
             .padding()
         }
+        .background(Color.white)
     }
     
     private func helpItem(icon: String, title: String, description: String) -> some View {

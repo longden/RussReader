@@ -40,6 +40,8 @@ struct FeedsTabView: View {
                 .buttonStyle(.plain)
             }
             .listStyle(.inset)
+            .scrollContentBackground(.hidden)
+            .background(Color.white)
             
             Divider()
             
@@ -79,6 +81,7 @@ struct FeedsTabView: View {
             .padding(12)
             .frame(minHeight: 44)
         }
+        .background(Color.white)
         .sheet(isPresented: $showingAddSheet) {
             AddFeedSheet(isPresented: $showingAddSheet)
                 .environmentObject(store)
@@ -351,7 +354,11 @@ struct SuggestedFeedsSheet: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.primary.opacity(0.04))
+                .fill(Color.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1)
         )
     }
     

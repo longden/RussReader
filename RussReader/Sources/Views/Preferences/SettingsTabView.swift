@@ -202,6 +202,8 @@ struct SettingsTabView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.white)
         .padding()
         .onAppear {
             installedBrowsers = BrowserInfo.getInstalledBrowsers()

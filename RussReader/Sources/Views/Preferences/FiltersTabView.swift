@@ -45,7 +45,10 @@ struct FiltersTabView: View {
                     editingRule = nil
                     showingRuleEditor = true
                 } label: {
-                    Image(systemName: "plus")
+                    ruleActionLabel(
+                        icon: "plus",
+                        title: String(localized: "Add")
+                    )
                 }
                 .help(String(localized: "Add filter rule"))
                 .accessibilityLabel(String(localized: "Add filter rule"))
@@ -54,7 +57,10 @@ struct FiltersTabView: View {
                     Button {
                         editingRule = rule
                     } label: {
-                        Image(systemName: "pencil")
+                        ruleActionLabel(
+                            icon: "pencil",
+                            title: String(localized: "Edit")
+                        )
                     }
                     .help(String(localized: "Edit selected rule"))
                     .accessibilityLabel(String(localized: "Edit selected rule"))
@@ -67,7 +73,11 @@ struct FiltersTabView: View {
                         store.deleteFilterRule(rule)
                         selectedRule = nil
                     } label: {
-                        Image(systemName: "trash")
+                        ruleActionLabel(
+                            icon: "trash",
+                            title: String(localized: "Delete"),
+                            iconColor: .red
+                        )
                     }
                     .help(String(localized: "Delete selected rule"))
                     .accessibilityLabel(String(localized: "Delete selected rule"))
@@ -77,6 +87,7 @@ struct FiltersTabView: View {
             .padding(.vertical, 12)
             .frame(minHeight: 44)
         }
+        .background(Color.white)
         .sheet(item: $editingRule) { rule in
             RuleEditorView(rule: rule)
                 .environmentObject(store)
@@ -150,6 +161,23 @@ struct FiltersTabView: View {
             }
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
+        .background(Color.white)
+    }
+
+    private func ruleActionLabel(icon: String, title: String, iconColor: Color = .primary) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(iconColor)
+            Text(title)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(minWidth: 44)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 }
 

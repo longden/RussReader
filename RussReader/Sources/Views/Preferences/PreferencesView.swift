@@ -35,28 +35,37 @@ struct PreferencesView: View {
     }
     
     var body: some View {
-        Group {
-            switch selectedTab {
-            case .feeds:
-                FeedsTabView()
-            case .filters:
-                FiltersTabView()
-            case .settings:
-                SettingsTabView()
-            case .help:
-                HelpTabView()
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                ForEach(PreferencesTab.allCases, id: \.self) { tab in
+                    tabButton(tab)
+                }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
+
+            Divider()
+
+            Group {
+                switch selectedTab {
+                case .feeds:
+                    FeedsTabView()
+                case .filters:
+                    FiltersTabView()
+                case .settings:
+                    SettingsTabView()
+                case .help:
+                    HelpTabView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.ultraThinMaterial)
+        .background(Color.white)
         .background(AppearanceApplier(appearanceMode: store.appearanceMode))
         .frame(width: 450, height: 500)
         .environmentObject(store)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                toolbarTabPicker
-            }
-        }
         .onAppear {
             switch preferencesTab {
             case "filters":
@@ -96,30 +105,6 @@ struct PreferencesView: View {
         }
     }
 
-    private var toolbarTabPicker: some View {
-        Picker(String(localized: "Preferences"), selection: bindingForSelectedTab) {
-            ForEach(PreferencesTab.allCases, id: \.self) { tab in
-                Label(tab.title, systemImage: tab.icon)
-                    .tag(tab)
-            }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .frame(width: 320)
-    }
-
-    private var bindingForSelectedTab: Binding<PreferencesTab> {
-        Binding(
-            get: { selectedTab },
-            set: { tab in
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    selectedTab = tab
-                    preferencesTab = tabPreferenceKey(tab)
-                }
-            }
-        )
-    }
-
     @ViewBuilder
     private func tabButton(_ tab: PreferencesTab) -> some View {
         let isSelected = selectedTab == tab
@@ -138,15 +123,15 @@ struct PreferencesView: View {
                     preferencesTab = tabPreferenceKey(tab)
                 }
             } label: {
-                VStack(spacing: 4) {
+                VStack(spacing: 2) {
                     Image(systemName: tab.icon)
-                        .font(.system(size: 20))
+                        .font(.system(size: 18))
                     Text(tab.title)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                 }
                 .foregroundStyle(isSelected ? .primary : .secondary)
-                .frame(width: 70)
-                .padding(.vertical, 10)
+                .frame(width: 56)
+                .padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -181,15 +166,15 @@ struct PreferencesTabButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                 Text(tab.title)
-                    .font(.system(size: 11))
+                    .font(.system(size: 10))
             }
             .foregroundStyle(isSelected ? .primary : .secondary)
-            .frame(width: 70)
-            .padding(.vertical, 10)
+            .frame(width: 56)
+            .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
