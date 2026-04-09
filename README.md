@@ -4,7 +4,7 @@
 
 # RussReader
 
-A beautiful, lightweight RSS reader that lives in your Mac menu bar. Add any RSS or Atom feed, set up filters, notifications and read articles in or out of the app. 
+RussReader is an AI-assisted RSS reader built to help more people follow original sources directly in a web that is getting harder to read. It starts in the menu bar, but the long-term goal is much bigger: a calm, user-controlled news reader that makes direct access to reporting, writing, and primary sources easier for everyone.
 
 
 ![macOS](https://img.shields.io/badge/macOS-14.0+-blue)
