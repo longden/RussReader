@@ -5,6 +5,7 @@ import AppKit
 
 struct SettingsTabView: View {
     @EnvironmentObject private var store: FeedStore
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("rssLaunchAtLogin") private var launchAtLogin: Bool = false
     @State private var installedBrowsers: [BrowserInfo] = []
     @State private var previousLanguage: String = ""
@@ -203,7 +204,7 @@ struct SettingsTabView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: colorScheme))
         .padding()
         .onAppear {
             installedBrowsers = BrowserInfo.getInstalledBrowsers()

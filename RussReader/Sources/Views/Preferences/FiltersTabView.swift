@@ -5,6 +5,7 @@ import AppKit
 
 struct FiltersTabView: View {
     @EnvironmentObject private var store: FeedStore
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedRule: FilterRule?
     @State private var showingRuleEditor = false
     @State private var editingRule: FilterRule?
@@ -87,7 +88,7 @@ struct FiltersTabView: View {
             .padding(.vertical, 12)
             .frame(minHeight: 44)
         }
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: colorScheme))
         .sheet(item: $editingRule) { rule in
             RuleEditorView(rule: rule)
                 .environmentObject(store)
@@ -143,6 +144,7 @@ struct FiltersTabView: View {
             ForEach(store.filterRules) { rule in
                 RuleRowView(rule: rule)
                     .tag(rule)
+                    .listRowBackground(PreferencesAppearance.windowBackground(for: colorScheme))
                     .contextMenu {
                         Button(String(localized: "Edit")) {
                             editingRule = rule
@@ -162,7 +164,7 @@ struct FiltersTabView: View {
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: colorScheme))
     }
 
     private func ruleActionLabel(icon: String, title: String, iconColor: Color = .primary) -> some View {

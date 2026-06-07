@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct FeedsTabView: View {
     @EnvironmentObject private var store: FeedStore
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.colorScheme) private var colorScheme
     @State private var newFeedURL: String = ""
     @State private var selectedFeed: Feed?
     @State private var showingAddSheet: Bool = false
@@ -19,6 +20,7 @@ struct FeedsTabView: View {
             List(selection: $selectedFeed) {
                 ForEach(store.feeds) { feed in
                     feedRow(feed)
+                        .listRowBackground(PreferencesAppearance.windowBackground(for: colorScheme))
                 }
                 
                 Button {
@@ -38,10 +40,11 @@ struct FeedsTabView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .listRowBackground(PreferencesAppearance.windowBackground(for: colorScheme))
             }
             .listStyle(.inset)
             .scrollContentBackground(.hidden)
-            .background(Color.white)
+            .background(PreferencesAppearance.windowBackground(for: colorScheme))
             
             Divider()
             
@@ -81,7 +84,7 @@ struct FeedsTabView: View {
             .padding(12)
             .frame(minHeight: 44)
         }
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: colorScheme))
         .sheet(isPresented: $showingAddSheet) {
             AddFeedSheet(isPresented: $showingAddSheet)
                 .environmentObject(store)
@@ -254,6 +257,7 @@ struct EditCredentialsSheet: View {
 
 struct SuggestedFeedsSheet: View {
     @EnvironmentObject private var store: FeedStore
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var isPresented: Bool
     var hideDoneButton: Bool = false
     @State private var selectedFeedIds: Set<String> = []
@@ -354,11 +358,11 @@ struct SuggestedFeedsSheet: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white)
+                .fill(PreferencesAppearance.controlBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         )
     }
     

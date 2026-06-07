@@ -5,6 +5,7 @@ import AppKit
 
 struct PreferencesView: View {
     @EnvironmentObject private var store: FeedStore
+    @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: PreferencesTab = .feeds
     @AppStorage("rssPreferencesTab") private var preferencesTab: String = "feeds"
@@ -62,8 +63,10 @@ struct PreferencesView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: effectiveColorScheme))
         .background(AppearanceApplier(appearanceMode: store.appearanceMode))
+        .environment(\.colorScheme, effectiveColorScheme)
+        .preferredColorScheme(effectiveColorScheme)
         .frame(width: 450, height: 500)
         .environmentObject(store)
         .onAppear {
@@ -139,7 +142,11 @@ struct PreferencesView: View {
                 Group {
                     if isSelected {
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(.regularMaterial)
+                            .fill(PreferencesAppearance.controlBackground(for: effectiveColorScheme))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                            )
                     }
                 }
             )
@@ -155,6 +162,13 @@ struct PreferencesView: View {
         case .help: return "help"
         }
     }
+
+    private var effectiveColorScheme: ColorScheme {
+        PreferencesAppearance.colorScheme(
+            for: store.appearanceMode,
+            systemColorScheme: systemColorScheme
+        )
+    }
 }
 
 @available(macOS 26.0, *)
@@ -162,6 +176,7 @@ struct PreferencesTabButton: View {
     let tab: PreferencesView.PreferencesTab
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
     
     var body: some View {
@@ -182,8 +197,11 @@ struct PreferencesTabButton: View {
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(.clear)
-                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 8))
+                    .fill(PreferencesAppearance.controlBackground(for: colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    )
             } else if isHovered {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(.primary.opacity(0.08))

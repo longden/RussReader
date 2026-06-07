@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - Help Tab
 
 struct HelpTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -59,7 +61,7 @@ struct HelpTabView: View {
             }
             .padding()
         }
-        .background(Color.white)
+        .background(PreferencesAppearance.windowBackground(for: colorScheme))
     }
     
     private func helpItem(icon: String, title: String, description: String) -> some View {
