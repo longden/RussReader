@@ -90,49 +90,10 @@ struct RussReaderView: View {
         .focusable()
         .focusEffectDisabled()
 
-        if #available(macOS 26.0, *) {
-            content
-                .modifier(WindowStyleModifier(style: store.windowStyle))
-                .background(MenuBarWindowConfigurator())
-                .background(AppearanceApplier(appearanceMode: store.appearanceMode))
-                .frame(width: store.windowWidth, height: store.windowHeight)
-        } else {
-            content
-                .background(backgroundVisualEffect)
-                .background(MenuBarWindowConfigurator())
-                .background(AppearanceApplier(appearanceMode: store.appearanceMode))
-                .frame(width: store.windowWidth, height: store.windowHeight)
-        }
+        content
+            .background(AppearanceApplier(appearanceMode: store.appearanceMode))
+            .frame(width: store.windowWidth, height: store.windowHeight)
         } // else onboardingComplete
-    }
-
-    // MARK: - Background Styles
-    
-    @available(macOS 26.0, *)
-    private struct WindowStyleModifier: ViewModifier {
-        let style: String
-        
-        func body(content: Content) -> some View {
-            switch style {
-            case "translucent":
-                content.background(.ultraThinMaterial)
-            case "frosted":
-                content.background(.thinMaterial)
-            default:
-                content.background(.regularMaterial)
-            }
-        }
-    }
-    
-    private var backgroundVisualEffect: some View {
-        switch store.windowStyle {
-        case "translucent":
-            VisualEffectBackground(material: .underWindowBackground, blendingMode: .behindWindow)
-        case "frosted":
-            VisualEffectBackground(material: .fullScreenUI, blendingMode: .behindWindow)
-        default:
-            VisualEffectBackground(material: .hudWindow, blendingMode: .behindWindow)
-        }
     }
 
     // MARK: - Header View
@@ -618,4 +579,3 @@ struct RussReaderView: View {
 }
 
 // MARK: - Feed Item Row
-
